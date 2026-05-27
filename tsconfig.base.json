@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "removeComments": false,
+
+    "skipLibCheck": true,
+    "useDefineForClassFields": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["apps/game/src/core/*"],
+      "@scenes/*": ["apps/game/src/scenes/*"],
+      "@platform/*": ["apps/game/src/platform/*"],
+      "@ui/*": ["apps/game/src/ui/*"],
+      "@shared-types/*": ["packages/shared-types/src/*"],
+      "@balance/*": ["packages/balance/*"],
+      "@content/*": ["packages/content/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "dist-demo", "build", "ios", "android"]
+}

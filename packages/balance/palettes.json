@@ -1,0 +1,26 @@
+{
+  "$schema": "https://example.com/schemas/palettes.json",
+  "_comment": "Per-family color palette (GDD §13.2). Hex colors used by Phaser Graphics primitives.",
+  "ui": {
+    "background": "#0A0E1A",
+    "uiBase": "#12192B",
+    "uiBorders": "#1E2D4A",
+    "textPrimary": "#E8EDF5",
+    "textSecondary": "#7A8FAD",
+    "laceText": "#A0FFDC"
+  },
+  "families": {
+    "abyssal": "#1A6FD4",
+    "mycelial": "#2DB55D",
+    "lithic": "#D4841A",
+    "voidborn": "#8B3FD4",
+    "thermal": "#D43A1A"
+  },
+  "rarity": {
+    "common": "#9EA8B8",
+    "uncommon": "#2DB55D",
+    "rare": "#1A6FD4",
+    "legendary": "#D4A017"
+  },
+  "playerBase": "#6A7A8A"
+}

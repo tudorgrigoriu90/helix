@@ -1,0 +1,37 @@
+{
+  "name": "helix",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Strand Descent (codename HELIX) — turn-based genetic roguelite for mobile",
+  "author": "Tudor Grigoriu / Empathy Software",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @helix/game dev",
+    "build:web": "pnpm --filter @helix/game build:web",
+    "build:demo": "pnpm --filter @helix/game build:demo",
+    "build:ios": "pnpm --filter @helix/game build:ios",
+    "build:android": "pnpm --filter @helix/game build:android",
+    "test": "pnpm -r test",
+    "test:watch": "pnpm -r test:watch",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "typecheck": "pnpm -r typecheck",
+    "validate": "pnpm --filter @helix/content validate",
+    "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm validate"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@helix/balance",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tuning constants and centralized data (palettes, curves, drop rates)",
+  "type": "module",
+  "main": "./palettes.json",
+  "scripts": {
+    "typecheck": "echo 'no-op (data-only package)'"
+  }
+}

@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+dist-demo/
+build/
+out/
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Capacitor generated native projects (kept as folders, but ignore intermediate)
+ios/App/build/
+ios/App/Pods/
+ios/App/DerivedData/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Environments / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.p12
+*.key
+.firebase/
+.firebaserc.local
+firebase-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Misc
+*.tmp
+*.bak
