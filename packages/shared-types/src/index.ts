@@ -20,6 +20,7 @@ export type {
   EntityStats,
   PlayerState,
   EnemyState,
+  Telegraph,
   TurnPhase,
   TileType,
   GridState,

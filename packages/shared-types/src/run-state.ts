@@ -49,6 +49,9 @@ export interface PlayerState {
   readonly mutations: readonly string[];
 }
 
+/** Telegraphed enemy intent shown above its head (GDD §6.2). */
+export type Telegraph = 'melee' | 'ranged' | 'defense' | 'move' | 'special' | 'idle';
+
 export interface EnemyState {
   readonly id: string;
   readonly enemyDefId: string;
@@ -57,7 +60,7 @@ export interface EnemyState {
   readonly maxHp: number;
   readonly stats: EntityStats;
   readonly statuses: readonly ActiveStatus[];
-  readonly telegraph: string | null;
+  readonly telegraph: Telegraph | null;
 }
 
 export type TurnPhase =

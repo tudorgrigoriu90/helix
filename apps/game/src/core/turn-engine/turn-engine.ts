@@ -14,6 +14,7 @@ import type { Effect } from './effect';
 import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
 import { applyCrit, mitigate, rollCrit } from './combat';
+import { resolveEnemyPhase } from './enemy-phase';
 
 /** AP cost to move one tile (GDD §4.4 / §6.3). */
 const MOVE_AP_COST = 1;
@@ -363,19 +364,50 @@ function applyUseItem(
 function applyWait(
   state: RunState,
   _action: WaitAction,
-  _rng: Mulberry32,
+  rng: Mulberry32,
 ): TurnResult {
   if (state.phase !== 'player') return err(state, 'INVALID_PHASE', 'wait requires player phase');
-  return ok(state);
+  return endPlayerTurn(state, rng);
 }
 
 function applyEndTurn(
   state: RunState,
   _action: EndTurnAction,
-  _rng: Mulberry32,
+  rng: Mulberry32,
 ): TurnResult {
   if (state.phase !== 'player') return err(state, 'INVALID_PHASE', 'endTurn requires player phase');
-  return ok(state);
+  return endPlayerTurn(state, rng);
+}
+
+/**
+ * Ends the player turn: transition to the enemy phase, resolve every enemy's
+ * telegraphed action (T-64), then hand control back to the player with AP
+ * refreshed, ability cooldowns decremented, and the turn counter advanced.
+ *
+ * Status ticking (T-65), win/loss/floor-complete detection (T-66) and next
+ * telegraph generation (T-67) hook into this flow as they land.
+ */
+function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
+  const effects: Effect[] = [{ type: 'phaseChanged', from: 'player', to: 'enemy' }];
+
+  const enemyPhase = resolveEnemyPhase({ ...state, phase: 'enemy' }, rng);
+  effects.push(...enemyPhase.effects);
+
+  const post = enemyPhase.state;
+  const nextPlayer = {
+    ...post.player,
+    ap: post.player.maxAp,
+    abilities: post.player.abilities.map((s) => ({
+      ...s,
+      cooldownRemaining: Math.max(0, s.cooldownRemaining - 1),
+    })),
+  };
+  effects.push({ type: 'phaseChanged', from: 'enemy', to: 'player' });
+
+  return ok(
+    { ...post, player: nextPlayer, phase: 'player', turn: post.turn + 1 },
+    effects,
+  );
 }
 
 function applySurrender(

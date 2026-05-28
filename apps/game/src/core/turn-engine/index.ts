@@ -4,3 +4,5 @@ export type { TurnResult } from './turn-engine';
 export { TurnEngine } from './turn-engine';
 export { inBounds, tileAt, chebyshev } from './grid';
 export { mitigate, rollCrit, applyCrit, critChanceFor } from './combat';
+export { resolveEnemyPhase } from './enemy-phase';
+export type { EnemyPhaseResult } from './enemy-phase';
