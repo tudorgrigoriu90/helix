@@ -1,5 +1,6 @@
 import type { Position } from './action.js';
 import type { AbilitySlot } from './ability.js';
+import type { ItemDef } from './item.js';
 
 export type StatusEffect =
   | 'burn'
@@ -44,7 +45,7 @@ export interface PlayerState {
   readonly stats: EntityStats;
   readonly statuses: readonly ActiveStatus[];
   readonly abilities: readonly AbilitySlot[];
-  readonly items: readonly string[];
+  readonly items: readonly ItemDef[];
   readonly mutations: readonly string[];
 }
 

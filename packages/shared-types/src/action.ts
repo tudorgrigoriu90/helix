@@ -24,6 +24,7 @@ export interface UseItemAction {
   readonly type: 'useItem';
   readonly itemId: string;
   readonly targetId?: string;
+  readonly targetPos?: Position;
 }
 
 export interface WaitAction {

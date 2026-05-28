@@ -25,6 +25,9 @@ const MELEE_RANGE = 1;
 /** Damage = STR × this (melee). Ranged would be 0.8 once equipment lands. */
 const MELEE_DAMAGE_MULT = 1.0;
 
+/** AP cost to use a consumable (GDD §4.4 / §6.3). */
+const ITEM_AP_COST = 1;
+
 export interface TurnResult {
   readonly state: RunState;
   readonly effects: readonly Effect[];
@@ -282,11 +285,79 @@ function collectAoe(
 
 function applyUseItem(
   state: RunState,
-  _action: UseItemAction,
+  action: UseItemAction,
   _rng: Mulberry32,
 ): TurnResult {
-  if (state.phase !== 'player') return err(state, 'INVALID_PHASE', 'useItem requires player phase');
-  return ok(state);
+  if (state.phase !== 'player') {
+    return err(state, 'INVALID_PHASE', 'useItem requires player phase');
+  }
+
+  const itemIndex = state.player.items.findIndex((it) => it.id === action.itemId);
+  if (itemIndex === -1) {
+    return err(state, 'ITEM_NOT_FOUND', `player does not have item "${action.itemId}"`);
+  }
+  const item = state.player.items[itemIndex]!;
+  if (item.category !== 'consumable' || item.effect === null) {
+    return err(state, 'ITEM_NOT_CONSUMABLE', `"${item.id}" is not a usable consumable`);
+  }
+  if (state.player.ap < ITEM_AP_COST) {
+    return err(
+      state,
+      'INSUFFICIENT_AP',
+      `using "${item.id}" costs ${ITEM_AP_COST} AP, player has ${state.player.ap}`,
+    );
+  }
+
+  const effect = item.effect;
+
+  // Tile-targeted effects (grenades) need a valid in-bounds target tile.
+  if (effect.kind !== 'heal') {
+    if (action.targetPos === undefined) {
+      return err(state, 'INVALID_TARGET', `"${item.id}" requires a target tile`);
+    }
+    if (!inBounds(state.grid, action.targetPos)) {
+      return err(state, 'OUT_OF_RANGE', 'target tile is outside the grid');
+    }
+  }
+
+  // Consume one instance from inventory.
+  const nextItems = state.player.items.filter((_, i) => i !== itemIndex);
+  const effects: Effect[] = [{ type: 'itemUsed', itemId: item.id }];
+  let nextPlayer = { ...state.player, items: nextItems };
+  let nextEnemies = state.enemies;
+
+  if (effect.kind === 'heal') {
+    const newHp = Math.min(state.player.maxHp, state.player.hp + effect.amount);
+    const healed = newHp - state.player.hp;
+    nextPlayer = { ...nextPlayer, hp: newHp };
+    effects.push({ type: 'healingApplied', targetId: 'player', amount: healed });
+  } else {
+    const center = action.targetPos!;
+    const indices: number[] = [];
+    collectAoe(state, center, effect.aoeRadius, indices);
+    const hitSet = new Set(indices);
+
+    nextEnemies = state.enemies.map((e, i) => {
+      if (!hitSet.has(i)) return e;
+      let next: EnemyState = e;
+      if (effect.kind === 'damage') {
+        const dealt = mitigate(effect.amount, e.stats.res, effect.damageType);
+        const newHp = Math.max(0, e.hp - dealt);
+        next = { ...next, hp: newHp };
+        effects.push({ type: 'damageDealt', targetId: e.id, amount: dealt, isCrit: false, damageType: effect.damageType });
+        if (newHp === 0) effects.push({ type: 'entityDied', entityId: e.id });
+      } else {
+        next = { ...next, statuses: [...next.statuses, { effect: effect.status, turnsRemaining: effect.duration }] };
+        effects.push({ type: 'statusApplied', targetId: e.id, status: effect.status, turns: effect.duration });
+      }
+      return next;
+    });
+  }
+
+  nextPlayer = { ...nextPlayer, ap: nextPlayer.ap - ITEM_AP_COST };
+  effects.push({ type: 'apSpent', amount: ITEM_AP_COST, remaining: nextPlayer.ap });
+
+  return ok({ ...state, enemies: nextEnemies, player: nextPlayer }, effects);
 }
 
 function applyWait(

@@ -31,3 +31,9 @@ export type {
   AbilityDef,
   AbilitySlot,
 } from './ability.js';
+
+export type {
+  ItemCategory,
+  ItemEffect,
+  ItemDef,
+} from './item.js';

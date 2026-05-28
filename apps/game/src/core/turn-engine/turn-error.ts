@@ -8,6 +8,7 @@ export type TurnErrorCode =
   | 'ABILITY_SUPPRESSED'
   | 'INVALID_TARGET'
   | 'ITEM_NOT_FOUND'
+  | 'ITEM_NOT_CONSUMABLE'
   | 'ALREADY_SURRENDERED';
 
 export interface TurnError {
