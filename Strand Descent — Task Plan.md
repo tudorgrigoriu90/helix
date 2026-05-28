@@ -139,7 +139,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-22  | ~~Create directory tree per TDD §3~~ — **DONE 2026-05-27.** Full tree (`apps/game/src/{core/*,scenes,ui,platform,data,assets}`, `apps/functions/src`, `packages/{shared-types/src,balance,content/{mutations,enemies,items,floors,organism-names,lace-lines}}`, `tools/`, `docs/{qa,licenses}`, `.github/workflows`) with `.gitkeep` markers. | DevOps | P0 | TDD §3 | DONE |
 | T-23  | ~~Root `.editorconfig`, `.prettierrc`, `.eslintrc.json`~~ — **DONE 2026-05-27.** Plus `.prettierignore` and `.gitignore`. ESLint extends `@typescript-eslint/recommended` + `prettier`. | DevOps | P0 | TDD §2.1 | DONE |
 | T-24  | ~~Root `tsconfig.base.json`~~ — **DONE 2026-05-27.** Strict mode (all flags), ES2022 target, `Bundler` module resolution, path aliases (`@core/*`, `@scenes/*`, etc.). Per-package `tsconfig.json` extends base in `apps/game`, `apps/functions`, `packages/shared-types`. | DevOps | P0 | TDD §2.1 | DONE |
-| T-25  | Custom lint rule: forbid Phaser/Capacitor imports in `core/`          | DevOps           | P0       | TDD §4.1       | NFR P5 — needs `pnpm install` first; deferred to S-2.5 sequencing |
+| T-25  | ~~Custom lint rule: forbid Phaser/Capacitor imports in `core/`~~ — **DONE 2026-05-28.** `no-restricted-imports` override in `.eslintrc.json` for `apps/game/src/core/**/*.ts`. Blocks `phaser`, `phaser/*`, and `@capacitor/*` with descriptive error messages referencing TDD §4.1. Verified: lint error fires on any Phaser import in core/. | DevOps           | P0       | TDD §4.1       | DONE |
 | T-26  | Custom lint rule: every Firestore read goes via `cache.ts`            | DevOps           | P0       | TDD §12        | NFR P3 — needs `pnpm install` + `cache.ts` to exist first |
 | T-27  | ~~Add `README.md` pointing to `docs/` consolidated set~~ — **DONE 2026-05-27.** Repo-root README links to all 13 docs + Task Plan + Trademark Report + describes stack/principles/layout. | DevOps | P0 | — | DONE |
 
@@ -208,7 +208,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                                 | Role          | Priority | Refs              | Notes |
 | ----- | --------------------------------------------------------------------- | ------------- | -------- | ----------------- | ----- |
-| T-58  | `Action` discriminated union in `packages/shared-types`               | Game Engineer | P0       | TDD §5.2          | |
+| T-58  | ~~`Action` discriminated union in `packages/shared-types`~~ — **DONE 2026-05-28.** `packages/shared-types/src/action.ts` created. Union covers 7 action types: `move` (targetPos), `attack` (targetId), `useAbility` (abilityId + optional targetId/targetPos), `useItem` (itemId + optional targetId), `wait`, `endTurn`, `surrender`. Supporting types: `Position`, `ActionType`. Exported from `index.ts`. All types `readonly`. Typecheck passes. | Game Engineer | P0       | TDD §5.2          | DONE |
 | T-59  | `TurnEngine.apply(state, action, rng) → { state, effects, errors }`   | Game Engineer | P0       | TDD §5.1          | Pure function — NFR P2/P4 |
 | T-60  | Move validation + execution                                           | Game Engineer | P0       | TDD §5.3          | |
 | T-61  | Attack validation + damage calc (STR/RES, crit, damage type)          | Game Engineer | P0       | GDD §6.3-§6.6     | |

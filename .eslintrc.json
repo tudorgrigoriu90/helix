@@ -36,6 +36,26 @@
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/explicit-function-return-type": "off"
       }
+    },
+    {
+      "files": ["apps/game/src/core/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["phaser", "phaser/*"],
+                "message": "Phaser must not be imported in core/ — engine-agnostic layer (TDD §4.1). Use platform adapters."
+              },
+              {
+                "group": ["@capacitor/*"],
+                "message": "@capacitor/* must not be imported in core/ — engine-agnostic layer (TDD §4.1). Use platform adapters."
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "ignorePatterns": [
