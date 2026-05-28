@@ -3,3 +3,10 @@ export type { LoaderError, LoaderErrorCode, LoaderResult } from './floor-templat
 
 export { placeRooms } from './room-placement';
 export { buildAdjacency, bfsDistances, areAdjacent } from './graph';
+
+export { validateConnectivity } from './connectivity';
+export type {
+  ConnectivityResult,
+  ConnectivityError,
+  ConnectivityErrorCode,
+} from './connectivity';
