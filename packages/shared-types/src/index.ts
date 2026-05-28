@@ -51,6 +51,15 @@ export type {
 export { CURRENT_ENEMY_SCHEMA_VERSION } from './enemy.js';
 
 export type {
+  LaceMood,
+  LaceContext,
+  LaceLine,
+  LaceLineBundle,
+} from './lace-line.js';
+
+export { CURRENT_LACE_SCHEMA_VERSION } from './lace-line.js';
+
+export type {
   RoomType,
   Zone,
   ConnectivityRule,

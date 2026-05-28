@@ -7,6 +7,7 @@ import type { ItemDef } from '@shared-types/item';
 import { parseEnemyDef } from './enemy-loader';
 import { parseItemDef } from './item-loader';
 import { parseFloorTemplate } from '../floor-gen';
+import { parseLaceLines } from '../lace';
 import { crossReferenceContent } from './cross-reference';
 
 /**
@@ -52,6 +53,14 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
 
   it('every floor file passes the schema loader', () => {
     for (const { file, res } of floorResults) {
+      expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
+    }
+  });
+
+  it('every LACE line bundle passes the schema loader', () => {
+    const laceFiles = readDir('lace-lines');
+    for (const { file, raw } of laceFiles) {
+      const res = parseLaceLines(raw);
       expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
     }
   });

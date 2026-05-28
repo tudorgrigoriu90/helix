@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "lines": [
+    { "id": "start_01", "text": "The signal chose you. I'm just along for the descent.", "context": "run_start", "mood": "neutral", "weight": 1 },
+    { "id": "start_02", "text": "Twenty floors down. Statistically, you won't see most of them.", "context": "run_start", "mood": "hostile", "weight": 1 },
+    { "id": "floor_01", "text": "New floor. New ways for the VEIN to rearrange you.", "context": "floor_enter", "mood": "neutral", "weight": 1 },
+    { "id": "floor_02", "text": "Deeper. The pressure is starting to like you.", "context": "floor_enter", "mood": "curious", "weight": 1 },
+    { "id": "combat_01", "text": "They've noticed us. How thrilling.", "context": "combat_start", "mood": "neutral", "weight": 1 },
+    { "id": "combat_02", "text": "Try not to die in front of me. It's awkward.", "context": "combat_start", "mood": "hostile", "weight": 1 },
+    { "id": "kill_01", "text": "One less thing breathing down here.", "context": "enemy_killed", "mood": "neutral", "weight": 1 },
+    { "id": "kill_02", "text": "Efficient. I almost felt something.", "context": "enemy_killed", "mood": "affectionate", "weight": 1 },
+    { "id": "hurt_01", "text": "That looked like it hurt. Good data.", "context": "player_hurt", "mood": "curious", "weight": 1 },
+    { "id": "hurt_02", "text": "Bleed faster, we don't have all day.", "context": "player_hurt", "mood": "hostile", "weight": 1 },
+    { "id": "cleared_01", "text": "Room's quiet now. Savor it.", "context": "room_cleared", "mood": "neutral", "weight": 1 },
+    { "id": "boss_start_01", "text": "This one has a name. That's never good.", "context": "boss_start", "mood": "unstable", "weight": 1 },
+    { "id": "boss_kill_01", "text": "The warden falls. The VEIN will simply grow another.", "context": "boss_killed", "mood": "neutral", "weight": 1 },
+    { "id": "floor_done_01", "text": "Floor cleared. The descent continues whether you want it to or not.", "context": "floor_complete", "mood": "neutral", "weight": 1 },
+    { "id": "death_01", "text": "And that's the end of you. I'll remember the seed, at least.", "context": "player_death", "mood": "neutral", "weight": 1 },
+    { "id": "death_02", "text": "Reabsorbed. Don't take it personally — the VEIN takes everyone.", "context": "player_death", "mood": "affectionate", "weight": 1 },
+    { "id": "generic_01", "text": "...", "context": "generic", "mood": "neutral", "weight": 1 },
+    { "id": "generic_02", "text": "The walls are listening. They always are.", "context": "generic", "mood": "unstable", "weight": 1 },
+    { "id": "generic_03", "text": "Keep moving.", "context": "generic", "mood": "neutral", "weight": 1 }
+  ]
+}

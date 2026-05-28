@@ -263,15 +263,15 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                                 | Role          | Priority | Refs              | Notes |
 | ----- | --------------------------------------------------------------------- | ------------- | -------- | ----------------- | ----- |
-| T-96  | LACE line JSON schema (text + context + mood + weight)                | Game Engineer | P0       | TDD §9.2          | |
-| T-97  | Line loader + schema validator                                        | Game Engineer | P0       | TDD §9.2          | |
-| T-98  | Selection algorithm (filter by context, exclude already-spoken, weight-sample) | Game Engineer | P0 | TDD §9.3          | |
-| T-99  | Mood state machine (5 moods, transitions per TDD §9.4)                | Game Engineer | P0       | TDD §9.4          | |
+| T-96  | ~~LACE line JSON schema (text + context + mood + weight)~~ — **DONE 2026-05-28.** `LaceLine` + `LaceLineBundle` + `LaceMood` (5 moods) + `LaceContext` (run events + `generic`) in `@shared-types/lace-line`. On-disk shape is a `{ schemaVersion, lines: [...] }` bundle. | Game Engineer | P0       | TDD §9.2          | DONE |
+| T-97  | ~~Line loader + schema validator~~ — **DONE 2026-05-28.** `parseLaceLines(input)` in `core/lace/lace-loader.ts` — never-throws, validates schemaVersion, every line's fields/enums/positive weight, and id uniqueness; reuses the shared content-loader plumbing. Wired into the `pnpm validate` bundle gate (`core.json` checked in CI). | Game Engineer | P0       | TDD §9.2          | DONE |
+| T-98  | ~~Selection algorithm (filter by context, exclude already-spoken, weight-sample)~~ — **DONE 2026-05-28.** `selectLine(lines, {context, mood, spoken, rng})` in `core/lace/lace-select.ts`: filters by context, excludes spoken, prefers the current mood (falls back to the whole context pool), then weight-samples. Pure; entropy only from the `events` sub-generator. | Game Engineer | P0 | TDD §9.3          | DONE |
+| T-99  | Mood state machine (5 moods, transitions per TDD §9.4)                | Game Engineer | P0       | TDD §9.4          | Mood held as a field on `LaceNarrator` (default neutral, `setMood`); full transition machine still pending |
 | T-100 | Mood persistence across runs with drift toward neutral                | Game Engineer | P1       | TDD §9.4          | |
 | T-101 | Templated grammar assembly (DR-004 default plan)                      | Game Engineer | P0       | TDD §9.5          | Fragments tagged by [event_type, family, mood, state] |
-| T-102 | Fallback to generic line pool when no candidates                      | Game Engineer | P0       | TDD §9.3          | |
-| T-103 | "Spoken-this-run" tracker, cleared on death                           | Game Engineer | P0       | TDD §9.3          | |
-| T-104 | Vitest: filter/weight/no-repeat invariants                            | QA            | P0       | TDD §16.1         | |
+| T-102 | ~~Fallback to generic line pool when no candidates~~ — **DONE 2026-05-28.** `selectLine` falls back to the `generic` context pool (minus spoken) when no context line is available, and returns null only when even that is exhausted. | Game Engineer | P0       | TDD §9.3          | DONE |
+| T-103 | ~~"Spoken-this-run" tracker, cleared on death~~ — **DONE 2026-05-28.** `LaceNarrator` (`core/lace/narrator.ts`) wraps `selectLine` with a run-scoped spoken set: `narrate(context)` selects + records (no repeats within a run); `reset()` clears it on death / new run. Holds mood + rng. | Game Engineer | P0       | TDD §9.3          | DONE |
+| T-104 | ~~Vitest: filter/weight/no-repeat invariants~~ — **DONE 2026-05-28.** `core/lace/lace.test.ts` — 11 tests: loader happy/error/duplicate paths, selection (context filter, mood preference, spoken-exclusion, generic fallback, exhaustion → null), narrator no-repeat + reset, and the shipped `core.json` loads. Plus a 20-line prototype pool in `packages/content/lace-lines/core.json`. | QA            | P0       | TDD §16.1         | DONE |
 
 ### S-3.6 — Economy
 
