@@ -1,5 +1,5 @@
 import type { Position } from '@shared-types/action';
-import type { DamageType, StatusEffect } from '@shared-types/run-state';
+import type { DamageType, DeathCause, StatusEffect } from '@shared-types/run-state';
 
 export type Effect =
   | { readonly type: 'entityMoved'; readonly entityId: string; readonly from: Position; readonly to: Position }
@@ -12,7 +12,7 @@ export type Effect =
   | { readonly type: 'phaseChanged'; readonly from: string; readonly to: string }
   | { readonly type: 'floorComplete' }
   | { readonly type: 'victory' }
-  | { readonly type: 'defeat'; readonly cause: string }
+  | { readonly type: 'defeat'; readonly cause: DeathCause }
   | { readonly type: 'telegraphUpdated'; readonly enemyId: string; readonly telegraph: string | null }
   | { readonly type: 'abilityUsed'; readonly entityId: string; readonly abilityId: string }
   | { readonly type: 'itemUsed'; readonly itemId: string };

@@ -3,6 +3,7 @@ export type TurnErrorCode =
   | 'TARGET_NOT_FOUND'
   | 'OUT_OF_RANGE'
   | 'INSUFFICIENT_AP'
+  | 'ROOTED'
   | 'ABILITY_NOT_FOUND'
   | 'ABILITY_ON_COOLDOWN'
   | 'ABILITY_SUPPRESSED'

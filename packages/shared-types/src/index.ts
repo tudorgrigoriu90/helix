@@ -16,6 +16,7 @@ export type {
 export type {
   StatusEffect,
   DamageType,
+  DeathCause,
   ActiveStatus,
   EntityStats,
   PlayerState,

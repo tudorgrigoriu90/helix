@@ -78,6 +78,8 @@ function enemyAttack(state: RunState, enemy: EnemyState, range: number, rawDamag
 }
 
 function enemyStepTowardPlayer(state: RunState, enemy: EnemyState): EnemyPhaseResult {
+  if (enemy.statuses.some((s) => s.effect === 'rooted')) return { state, effects: [] };
+
   const to: Position = {
     x: enemy.pos.x + Math.sign(state.player.pos.x - enemy.pos.x),
     y: enemy.pos.y + Math.sign(state.player.pos.y - enemy.pos.y),

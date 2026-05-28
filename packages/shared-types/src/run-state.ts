@@ -23,6 +23,15 @@ export type DamageType =
   | 'pressure'
   | 'true';
 
+/** Locked analytics enum for run-end attribution (GDD §6.7). */
+export type DeathCause =
+  | 'enemy_kill'
+  | 'boss_kill'
+  | 'hazard'
+  | 'status_tick'
+  | 'surrender'
+  | 'mutation_backfire';
+
 export interface ActiveStatus {
   readonly effect: StatusEffect;
   readonly turnsRemaining: number;

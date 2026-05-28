@@ -246,4 +246,29 @@ describe('endTurn / wait turn flow — T-64', () => {
     const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
     expect(result.errors[0]?.code).toBe('INVALID_PHASE');
   });
+
+  it('ticks player statuses during the cycle (Burn bites on endTurn)', () => {
+    const state = playerTurnState({
+      player: { ...playerTurnState().player, statuses: [{ effect: 'burn', turnsRemaining: 2 }] },
+    });
+    const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
+    expect(result.state.player.hp).toBe(95);
+    expect(result.state.player.statuses).toEqual([{ effect: 'burn', turnsRemaining: 1 }]);
+  });
+
+  it('regenerates telegraphs for the next enemy turn', () => {
+    // Enemy two tiles away with no telegraph → should be told to move.
+    const state = playerTurnState({ enemies: [enemy('e1', { x: 1, y: 1 }, null)] });
+    const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
+    expect(result.state.enemies[0]?.telegraph).toBe('move');
+  });
+
+  it('a Burn tick that kills the player ends in defeat with cause status_tick', () => {
+    const state = playerTurnState({
+      player: { ...playerTurnState().player, hp: 4, statuses: [{ effect: 'burn', turnsRemaining: 2 }] },
+    });
+    const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
+    expect(result.state.phase).toBe('defeat');
+    expect(result.effects).toContainEqual({ type: 'defeat', cause: 'status_tick' });
+  });
 });

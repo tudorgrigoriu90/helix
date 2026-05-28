@@ -15,6 +15,9 @@ import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
 import { applyCrit, mitigate, rollCrit } from './combat';
 import { resolveEnemyPhase } from './enemy-phase';
+import { tickStatuses } from './status-tick';
+import { detectOutcome } from './outcome';
+import { generateTelegraphs } from './telegraph';
 
 /** AP cost to move one tile (GDD §4.4 / §6.3). */
 const MOVE_AP_COST = 1;
@@ -50,6 +53,10 @@ function applyMove(
 ): TurnResult {
   if (state.phase !== 'player') {
     return err(state, 'INVALID_PHASE', 'move requires player phase');
+  }
+
+  if (state.player.statuses.some((s) => s.effect === 'rooted')) {
+    return err(state, 'ROOTED', 'player is rooted and cannot move');
   }
 
   const from = state.player.pos;
@@ -380,12 +387,11 @@ function applyEndTurn(
 }
 
 /**
- * Ends the player turn: transition to the enemy phase, resolve every enemy's
- * telegraphed action (T-64), then hand control back to the player with AP
+ * Ends the player turn and runs the full cycle (TDD §5.3): transition to the
+ * enemy phase, resolve every enemy's telegraphed action (T-64), tick statuses
+ * (T-65), check for a terminal outcome (T-66). If combat continues, generate
+ * the next telegraphs (T-67) and hand control back to the player with AP
  * refreshed, ability cooldowns decremented, and the turn counter advanced.
- *
- * Status ticking (T-65), win/loss/floor-complete detection (T-66) and next
- * telegraph generation (T-67) hook into this flow as they land.
  */
 function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
   const effects: Effect[] = [{ type: 'phaseChanged', from: 'player', to: 'enemy' }];
@@ -393,11 +399,26 @@ function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
   const enemyPhase = resolveEnemyPhase({ ...state, phase: 'enemy' }, rng);
   effects.push(...enemyPhase.effects);
 
-  const post = enemyPhase.state;
+  const hpBeforeTick = enemyPhase.state.player.hp;
+  const ticked = tickStatuses(enemyPhase.state);
+  effects.push(...ticked.effects);
+
+  const diedFromTick = hpBeforeTick > 0 && ticked.state.player.hp <= 0;
+  const outcome = detectOutcome(ticked.state, diedFromTick ? 'status_tick' : 'enemy_kill');
+  effects.push(...outcome.effects);
+
+  // Terminal outcome (defeat / floor_complete / victory) — combat is over.
+  if (outcome.state.phase !== 'enemy') {
+    return ok(outcome.state, effects);
+  }
+
+  const tele = generateTelegraphs(outcome.state);
+  effects.push(...tele.effects);
+
   const nextPlayer = {
-    ...post.player,
-    ap: post.player.maxAp,
-    abilities: post.player.abilities.map((s) => ({
+    ...tele.state.player,
+    ap: tele.state.player.maxAp,
+    abilities: tele.state.player.abilities.map((s) => ({
       ...s,
       cooldownRemaining: Math.max(0, s.cooldownRemaining - 1),
     })),
@@ -405,7 +426,7 @@ function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
   effects.push({ type: 'phaseChanged', from: 'enemy', to: 'player' });
 
   return ok(
-    { ...post, player: nextPlayer, phase: 'player', turn: post.turn + 1 },
+    { ...tele.state, player: nextPlayer, phase: 'player', turn: tele.state.turn + 1 },
     effects,
   );
 }
@@ -416,19 +437,31 @@ function applySurrender(
   _rng: Mulberry32,
 ): TurnResult {
   if (state.phase === 'defeat') return err(state, 'ALREADY_SURRENDERED', 'already in defeat phase');
-  return ok(state);
+  return ok({ ...state, phase: 'defeat' }, [{ type: 'defeat', cause: 'surrender' }]);
+}
+
+function dispatch(state: RunState, action: Action, rng: Mulberry32): TurnResult {
+  switch (action.type) {
+    case 'move':       return applyMove(state, action, rng);
+    case 'attack':     return applyAttack(state, action, rng);
+    case 'useAbility': return applyUseAbility(state, action, rng);
+    case 'useItem':    return applyUseItem(state, action, rng);
+    case 'wait':       return applyWait(state, action, rng);
+    case 'endTurn':    return applyEndTurn(state, action, rng);
+    case 'surrender':  return applySurrender(state, action, rng);
+  }
 }
 
 export const TurnEngine = {
   apply(state: RunState, action: Action, rng: Mulberry32): TurnResult {
-    switch (action.type) {
-      case 'move':       return applyMove(state, action, rng);
-      case 'attack':     return applyAttack(state, action, rng);
-      case 'useAbility': return applyUseAbility(state, action, rng);
-      case 'useItem':    return applyUseItem(state, action, rng);
-      case 'wait':       return applyWait(state, action, rng);
-      case 'endTurn':    return applyEndTurn(state, action, rng);
-      case 'surrender':  return applySurrender(state, action, rng);
-    }
+    const result = dispatch(state, action, rng);
+    if (result.errors.length > 0) return result;
+
+    // Win/loss/floor-complete detection after every successful action — e.g. a
+    // killing blow that clears the last enemy ends the floor immediately
+    // (idempotent if the handler already set a terminal phase).
+    const outcome = detectOutcome(result.state);
+    if (outcome.effects.length === 0) return result;
+    return { state: outcome.state, effects: [...result.effects, ...outcome.effects], errors: [] };
   },
 };
