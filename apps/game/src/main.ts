@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { BootScene } from '@scenes/BootScene';
+import { CombatSandboxScene } from '@scenes/CombatSandboxScene';
 
 // Compile-time constant replaced by Vite define. Import this wherever DEMO_MODE
 // branching is needed — never read window or import.meta.env directly.
@@ -16,7 +16,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene],
+  scene: [CombatSandboxScene],
 };
 
 export const game = new Phaser.Game(gameConfig);
