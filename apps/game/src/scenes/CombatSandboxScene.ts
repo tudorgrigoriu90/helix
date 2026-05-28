@@ -5,6 +5,7 @@ import type { Effect } from '../core/turn-engine/effect';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
 import { Mulberry32 } from '../core/rng/mulberry32';
+import { drawTabBar } from './tab-bar';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 const TILE  = 50;
@@ -140,6 +141,9 @@ export class CombatSandboxScene extends Phaser.Scene {
     this.createHUD();
     this.createLogText();
     this.createButtons();
+
+    // Sandbox navigation tab bar at the very top (after other UI so it draws on top).
+    drawTabBar(this, this.scene.key);
 
     this.renderAll();
     this.pushLog('Combat sandbox — tap tile to move, tap enemy to attack');
@@ -384,7 +388,8 @@ export class CombatSandboxScene extends Phaser.Scene {
   // ── HUD ──────────────────────────────────────────────────────────────────────
 
   private createHUD(): void {
-    this.hudText = this.add.text(16, 10, '', {
+    // y=36 leaves room for the sandbox tab bar (drawTabBar, y=0..28).
+    this.hudText = this.add.text(16, 36, '', {
       fontFamily: 'monospace',
       fontSize:   '13px',
       color:       C.text,
