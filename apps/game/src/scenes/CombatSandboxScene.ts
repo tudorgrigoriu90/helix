@@ -148,7 +148,7 @@ export class CombatSandboxScene extends Phaser.Scene {
   // ── State management ────────────────────────────────────────────────────────
 
   private resetState(): void {
-    this.state    = structuredClone(INITIAL_STATE) as RunState;
+    this.state    = structuredClone(INITIAL_STATE);
     this.rng      = new Mulberry32(SEED);
     this.logLines = [];
   }
