@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "cave_crawler",
+  "name": "Cave Crawler",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 18,
+  "stats": { "str": 7, "res": 4, "agi": 8, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["caves", "chitinous", "skittering"]
+}

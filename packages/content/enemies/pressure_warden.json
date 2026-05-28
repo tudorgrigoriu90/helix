@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "pressure_warden",
+  "name": "Pressure Warden",
+  "tier": "boss",
+  "zone": "shallows",
+  "maxHp": 90,
+  "stats": { "str": 14, "res": 8, "agi": 6, "int": 6 },
+  "damageType": "pressure",
+  "aestheticTags": ["caves", "fluorescent", "pressure", "boss"]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "scavenger",
+  "name": "Scavenger",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 20,
+  "stats": { "str": 6, "res": 5, "agi": 7, "int": 3 },
+  "damageType": "physical",
+  "aestheticTags": ["caves", "opportunist", "scuttling"]
+}

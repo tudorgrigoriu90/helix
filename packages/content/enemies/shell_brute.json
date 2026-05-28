@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "shell_brute",
+  "name": "Shell Brute",
+  "tier": "elite",
+  "zone": "shallows",
+  "maxHp": 34,
+  "stats": { "str": 11, "res": 9, "agi": 3, "int": 2 },
+  "damageType": "seismic",
+  "aestheticTags": ["caves", "armored", "slow", "calcified"]
+}

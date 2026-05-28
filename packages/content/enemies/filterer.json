@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "filterer",
+  "name": "Filterer",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 16,
+  "stats": { "str": 6, "res": 3, "agi": 5, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["caves", "translucent", "filter_feeder"]
+}

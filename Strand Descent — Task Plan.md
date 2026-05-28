@@ -602,7 +602,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-289 | 5 Minor mutations per family × 5 families = 25 mutations | Director | P0 | GDD App A  | First Strand Event candidates |
-| T-290 | Zone 1 enemies (5 + 1 boss)                            | Director | P0       | GDD §8.3   | |
+| T-290 | ~~Zone 1 enemies (5 + 1 boss)~~ — **DONE 2026-05-28.** Six `EnemyDef` JSON files in `packages/content/enemies/`: `filterer`, `cave_crawler`, `acid_spitter`, `scavenger` (the four `floor_01.json` pools) + `shell_brute` (elite) + `pressure_warden` (boss, matches `floor_01` bossId). All zone `shallows`, balanced grunt/elite/boss stat bands. `enemies.content.test.ts` loads every shipped file through the T-283 loader (so malformed content fails CI) and asserts the roster + id-matches-filename + single boss. 3 tests. | Director | P0       | GDD §8.3   | DONE |
 | T-291 | Zone 1 floor templates (Floors 1–5)                    | Director | P0       | GDD §7.1   | |
 | T-292 | ~15 Common-tier items                                  | Director | P0       | GDD §9.2   | |
 | T-293 | Floor 0 tutorial template (4 rooms)                    | Director | P0       | TDD §21 Q4 | |

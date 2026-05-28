@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "acid_spitter",
+  "name": "Acid Spitter",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 14,
+  "stats": { "str": 8, "res": 2, "agi": 6, "int": 4 },
+  "damageType": "spore",
+  "aestheticTags": ["caves", "acid_pools", "corrosive"]
+}
