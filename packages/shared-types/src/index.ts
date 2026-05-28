@@ -54,3 +54,9 @@ export {
   ROOM_WEIGHTS_TOLERANCE,
   CURRENT_FLOOR_TEMPLATE_SCHEMA_VERSION,
 } from './floor-template.js';
+
+export type {
+  RoomNode,
+  FloorEdge,
+  FloorGraph,
+} from './floor-graph.js';
