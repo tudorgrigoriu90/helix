@@ -101,10 +101,6 @@ function fmt(stats: PerfStats): string {
 const PLAYER_STATS: EntityStats = { str: 12, res: 8, agi: 10, int: 14 };
 const ENEMY_STATS: EntityStats = { str: 8, res: 4, agi: 7, int: 5 };
 
-function openGrid(width = 7, height = 7): GridState {
-  return { width, height, tiles: new Array<TileType>(width * height).fill('open') };
-}
-
 function gridWithHazards(width = 7, height = 7): GridState {
   const tiles = new Array<TileType>(width * height).fill('open' as TileType);
   // A few hazards + walls + a cover tile, mirroring a typical combat room.
