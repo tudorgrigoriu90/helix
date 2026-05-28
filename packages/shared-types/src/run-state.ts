@@ -1,4 +1,5 @@
 import type { Position } from './action.js';
+import type { AbilitySlot } from './ability.js';
 
 export type StatusEffect =
   | 'burn'
@@ -11,6 +12,15 @@ export type StatusEffect =
   | 'phased'
   | 'regenerating'
   | 'overheated';
+
+export type DamageType =
+  | 'physical'
+  | 'thermal'
+  | 'void'
+  | 'spore'
+  | 'seismic'
+  | 'pressure'
+  | 'true';
 
 export interface ActiveStatus {
   readonly effect: StatusEffect;
@@ -33,7 +43,7 @@ export interface PlayerState {
   readonly maxAp: number;
   readonly stats: EntityStats;
   readonly statuses: readonly ActiveStatus[];
-  readonly abilities: readonly string[];
+  readonly abilities: readonly AbilitySlot[];
   readonly items: readonly string[];
   readonly mutations: readonly string[];
 }

@@ -15,6 +15,7 @@ export type {
 
 export type {
   StatusEffect,
+  DamageType,
   ActiveStatus,
   EntityStats,
   PlayerState,
@@ -24,3 +25,9 @@ export type {
   GridState,
   RunState,
 } from './run-state.js';
+
+export type {
+  AbilityTargetType,
+  AbilityDef,
+  AbilitySlot,
+} from './ability.js';

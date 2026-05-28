@@ -8,26 +8,22 @@ import type {
   EndTurnAction,
   SurrenderAction,
 } from '@shared-types/action';
-import type { RunState } from '@shared-types/run-state';
+import type { ActiveStatus, EnemyState, RunState } from '@shared-types/run-state';
 import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
+import { applyCrit, mitigate, rollCrit } from './combat';
 
 /** AP cost to move one tile (GDD §4.4 / §6.3). */
 const MOVE_AP_COST = 1;
 
-// ── Basic attack tuning (GDD §6.3, §6.6) ─────────────────────────────────────
+// ── Basic attack tuning (GDD §6.3) ───────────────────────────────────────────
 const ATTACK_AP_COST = 1;
 /** Melee basic-attack reach in tiles (Chebyshev). Ranged needs equipment — not modeled yet. */
 const MELEE_RANGE = 1;
 /** Damage = STR × this (melee). Ranged would be 0.8 once equipment lands. */
 const MELEE_DAMAGE_MULT = 1.0;
-const BASE_CRIT_CHANCE = 0.05;
-const CRIT_MULTIPLIER = 1.5;
-const BASE_AGI = 10;
-/** Crit chance gained per point of AGI above base. Tunable pending Economy.xlsx balance pass. */
-const CRIT_PER_AGI_OVER_BASE = 0.005;
 
 export interface TurnResult {
   readonly state: RunState;
@@ -132,11 +128,9 @@ function applyAttack(
 
   // Damage = STR × melee mult, ×1.5 on crit, then flat RES mitigation (GDD §6.4/§6.6).
   const baseDamage = Math.floor(state.player.stats.str * MELEE_DAMAGE_MULT);
-  const critChance =
-    BASE_CRIT_CHANCE + Math.max(0, state.player.stats.agi - BASE_AGI) * CRIT_PER_AGI_OVER_BASE;
-  const isCrit = rng.next() < critChance;
-  const rawDamage = isCrit ? Math.floor(baseDamage * CRIT_MULTIPLIER) : baseDamage;
-  const dealt = Math.max(0, rawDamage - target.stats.res);
+  const isCrit = rollCrit(rng, state.player.stats.agi);
+  const rawDamage = applyCrit(baseDamage, isCrit);
+  const dealt = mitigate(rawDamage, target.stats.res, 'physical');
   const newHp = Math.max(0, target.hp - dealt);
 
   const nextEnemies = state.enemies.map((e, i) =>
@@ -163,11 +157,127 @@ function applyAttack(
 
 function applyUseAbility(
   state: RunState,
-  _action: UseAbilityAction,
+  action: UseAbilityAction,
   _rng: Mulberry32,
 ): TurnResult {
-  if (state.phase !== 'player') return err(state, 'INVALID_PHASE', 'useAbility requires player phase');
-  return ok(state);
+  if (state.phase !== 'player') {
+    return err(state, 'INVALID_PHASE', 'useAbility requires player phase');
+  }
+
+  const slotIndex = state.player.abilities.findIndex((s) => s.def.id === action.abilityId);
+  if (slotIndex === -1) {
+    return err(state, 'ABILITY_NOT_FOUND', `player does not have ability "${action.abilityId}"`);
+  }
+  const slot = state.player.abilities[slotIndex]!;
+  const def = slot.def;
+
+  if (state.player.statuses.some((s) => s.effect === 'suppressed')) {
+    return err(state, 'ABILITY_SUPPRESSED', 'abilities are suppressed');
+  }
+  if (slot.cooldownRemaining > 0) {
+    return err(
+      state,
+      'ABILITY_ON_COOLDOWN',
+      `"${def.id}" is on cooldown for ${slot.cooldownRemaining} more turn(s)`,
+    );
+  }
+  if (state.player.ap < def.apCost) {
+    return err(
+      state,
+      'INSUFFICIENT_AP',
+      `"${def.id}" costs ${def.apCost} AP, player has ${state.player.ap}`,
+    );
+  }
+
+  // ── Resolve targeting → set of affected living enemy indices, plus self flag.
+  const affected: number[] = [];
+  let affectsPlayer = false;
+
+  if (def.targetType === 'self') {
+    affectsPlayer = true;
+  } else if (def.targetType === 'enemy') {
+    if (action.targetId === undefined) {
+      return err(state, 'INVALID_TARGET', 'ability requires an enemy target');
+    }
+    const idx = state.enemies.findIndex((e) => e.id === action.targetId);
+    if (idx === -1) return err(state, 'TARGET_NOT_FOUND', `no enemy with id "${action.targetId}"`);
+    const target = state.enemies[idx]!;
+    if (target.hp <= 0) return err(state, 'INVALID_TARGET', 'target is already dead');
+    if (target.statuses.some((s) => s.effect === 'phased')) {
+      return err(state, 'INVALID_TARGET', 'target is phased (untargetable)');
+    }
+    if (chebyshev(state.player.pos, target.pos) > def.range) {
+      return err(state, 'OUT_OF_RANGE', 'target is beyond ability range');
+    }
+    collectAoe(state, target.pos, def.aoeRadius, affected);
+  } else {
+    // 'tile'
+    if (action.targetPos === undefined) {
+      return err(state, 'INVALID_TARGET', 'ability requires a target tile');
+    }
+    if (!inBounds(state.grid, action.targetPos)) {
+      return err(state, 'OUT_OF_RANGE', 'target tile is outside the grid');
+    }
+    if (chebyshev(state.player.pos, action.targetPos) > def.range) {
+      return err(state, 'OUT_OF_RANGE', 'target tile is beyond ability range');
+    }
+    collectAoe(state, action.targetPos, def.aoeRadius, affected);
+  }
+
+  // ── Apply effects. No randomness in ability resolution yet (abilities don't
+  // crit — crit is a basic-attack mechanic per GDD §6.6). _rng reserved.
+  const damage = def.baseDamage + Math.floor(state.player.stats.int * def.intScaling);
+  const status: ActiveStatus | null = def.appliesStatus
+    ? { effect: def.appliesStatus, turnsRemaining: def.statusDuration }
+    : null;
+
+  const effects: Effect[] = [{ type: 'abilityUsed', entityId: 'player', abilityId: def.id }];
+  const affectedSet = new Set(affected);
+
+  const nextEnemies = state.enemies.map((e, i) => {
+    if (!affectedSet.has(i)) return e;
+    let next: EnemyState = e;
+    if (damage > 0) {
+      const dealt = mitigate(damage, e.stats.res, def.damageType);
+      const newHp = Math.max(0, e.hp - dealt);
+      next = { ...next, hp: newHp };
+      effects.push({ type: 'damageDealt', targetId: e.id, amount: dealt, isCrit: false, damageType: def.damageType });
+      if (newHp === 0) effects.push({ type: 'entityDied', entityId: e.id });
+    }
+    if (status && next.hp > 0) {
+      next = { ...next, statuses: [...next.statuses, status] };
+      effects.push({ type: 'statusApplied', targetId: e.id, status: status.effect, turns: status.turnsRemaining });
+    }
+    return next;
+  });
+
+  let nextPlayer = {
+    ...state.player,
+    ap: state.player.ap - def.apCost,
+    abilities: state.player.abilities.map((s, i) =>
+      i === slotIndex ? { ...s, cooldownRemaining: def.cooldown } : s,
+    ),
+  };
+  if (affectsPlayer && status) {
+    nextPlayer = { ...nextPlayer, statuses: [...nextPlayer.statuses, status] };
+    effects.push({ type: 'statusApplied', targetId: 'player', status: status.effect, turns: status.turnsRemaining });
+  }
+
+  effects.push({ type: 'apSpent', amount: def.apCost, remaining: nextPlayer.ap });
+
+  return ok({ ...state, enemies: nextEnemies, player: nextPlayer }, effects);
+}
+
+/** Pushes indices of living enemies within `radius` (Chebyshev) of `center` into `out`. */
+function collectAoe(
+  state: RunState,
+  center: { readonly x: number; readonly y: number },
+  radius: number,
+  out: number[],
+): void {
+  state.enemies.forEach((e, i) => {
+    if (e.hp > 0 && chebyshev(e.pos, center) <= radius) out.push(i);
+  });
 }
 
 function applyUseItem(
