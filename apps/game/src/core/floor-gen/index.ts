@@ -10,3 +10,5 @@ export type {
   ConnectivityError,
   ConnectivityErrorCode,
 } from './connectivity';
+
+export { fillRoomTypes } from './room-fill';

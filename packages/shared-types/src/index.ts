@@ -60,3 +60,10 @@ export type {
   FloorEdge,
   FloorGraph,
 } from './floor-graph.js';
+
+export type {
+  TypedRoom,
+  EnemySpawn,
+  PopulatedRoom,
+  PopulatedFloor,
+} from './floor-plan.js';
