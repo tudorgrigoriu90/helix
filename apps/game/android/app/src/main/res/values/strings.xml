@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Strand Descent</string>
+    <string name="title_activity_main">Strand Descent</string>
+    <string name="package_name">software.empathy.strand</string>
+    <string name="custom_url_scheme">software.empathy.strand</string>
+</resources>
