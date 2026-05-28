@@ -59,7 +59,7 @@ Strand Descent is a turn-based roguelite dungeon crawler for mobile in which the
 
 ```
 Explore floor (tile grid, turn-based)
-  → Combat encounters (telegraphed enemy moves)
+  → Combat encounters (deterministic, legible enemy AI)
     → Loot & resource collection
       → Floor boss
         → Strand Event (pick 1 of 3 mutations)
@@ -72,7 +72,7 @@ Explore floor (tile grid, turn-based)
 ## 5. Key Pillars
 
 1. **Become Something New Every Run.** No two runs produce the same organism. Mutations interact, conflict, and synergize in ways the player discovers through play. The end-run "What You Became" screen is shareable, collectible, discussable.
-2. **Think, Don't React.** Turn-based combat designed for mobile commutes. Enemies telegraph their next move. Skill comes from reading patterns and positioning, not reflexes. Play one floor in 5 minutes, one full run in 45.
+2. **Think, Don't React.** Turn-based combat designed for mobile commutes. Enemy behaviour is deterministic and legible, so skill comes from reasoning, positioning, and build synergy — not reflexes or memorizing telegraphs. Play one floor in 5 minutes, one full run in 45.
 3. **The VEIN Is Alive.** LACE reacts to your choices. Comments on your mutations, mocks bad decisions, rewards interesting play, and occasionally says things that suggest it has been doing this for a very long time and finds it genuinely interesting that you keep trying.
 4. **Depth Without Complexity.** Geometric art, icon-driven UI, no illustrated sprites required. Systems are deep; the visual language is clean and readable on a 6-inch screen at arm's length.
 

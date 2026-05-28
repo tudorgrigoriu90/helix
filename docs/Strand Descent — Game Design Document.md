@@ -79,7 +79,7 @@ PEGI 12 / ESRB T (Teen). Content: mild violence, strategic combat, body horror t
 ### 1.7 Core Pillars
 
 1. **Become Something New Every Run.** No two runs produce the same organism. The end-run "What You Became" screen is shareable and collectible.
-2. **Think, Don't React.** Turn-based combat designed for mobile commutes. Enemies telegraph. Skill comes from reading patterns and positioning, not reflexes. One floor = ~5 minutes. One full run = 20–45 minutes.
+2. **Think, Don't React.** Turn-based combat designed for mobile commutes. Enemy behaviour is deterministic and legible, so skill comes from reasoning, positioning, and build synergy — not reflexes and not memorizing telegraphs. One floor = ~5 minutes. One full run = 20–45 minutes.
 3. **The VEIN Is Alive.** LACE reacts to player choices throughout the run. Comments on mutations, mocks poor decisions, rewards creative play.
 4. **Depth Without Complexity.** Geometric art, icon-driven UI, no illustrated sprites required. Learnable in 5 minutes, masterable in 200 hours.
 
@@ -209,7 +209,7 @@ ENTER FLOOR
 ```
 ENTER ROOM
   → Room type determined (combat / loot / trap / merchant / safe / event)
-  → If combat: enemies placed, telegraphed moves shown → [COMBAT LOOP]
+  → If combat: enemies placed, threat/reach shown → [COMBAT LOOP]
   → If safe room: access inventory, equip items, rest (restore HP)
   → If merchant: spend VEIN Crystals on items
   → If LACE event: narrative choice with mechanical consequence
@@ -224,8 +224,7 @@ COMBAT BEGINS
   → Player moves first (always)
   → Player selects: Move / Attack / Ability / Item / Wait
   → Player action resolves
-  → Each enemy telegraphs its next-turn action (icon shown above head)
-  → Enemies take their turns in speed order
+  → Enemies take their turns in speed order (each decides and acts vs. the live board)
   → Enemy actions resolve
   → Check enemies remaining: YES → next player turn; NO → loot phase
 ```
@@ -474,18 +473,13 @@ Tile types: Open, Wall, Hazard (damage on entry), Cover (-50% incoming ranged), 
 
 **Player turn:** 3 AP (modified by mutations/items), actions in any order until AP exhausted or end-turn pressed.
 
-**Enemy turn:** All enemies act in descending speed order. Each performs its telegraphed action from the previous turn, then telegraphs its next action.
+**Enemy turn:** All enemies act in descending speed order. Each enemy *decides and acts* against the live board on its turn — there is no pre-committed telegraph for baseline AI. A chaser attacks if the player is in reach, otherwise it closes distance. This is **planning combat** (Heroes 3 / Fire Emblem model), not reaction combat: the player plans from the legible, deterministic ruleset and from visible threat information (shapes, stats, reach), not from a previewed intent icon. *(Revised 2026-05-28 — see §6.2.1.)*
 
-**Telegraph icons (above each enemy):**
+**6.2.1 Why no baseline telegraph.** An earlier design previewed each enemy's next-turn action above its head. It was cut: (1) a committed-a-turn-ahead intent makes an enemy act on stale information — e.g. it arrives adjacent but can't strike until the *following* turn, a visibly wasted round; (2) for a stats-and-build roguelite the depth should come from mutation interactions and positioning, not a dodge-the-telegraph loop; (3) deterministic, legible AI already lets the player reason about what happens next without a floating label. The "Think, Don't React" pillar is *strengthened* by this: reasoning replaces pattern-memorization.
 
-| Icon  | Action          |
-| ----- | --------------- |
-| ⚔️    | Melee attack    |
-| 🎯    | Ranged attack   |
-| 🛡️    | Defense stance  |
-| 💨    | Move            |
-| 💥    | Special ability |
-| 😴    | Idle            |
+**Threat information (in lieu of telegraphs):** the UI surfaces *spatial* threat — which enemies are in reach of the player this turn (a "! in reach" marker), enemy reach overlays, shape/colour/border encoding — all derived from the rules, not a preview of committed intent.
+
+**Scripted wind-ups (reserved):** the `telegraph` field survives on enemy state for *hand-authored* moments only — boss charge-ups and multi-turn specials where a deliberate, readable tell is the point. Baseline enemies never set it.
 
 ### 6.3 Action Details
 
@@ -493,7 +487,7 @@ Tile types: Open, Wall, Hazard (damage on entry), Cover (-50% incoming ranged), 
 - **Basic attack:** 1 AP. Damage = STR × 1.0 (melee) or STR × 0.8 (ranged with ranged equipment). Range 1 tile melee default.
 - **Abilities:** Granted by mutations/items. 1–3 AP. Cooldown 0–5 turns. Scales with INT. Player assigns active abilities to a 6-slot Ability Bar.
 - **Item use:** 1 AP. Consumables, no cooldown (limited by inventory).
-- **Wait:** 0 AP, ends turn — used to trigger enemy telegraphs without spending.
+- **Wait:** 0 AP, ends turn — pass to let enemies act (e.g. bait them into reach) without spending AP.
 
 ### 6.4 Damage Types
 
@@ -609,7 +603,7 @@ Item tier scales with floor:
 
 ### 8.1 Enemy Design Principles
 
-- Every enemy telegraphs exactly one action per turn (no ambiguity)
+- Every enemy resolves exactly one action per turn, decided against the live board — behaviour is deterministic and legible (no hidden rolls, no ambiguity)
 - **Shape** encodes primary behavior: Circle (mobile), Triangle (aggressive), Square (defensive), Hexagon (ability user), Star (summoner/support)
 - **Color** encodes damage type (matches family colors)
 - **Border thickness** encodes tier (1px common, 2px uncommon, 3px elite)
@@ -871,7 +865,7 @@ All passive effects in this section are labeled **[META]** in UI surfaces to dis
 | Vein Memory           | Reach Floor 15                | LACE hints at next floor biome once/run                        |
 | Thermal Resistance    | Kill 100 Thermal enemies      | -10% thermal damage received                                   |
 | Abyssal Affinity      | 10 runs with Abyssal          | Abyssal items appear more often in shops                       |
-| Void Sense            | Die to Void enemy 5 times     | Void enemies reveal telegraph 1 turn earlier                   |
+| Void Sense            | Die to Void enemy 5 times     | Void enemies' next action is revealed (player-granted tell — foresight as an earned edge, not a baseline) |
 | **True Convergence**  | Complete a run (Floor 20)     | Wild mutation always offered in Strand Events                  |
 | **Convergence Echo**  | 200 runs completed            | Carry 1 random mutation from last run into next                |
 
@@ -936,7 +930,7 @@ Examples:
 
 **Over character:** Level indicator · SIG bar (fills as mutations acquired)
 
-**Over enemies:** HP bar · Telegraph icon · Status effect icons
+**Over enemies:** HP bar · Threat marker (in-reach indicator; scripted wind-up icon when present) · Status effect icons
 
 ### 12.4 Combat UI
 
@@ -1094,7 +1088,7 @@ All SFX are functional — they confirm actions and convey information:
 - Move: soft footstep (varies by floor type)
 - Attack: impact thud (varies by damage type)
 - Ability use: family-specific audio (watery burst, spore hiss, etc.)
-- Enemy telegraph: distinct tick sound per action type
+- Enemy turn beat: distinct tick per enemy action as it resolves (move vs. attack); scripted wind-ups get their own cue
 - Loot pickup: crisp chime
 - Mutation acquired: deep resonant tone + visual flash
 - LACE text: faint typewriter sound (can be disabled in settings)
@@ -1336,7 +1330,7 @@ Rationale: TypeScript is the Director's strongest language and Claude Code's str
 | Room | Purpose | LACE line |
 | ---- | ------- | --------- |
 | 1    | Movement only. Walk to an exit. No enemy. | *"You're awake. Walk to the door."* |
-| 2    | First enemy. Telegraphed weak attack. Combat basics. | *"Triangle. It moves toward you. Strike first or pay."* |
+| 2    | First enemy. Weak melee chaser — closes, then strikes when adjacent. Combat basics. | *"Triangle. It moves toward you. Strike first or pay."* |
 | 3    | First mutation choice — micro Strand Event with 2 safe cards. | *"Pressure. Choose. Quickly."* |
 | 4    | Floor 0 "boss" — slightly bigger enemy that teaches item use. | *"Larger. Slower. Use what you carry."* |
 

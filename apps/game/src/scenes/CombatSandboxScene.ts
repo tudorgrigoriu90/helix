@@ -83,7 +83,7 @@ const INITIAL_STATE: RunState = {
       maxHp: 20,
       stats: { str: 8, res: 3, agi: 6, int: 2 },
       statuses: [],
-      telegraph: 'move',
+      telegraph: null,
     },
     {
       id: 'brute',
@@ -93,7 +93,7 @@ const INITIAL_STATE: RunState = {
       maxHp: 25,
       stats: { str: 12, res: 5, agi: 4, int: 2 },
       statuses: [],
-      telegraph: 'move',
+      telegraph: null,
     },
   ],
 };
@@ -336,11 +336,13 @@ export class CombatSandboxScene extends Phaser.Scene {
     }).setOrigin(0.5);
     this.entityTexts.push(hpLbl);
 
-    if (e.telegraph) {
-      const tele = this.add.text(cx, cy - r - 8, e.telegraph, {
-        fontFamily: 'monospace', fontSize: '9px', color: C.yellow,
+    // Legible threat info (not a telegraph): an enemy already adjacent to the
+    // player will strike on the next enemy phase.
+    if (chebyshev(e.pos, this.state.player.pos) <= 1) {
+      const threat = this.add.text(cx, cy - r - 8, '! in reach', {
+        fontFamily: 'monospace', fontSize: '9px', color: C.red,
       }).setOrigin(0.5);
-      this.entityTexts.push(tele);
+      this.entityTexts.push(threat);
     }
   }
 

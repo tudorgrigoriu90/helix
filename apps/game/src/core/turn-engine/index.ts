@@ -10,5 +10,3 @@ export { tickStatuses } from './status-tick';
 export type { StatusTickResult } from './status-tick';
 export { detectOutcome } from './outcome';
 export type { OutcomeResult } from './outcome';
-export { generateTelegraphs } from './telegraph';
-export type { TelegraphResult } from './telegraph';

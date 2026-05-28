@@ -17,7 +17,6 @@ import { applyCrit, mitigate, rollCrit } from './combat';
 import { resolveEnemyPhase } from './enemy-phase';
 import { tickStatuses } from './status-tick';
 import { detectOutcome } from './outcome';
-import { generateTelegraphs } from './telegraph';
 
 /** AP cost to move one tile (GDD §4.4 / §6.3). */
 const MOVE_AP_COST = 1;
@@ -388,10 +387,10 @@ function applyEndTurn(
 
 /**
  * Ends the player turn and runs the full cycle (TDD §5.3): transition to the
- * enemy phase, resolve every enemy's telegraphed action (T-64), tick statuses
- * (T-65), check for a terminal outcome (T-66). If combat continues, generate
- * the next telegraphs (T-67) and hand control back to the player with AP
- * refreshed, ability cooldowns decremented, and the turn counter advanced.
+ * enemy phase, resolve every enemy's decide-and-act action (T-64), tick
+ * statuses (T-65), check for a terminal outcome (T-66). If combat continues,
+ * hand control back to the player with AP refreshed, ability cooldowns
+ * decremented, and the turn counter advanced.
  */
 function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
   const effects: Effect[] = [{ type: 'phaseChanged', from: 'player', to: 'enemy' }];
@@ -412,13 +411,10 @@ function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
     return ok(outcome.state, effects);
   }
 
-  const tele = generateTelegraphs(outcome.state);
-  effects.push(...tele.effects);
-
   const nextPlayer = {
-    ...tele.state.player,
-    ap: tele.state.player.maxAp,
-    abilities: tele.state.player.abilities.map((s) => ({
+    ...outcome.state.player,
+    ap: outcome.state.player.maxAp,
+    abilities: outcome.state.player.abilities.map((s) => ({
       ...s,
       cooldownRemaining: Math.max(0, s.cooldownRemaining - 1),
     })),
@@ -426,7 +422,7 @@ function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
   effects.push({ type: 'phaseChanged', from: 'enemy', to: 'player' });
 
   return ok(
-    { ...tele.state, player: nextPlayer, phase: 'player', turn: tele.state.turn + 1 },
+    { ...outcome.state, player: nextPlayer, phase: 'player', turn: outcome.state.turn + 1 },
     effects,
   );
 }

@@ -331,14 +331,15 @@ Player action received
       → Generate Effects[] for animation layer
         → If AP exhausted or END_TURN, transition to enemy phase
           → For each enemy (by initiative order):
-              resolve telegraphed action
+              decide-and-act vs. the live board (attack if in reach, else step toward player)
               update RunState
               append Effects[]
             → Tick statuses, decrement timers
               → Check win/loss/floor-complete conditions
-                → Generate next enemy telegraphs
-                  → Return control to player
+                → Return control to player (AP refresh, cooldowns--, turn++)
 ```
+
+> **Revised 2026-05-28.** Baseline enemies no longer pre-commit a telegraph one turn ahead; they decide their action at resolution time against the current board. This removes the stale-intent "wasted turn" (an enemy arriving adjacent but unable to strike until the next turn) and matches the planning-combat model (see GDD §6.2 / §6.2.1). The `EnemyState.telegraph` field is retained as a seam for *scripted* wind-ups (boss charges) only; there is no automatic telegraph-generation step.
 
 ### 5.4 Determinism Requirements
 
@@ -1266,7 +1267,7 @@ After TDD acceptance:
 
 **Week 4**
 
-- [ ] First enemy with telegraphed action
+- [ ] First enemy with decide-and-act chase AI
 - [ ] Combat resolution end-to-end
 - [ ] Save/resume working (atomic write + schemaVersion + 3-generation backup)
 

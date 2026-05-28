@@ -4,7 +4,6 @@ import type {
   EntityStats,
   GridState,
   RunState,
-  Telegraph,
   TileType,
 } from '@shared-types/run-state';
 import { Mulberry32 } from '../rng/mulberry32';
@@ -26,7 +25,6 @@ function gridWithWall(x: number, y: number, width = 7, height = 7): GridState {
 function enemy(
   id: string,
   pos: { x: number; y: number },
-  telegraph: Telegraph | null,
   over: Partial<EnemyState> = {},
 ): EnemyState {
   return {
@@ -37,7 +35,7 @@ function enemy(
     maxHp: 30,
     stats: { str: 12, res: 3, agi: 8, int: 5 },
     statuses: [],
-    telegraph,
+    telegraph: null,
     ...over,
   };
 }
@@ -70,91 +68,97 @@ function baseState(over: Partial<RunState> = {}): RunState {
 
 const rng = (): Mulberry32 => new Mulberry32(1);
 
-describe('resolveEnemyPhase — T-64', () => {
-  // ── Telegraphed actions ──────────────────────────────────────────────────────
+describe('resolveEnemyPhase — T-64 (decide-and-act)', () => {
+  // ── Attacking ────────────────────────────────────────────────────────────────
 
-  it('melee enemy adjacent to the player deals STR-minus-RES damage', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 2 }, 'melee')] });
+  it('an enemy adjacent to the player attacks for STR-minus-RES damage', () => {
+    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 2 })] });
     const result = resolveEnemyPhase(state, rng());
     // STR 12 - RES 10 = 2. Player 100 → 98.
     expect(result.state.player.hp).toBe(98);
     expect(result.effects).toContainEqual({ type: 'damageDealt', targetId: 'player', amount: 2, isCrit: false, damageType: 'physical' });
   });
 
-  it('melee enemy out of range fizzles (no damage)', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 6, y: 6 }, 'melee')] });
+  it('attacks from a diagonal (Chebyshev counts diagonals as 1)', () => {
+    const state = baseState({ enemies: [enemy('e1', { x: 2, y: 2 })] });
     const result = resolveEnemyPhase(state, rng());
-    expect(result.state.player.hp).toBe(100);
-    expect(result.effects).toEqual([]);
+    expect(result.state.player.hp).toBe(98);
   });
 
-  it('ranged enemy hits the player from a distance for reduced damage', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 6 }, 'ranged')] });
+  it('high-STR enemy pierces low player RES', () => {
+    const state = baseState({
+      player: { ...baseState().player, stats: { ...STATS, res: 2 } },
+      enemies: [enemy('e1', { x: 3, y: 2 }, { stats: { str: 20, res: 3, agi: 8, int: 5 } })],
+    });
     const result = resolveEnemyPhase(state, rng());
-    // floor(12 × 0.8) = 9, minus RES 10 → clamped 0.
+    // 20 - RES 2 = 18. Player 100 → 82.
+    expect(result.state.player.hp).toBe(82);
+  });
+
+  it('damage is clamped to zero when RES exceeds STR', () => {
+    const state = baseState({
+      player: { ...baseState().player, stats: { ...STATS, res: 50 } },
+      enemies: [enemy('e1', { x: 3, y: 2 })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    expect(result.state.player.hp).toBe(100);
     expect(result.effects).toContainEqual({ type: 'damageDealt', targetId: 'player', amount: 0, isCrit: false, damageType: 'physical' });
   });
 
-  it('ranged enemy with high STR pierces low player RES', () => {
-    const state = baseState({
-      player: { ...baseState().player, stats: { ...STATS, res: 2 } },
-      enemies: [enemy('e1', { x: 3, y: 6 }, 'ranged', { stats: { str: 20, res: 3, agi: 8, int: 5 } })],
-    });
-    const result = resolveEnemyPhase(state, rng());
-    // floor(20 × 0.8) = 16, minus RES 2 = 14.
-    expect(result.state.player.hp).toBe(86);
-  });
+  // ── Moving ─────────────────────────────────────────────────────────────────
 
-  it('move enemy steps one tile toward the player', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 1, y: 1 }, 'move')] });
+  it('an out-of-reach enemy steps one tile toward the player', () => {
+    const state = baseState({ enemies: [enemy('e1', { x: 1, y: 1 })] });
     const result = resolveEnemyPhase(state, rng());
     expect(result.state.enemies[0]?.pos).toEqual({ x: 2, y: 2 });
     expect(result.effects).toContainEqual({ type: 'entityMoved', entityId: 'e1', from: { x: 1, y: 1 }, to: { x: 2, y: 2 } });
   });
 
-  it('move enemy does not step onto a wall', () => {
+  it('does not move onto a wall', () => {
     const state = baseState({
       grid: gridWithWall(2, 2),
-      enemies: [enemy('e1', { x: 1, y: 1 }, 'move')],
+      enemies: [enemy('e1', { x: 1, y: 1 })],
     });
     const result = resolveEnemyPhase(state, rng());
     expect(result.state.enemies[0]?.pos).toEqual({ x: 1, y: 1 });
     expect(result.effects).toEqual([]);
   });
 
-  it('move enemy does not step onto the player tile', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 2, y: 3 }, 'move')] });
-    const result = resolveEnemyPhase(state, rng());
-    // Player at (3,3); the only step toward is onto the player → blocked.
-    expect(result.state.enemies[0]?.pos).toEqual({ x: 2, y: 3 });
-  });
-
-  it('move enemy does not step onto another enemy', () => {
+  it('does not move onto another enemy', () => {
     const state = baseState({
-      enemies: [enemy('e1', { x: 1, y: 1 }, 'move'), enemy('e2', { x: 2, y: 2 }, 'idle')],
+      enemies: [enemy('e1', { x: 1, y: 1 }), enemy('e2', { x: 2, y: 2 })],
     });
     const result = resolveEnemyPhase(state, rng());
     expect(result.state.enemies[0]?.pos).toEqual({ x: 1, y: 1 });
   });
 
-  it('idle / defense / special / no telegraph are no-ops', () => {
+  it('a rooted enemy out of reach cannot move', () => {
     const state = baseState({
-      enemies: [
-        enemy('e1', { x: 3, y: 2 }, 'idle'),
-        enemy('e2', { x: 4, y: 3 }, 'defense'),
-        enemy('e3', { x: 2, y: 3 }, 'special'),
-        enemy('e4', { x: 3, y: 4 }, null),
-      ],
+      enemies: [enemy('e1', { x: 1, y: 1 }, { statuses: [{ effect: 'rooted', turnsRemaining: 2 }] })],
     });
     const result = resolveEnemyPhase(state, rng());
-    expect(result.state.player.hp).toBe(100);
+    expect(result.state.enemies[0]?.pos).toEqual({ x: 1, y: 1 });
     expect(result.effects).toEqual([]);
   });
+
+  it('closes the gap then attacks the next turn — no wasted turn', () => {
+    // Enemy two tiles away: turn 1 moves adjacent, turn 2 attacks immediately.
+    const s1 = baseState({ enemies: [enemy('e1', { x: 1, y: 3 })] });
+    const r1 = resolveEnemyPhase(s1, rng());
+    expect(r1.state.enemies[0]?.pos).toEqual({ x: 2, y: 3 });
+    expect(r1.state.player.hp).toBe(100);
+
+    const r2 = resolveEnemyPhase(r1.state, rng());
+    expect(r2.state.player.hp).toBe(98);
+  });
+
+  // ── Other ──────────────────────────────────────────────────────────────────
 
   it('dead enemies do not act', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 2 }, 'melee', { hp: 0 })] });
+    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 2 }, { hp: 0 })] });
     const result = resolveEnemyPhase(state, rng());
     expect(result.state.player.hp).toBe(100);
+    expect(result.effects).toEqual([]);
   });
 
   // ── Initiative order ───────────────────────────────────────────────────────
@@ -162,8 +166,8 @@ describe('resolveEnemyPhase — T-64', () => {
   it('resolves enemies in descending AGI order', () => {
     const state = baseState({
       enemies: [
-        enemy('slow', { x: 1, y: 3 }, 'move', { stats: { str: 12, res: 3, agi: 2, int: 5 } }),
-        enemy('fast', { x: 5, y: 3 }, 'move', { stats: { str: 12, res: 3, agi: 20, int: 5 } }),
+        enemy('slow', { x: 1, y: 3 }, { stats: { str: 12, res: 3, agi: 2, int: 5 } }),
+        enemy('fast', { x: 5, y: 3 }, { stats: { str: 12, res: 3, agi: 20, int: 5 } }),
       ],
     });
     const result = resolveEnemyPhase(state, rng());
@@ -175,8 +179,8 @@ describe('resolveEnemyPhase — T-64', () => {
   it('breaks AGI ties deterministically by id', () => {
     const state = baseState({
       enemies: [
-        enemy('b', { x: 5, y: 3 }, 'move'),
-        enemy('a', { x: 1, y: 3 }, 'move'),
+        enemy('b', { x: 5, y: 3 }),
+        enemy('a', { x: 1, y: 3 }),
       ],
     });
     const result = resolveEnemyPhase(state, rng());
@@ -188,7 +192,7 @@ describe('resolveEnemyPhase — T-64', () => {
   // ── Purity ─────────────────────────────────────────────────────────────────
 
   it('is pure — does not mutate the input state', () => {
-    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 2 }, 'melee')] });
+    const state = baseState({ enemies: [enemy('e1', { x: 3, y: 2 })] });
     const snapshot = structuredClone(state);
     resolveEnemyPhase(state, rng());
     expect(state).toEqual(snapshot);
@@ -201,7 +205,7 @@ describe('endTurn / wait turn flow — T-64', () => {
   }
 
   it('endTurn resolves the enemy phase and returns control to the player', () => {
-    const state = playerTurnState({ enemies: [enemy('e1', { x: 3, y: 2 }, 'melee')] });
+    const state = playerTurnState({ enemies: [enemy('e1', { x: 3, y: 2 })] });
     const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
     expect(result.state.phase).toBe('player');
     expect(result.state.player.hp).toBe(98);
@@ -235,7 +239,7 @@ describe('endTurn / wait turn flow — T-64', () => {
   });
 
   it('wait also ends the turn (triggers the enemy phase)', () => {
-    const state = playerTurnState({ enemies: [enemy('e1', { x: 3, y: 2 }, 'melee')] });
+    const state = playerTurnState({ enemies: [enemy('e1', { x: 3, y: 2 })] });
     const result = TurnEngine.apply(state, { type: 'wait' }, rng());
     expect(result.state.player.hp).toBe(98);
     expect(result.state.turn).toBe(2);
@@ -254,13 +258,6 @@ describe('endTurn / wait turn flow — T-64', () => {
     const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
     expect(result.state.player.hp).toBe(95);
     expect(result.state.player.statuses).toEqual([{ effect: 'burn', turnsRemaining: 1 }]);
-  });
-
-  it('regenerates telegraphs for the next enemy turn', () => {
-    // Enemy two tiles away with no telegraph → should be told to move.
-    const state = playerTurnState({ enemies: [enemy('e1', { x: 1, y: 1 }, null)] });
-    const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
-    expect(result.state.enemies[0]?.telegraph).toBe('move');
   });
 
   it('a Burn tick that kills the player ends in defeat with cause status_tick', () => {

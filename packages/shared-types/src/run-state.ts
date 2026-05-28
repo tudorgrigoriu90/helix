@@ -58,7 +58,12 @@ export interface PlayerState {
   readonly mutations: readonly string[];
 }
 
-/** Telegraphed enemy intent shown above its head (GDD §6.2). */
+/**
+ * Pre-committed enemy intent (GDD §6.2). Baseline AI decides-and-acts at action
+ * time and never sets this — it is `null` for ordinary enemies. Reserved for
+ * scripted wind-ups (boss charges, multi-turn specials) where a deliberate,
+ * readable tell is the point.
+ */
 export type Telegraph = 'melee' | 'ranged' | 'defense' | 'move' | 'special' | 'idle';
 
 export interface EnemyState {
@@ -69,6 +74,7 @@ export interface EnemyState {
   readonly maxHp: number;
   readonly stats: EntityStats;
   readonly statuses: readonly ActiveStatus[];
+  /** Scripted wind-up only; `null` for baseline decide-and-act enemies. */
   readonly telegraph: Telegraph | null;
 }
 

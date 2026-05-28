@@ -53,7 +53,7 @@ flowchart TD
 
 | ID   | Screen                  | Notes                                                                                                                                                  |
 | ---- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S040 | Combat init             | Reveal enemies, telegraph first moves                                                                                                                  |
+| S040 | Combat init             | Reveal enemies, show threat/reach (no baseline telegraph — see GDD §6.2.1)                                                                             |
 | S041 | Player turn start       | AP refresh, saves `RunState` on entry                                                                                                                  |
 | S042 | Move preview            | Path + AP cost. **Two-tap confirm for first 5 runs** (MetaState flag); single-tap thereafter. Toggleable in S093.                                      |
 | S043 | Attack preview          | Damage range + accuracy                                                                                                                                |

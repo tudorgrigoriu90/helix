@@ -6,9 +6,6 @@ import { chebyshev, inBounds, tileAt } from './grid';
 import { mitigate } from './combat';
 
 const ENEMY_MELEE_RANGE = 1;
-const ENEMY_RANGED_RANGE = 5;
-/** Ranged attacks deal less than melee (mirrors the player's STR×0.8). */
-const RANGED_DAMAGE_MULT = 0.8;
 
 export interface EnemyPhaseResult {
   readonly state: RunState;
@@ -17,11 +14,18 @@ export interface EnemyPhaseResult {
 
 /**
  * Resolves the enemy phase: every living enemy acts once, in descending
- * initiative (AGI) order with id as a deterministic tie-break, performing the
- * telegraph it set on the previous turn (GDD §6.2, TDD §5.3).
+ * initiative (AGI) order with id as a deterministic tie-break (TDD §5.3).
  *
- * Status ticking (T-65), win/loss detection (T-66) and next-turn telegraph
- * generation (T-67) are resolved by their own steps in the turn flow.
+ * Enemies decide-and-act at action time against the live board — there is no
+ * pre-committed telegraph for baseline AI. A chaser attacks if the player is in
+ * reach, otherwise steps toward them. This is planning combat (Heroes 3 / Fire
+ * Emblem model), not reaction combat: the player reasons from the legible,
+ * deterministic ruleset and threat ranges rather than from a previewed intent.
+ *
+ * Scripted wind-ups (boss charges, etc.) can still drive behaviour off the
+ * `EnemyState.telegraph` seam once enemy-behaviour data lands; baseline AI
+ * ignores it. Status ticking (T-65) and win/loss detection (T-66) are resolved
+ * by their own steps in the turn flow.
  */
 export function resolveEnemyPhase(state: RunState, rng: Mulberry32): EnemyPhaseResult {
   const order = state.enemies
@@ -44,28 +48,15 @@ function resolveEnemyAction(state: RunState, enemyId: string, _rng: Mulberry32):
   const enemy = state.enemies.find((e) => e.id === enemyId);
   if (enemy === undefined || enemy.hp <= 0) return { state, effects: [] };
 
-  switch (enemy.telegraph) {
-    case 'melee':
-      return enemyAttack(state, enemy, ENEMY_MELEE_RANGE, enemy.stats.str);
-    case 'ranged':
-      return enemyAttack(state, enemy, ENEMY_RANGED_RANGE, Math.floor(enemy.stats.str * RANGED_DAMAGE_MULT));
-    case 'move':
-      return enemyStepTowardPlayer(state, enemy);
-    case 'defense':
-    case 'special':
-    case 'idle':
-    case null:
-      // Defense stance and enemy special abilities are not modeled yet; idle/no
-      // telegraph are no-ops.
-      return { state, effects: [] };
+  // Baseline chase AI, decided against the current board: strike if in melee
+  // reach, otherwise close the distance.
+  if (chebyshev(enemy.pos, state.player.pos) <= ENEMY_MELEE_RANGE) {
+    return enemyAttack(state, enemy, enemy.stats.str);
   }
+  return enemyStepTowardPlayer(state, enemy);
 }
 
-function enemyAttack(state: RunState, enemy: EnemyState, range: number, rawDamage: number): EnemyPhaseResult {
-  if (chebyshev(enemy.pos, state.player.pos) > range) {
-    // Player moved out of reach — the telegraphed attack fizzles.
-    return { state, effects: [] };
-  }
+function enemyAttack(state: RunState, enemy: EnemyState, rawDamage: number): EnemyPhaseResult {
   const dealt = mitigate(rawDamage, state.player.stats.res, 'physical');
   const newHp = Math.max(0, state.player.hp - dealt);
   const effects: Effect[] = [
