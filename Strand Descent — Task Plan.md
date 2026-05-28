@@ -226,7 +226,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                                 | Role          | Priority | Refs            | Notes |
 | ----- | --------------------------------------------------------------------- | ------------- | -------- | --------------- | ----- |
-| T-70  | Floor template loader (JSON → in-memory template)                     | Game Engineer | P0       | TDD §7.1        | |
+| T-70  | ~~Floor template loader (JSON → in-memory template)~~ — **DONE 2026-05-28.** `parseFloorTemplate(input: unknown)` returns a `{ ok, template }` / `{ ok: false, error }` discriminated union; never throws. Co-evolved the `FloorTemplate` schema in `@shared-types/floor-template` (same pattern as Action/RunState). Loader validates every field, enum, range, weight-sum (~1.0 ±0.001), and intra-template invariants (min ≤ max; minima ≤ max). First Floor 1 (Shallows) fixture shipped in `packages/content/floors/floor_01.json`, round-trips through the loader as a behavioural test. 43 new tests covering all 14 error codes + happy path + purity. | Game Engineer | P0 | TDD §7.1 | DONE |
 | T-71  | Room placement algorithm (graph layout)                               | Game Engineer | P0       | TDD §7.1        | |
 | T-72  | BFS connectivity validator (start → boss path exists)                 | Game Engineer | P0       | TDD §7.1        | |
 | T-73  | Room-type filler (combat/loot/safe/merchant/trap/LACE-event)          | Game Engineer | P0       | GDD §7.2-§7.3   | Weighted, with min-guarantees |

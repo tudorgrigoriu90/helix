@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "floor": 1,
+  "zone": "shallows",
+  "roomCount": { "min": 8, "max": 14 },
+  "roomWeights": {
+    "combat": 0.40,
+    "loot": 0.20,
+    "safe": 0.15,
+    "merchant": 0.10,
+    "trap": 0.10,
+    "lace_event": 0.05
+  },
+  "roomMinima": { "safe": 1 },
+  "connectivity": "branching",
+  "enemyPool": ["filterer", "cave_crawler", "acid_spitter", "scavenger"],
+  "bossId": "pressure_warden",
+  "aestheticTags": ["caves", "fluorescent", "acid_pools"]
+}
