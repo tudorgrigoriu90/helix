@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "minor_patch",
+  "name": "Minor Patch",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "heal", "amount": 12 }
+}

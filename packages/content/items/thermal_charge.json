@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_charge",
+  "name": "Thermal Charge",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "damage", "amount": 28, "damageType": "thermal", "aoeRadius": 1 }
+}

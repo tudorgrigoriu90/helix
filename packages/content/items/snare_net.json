@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "snare_net",
+  "name": "Snare Net",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "applyStatus", "status": "rooted", "duration": 2, "aoeRadius": 0 }
+}

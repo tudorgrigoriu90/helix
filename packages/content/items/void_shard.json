@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "void_shard",
+  "name": "Void Shard",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "damage", "amount": 26, "damageType": "void", "aoeRadius": 1 }
+}

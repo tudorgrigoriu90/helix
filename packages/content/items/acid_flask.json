@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "acid_flask",
+  "name": "Acid Flask",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "damage", "amount": 22, "damageType": "spore", "aoeRadius": 1 }
+}

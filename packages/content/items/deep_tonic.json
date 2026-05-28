@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "deep_tonic",
+  "name": "Deep Tonic",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "heal", "amount": 40 }
+}

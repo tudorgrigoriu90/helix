@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "frag_grenade",
+  "name": "Frag Grenade",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "damage", "amount": 30, "damageType": "physical", "aoeRadius": 1 }
+}

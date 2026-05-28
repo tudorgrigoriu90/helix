@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "flare",
+  "name": "Flare",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "applyStatus", "status": "burn", "duration": 3, "aoeRadius": 1 }
+}

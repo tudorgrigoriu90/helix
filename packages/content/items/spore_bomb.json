@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "spore_bomb",
+  "name": "Spore Bomb",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "applyStatus", "status": "infected", "duration": 4, "aoeRadius": 1 }
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "vein_serum",
+  "name": "Vein Serum",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "heal", "amount": 25 }
+}

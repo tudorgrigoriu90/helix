@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "concussion_round",
+  "name": "Concussion Round",
+  "rarity": "common",
+  "category": "consumable",
+  "effect": { "kind": "damage", "amount": 35, "damageType": "physical", "aoeRadius": 0 }
+}

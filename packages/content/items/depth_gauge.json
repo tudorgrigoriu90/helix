@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "depth_gauge",
+  "name": "Depth Gauge",
+  "rarity": "common",
+  "category": "passive",
+  "effect": null
+}
