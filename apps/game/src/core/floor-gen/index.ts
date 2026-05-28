@@ -13,4 +13,4 @@ export type {
 
 export { fillRoomTypes } from './room-fill';
 
-export { buildRoom } from './encounter';
+export { buildRoom, STANDARD_ROOM_SIZE, BOSS_ROOM_SIZE } from './encounter';

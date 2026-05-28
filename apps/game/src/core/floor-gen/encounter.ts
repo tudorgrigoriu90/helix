@@ -23,9 +23,9 @@ import type { Mulberry32 } from '../rng/mulberry32';
 // ── Tunables ─────────────────────────────────────────────────────────────────
 
 /** Standard combat-room grid (GDD §6.1 reference room). Boss rooms override. */
-const STANDARD_ROOM_SIZE = 7;
+export const STANDARD_ROOM_SIZE = 7;
 /** Boss arena is larger to give the fight room to breathe (T-77 / GDD §7.4). */
-const BOSS_ROOM_SIZE = 10;
+export const BOSS_ROOM_SIZE = 10;
 
 /** Inclusive enemy-count range for a standard combat room. */
 const COMBAT_ENEMY_MIN = 2;
