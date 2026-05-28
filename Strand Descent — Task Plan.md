@@ -149,7 +149,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | ----- | -------------------------------------------------------------- | -------- | -------- | -------------- | ----- |
 | T-28  | ~~GitHub Actions workflow: lint + typecheck + Vitest on push to main~~ — **DONE 2026-05-28.** `.github/workflows/ci.yml` created. Triggers on push to main + PRs. Steps: pnpm install (frozen-lockfile) → lint → typecheck → test → validate → build:web → build:demo. Fixed blockers: `apps/functions/src/index.ts` placeholder (tsc no-inputs), `@types/node` added to functions, `vitest.config.ts` added to both game + functions (`passWithNoTests: true`). Full sequence verified green locally. | DevOps | P0 | TDD §14.3 | DONE |
 | T-29  | ~~Add web build step + Firebase Hosting preview channel per PR~~ — **DONE 2026-05-28.** `deploy` job added to `ci.yml` (`needs: ci`). On PR: `FirebaseExtended/action-hosting-deploy` creates preview channel + posts URL as PR comment. On push to main: deploys to live channel. Project ID: `strand-descent`. Requires `FIREBASE_SERVICE_ACCOUNT` secret (set). | DevOps | P0 | TDD §14.3 | DONE |
-| T-30  | Add determinism replay test job (100 fixed seeds; assert stable output) | QA | P0      | TDD §16.2, T4  | NFR P2 — gate; PRs that break determinism are blocked |
+| T-30  | ~~Add determinism replay test job (100 fixed seeds; assert stable output)~~ — **DONE 2026-05-28.** `src/core/rng/determinism-replay.test.ts` created. Two tests: (1) every seed produces identical output on repeated runs; (2) output independent of evaluation order (cross-seed state leak). Dedicated `test:determinism` script + separate `"Determinism replay (100 fixed seeds)"` step in `ci.yml`. Runs 2,000 calls × 5 sub-generators per seed. Fingerprint function scaffolded for expansion to full run simulation in T-391. Both tests pass. | QA | P0 | TDD §16.2, T4 | DONE |
 | T-31  | Add Lighthouse CI gate (>= 85) on web build                    | DevOps   | P1       | TDD §15        | |
 | T-32  | Add smoke test: production bundle asserts `DEMO_MODE === false`| DevOps   | P2       | TDD §14.2      | |
 | T-33  | Tag-driven workflow: build `.ipa` (macOS runner) + `.aab` (Ubuntu) | DevOps | P2     | TDD §14.3      | fastlane match for iOS certs |
@@ -197,8 +197,8 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                                 | Role          | Priority | Refs            | Notes |
 | ----- | --------------------------------------------------------------------- | ------------- | -------- | --------------- | ----- |
-| T-52  | Implement `Mulberry32` in `core/rng/mulberry32.ts` (~10 lines)        | Game Engineer | P0       | TDD §6.1        | No external dep |
-| T-53  | Sub-generator factory keyed by label (`combat`, `loot`, `floorgen`, `mutationdraw`, `events`) | Game Engineer | P0 | TDD §6.1 | Hash label into seed |
+| T-52  | ~~Implement `Mulberry32` in `core/rng/mulberry32.ts` (~10 lines)~~ — **DONE 2026-05-28.** `Mulberry32` class with `next(): float`, `nextInt(n): int`, serialisable `state` field. Implemented as prerequisite for T-30. | Game Engineer | P0 | TDD §6.1 | DONE |
+| T-53  | ~~Sub-generator factory keyed by label (`combat`, `loot`, `floorgen`, `mutationdraw`, `events`)~~ — **DONE 2026-05-28.** `makeRng(rootSeed, label)` in `mulberry32.ts`. djb2-variant `hashLabel()` XORs root seed with label hash — adding new labels never shifts existing sub-generators. | Game Engineer | P0 | TDD §6.1 | DONE |
 | T-54  | Daily seed: `hash(date_UTC + global_salt)` → 32 bits                  | Game Engineer | P1       | TDD §6.2        | |
 | T-55  | Weekly seed: `hash(ISO_week + global_salt)` → 32 bits                 | Game Engineer | P1       | TDD §6.2        | |
 | T-56  | Vitest: distribution test (Chi-squared on 1M samples per sub-gen)     | QA            | P0       | TDD §16.1       | NFR P2 |
