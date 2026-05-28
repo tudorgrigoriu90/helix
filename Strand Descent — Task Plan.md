@@ -159,8 +159,8 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                                 | Role     | Priority | Refs       | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
-| T-35  | Create Firebase project (Spark free tier)                             | DevOps   | P0       | TDD §2.2   | |
-| T-36  | Enable: Auth (anonymous only), Firestore, Functions (Node 20), Hosting, Analytics, Crashlytics, FCM, Remote Config | DevOps | P0 | TDD §2.2 | |
+| T-35  | ~~Create Firebase project (Spark free tier)~~ — **DONE 2026-05-28.** Project ID: `strand-descent`. `firebase.json` + `.firebaserc` committed to main. | DevOps | P0 | TDD §2.2 | DONE |
+| T-36  | Enable: Auth (anonymous only), Firestore, Functions (Node 20), Hosting, Analytics, Crashlytics, FCM, Remote Config — **PARTIAL 2026-05-28.** Hosting enabled and wired to CI (T-29). Remaining services (Auth, Firestore, Functions, Analytics, Crashlytics, FCM, Remote Config) to be enabled before E-6 backend work begins. | DevOps | P0 | TDD §2.2 | PARTIAL |
 | T-37  | Configure budget alerts at $5 / $20 / $50 thresholds                  | DevOps   | P0       | TDD §11.7  | NFR P3 |
 | T-38  | Set hard billing cap at $50/month via Cloud Billing API               | DevOps   | P0       | TDD §11.7  | NFR P3 |
 | T-39  | Apply Firestore Security Rules per TDD §17.6                          | Backend  | P1       | TDD §17.6  | |
