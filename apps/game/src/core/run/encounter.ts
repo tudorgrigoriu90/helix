@@ -61,7 +61,14 @@ export function buildEncounterState(params: EncounterParams): RunState {
     phase: 'player',
     turn: 1,
     grid: room.grid,
-    player: { ...player, pos: room.playerSpawn, ap: player.maxAp, statuses: [] },
+    player: {
+      ...player,
+      pos: room.playerSpawn,
+      ap: player.maxAp,
+      statuses: [],
+      // Each encounter starts with abilities off cooldown.
+      abilities: player.abilities.map((s) => ({ ...s, cooldownRemaining: 0 })),
+    },
     enemies,
   };
 }
