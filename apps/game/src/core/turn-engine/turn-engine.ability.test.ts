@@ -246,6 +246,36 @@ describe('TurnEngine.apply — useAbility (T-62)', () => {
     expect(result.errors[0]?.code).toBe('INVALID_PHASE');
   });
 
+  // ── Tile-target validation (T-68 — turn-engine.ts:229-233 coverage) ────────
+
+  it('rejects a tile-target ability with no targetPos', () => {
+    const state = baseState({
+      player: { ...baseState().player, abilities: [slot(ability({ targetType: 'tile', aoeRadius: 1 }))] },
+    });
+    const result = TurnEngine.apply(state, use('test_bolt'), rng());
+    expect(result.errors[0]?.code).toBe('INVALID_TARGET');
+  });
+
+  it('rejects a tile-target ability with targetPos outside the grid', () => {
+    const state = baseState({
+      player: { ...baseState().player, abilities: [slot(ability({ targetType: 'tile', range: 10, aoeRadius: 0 }))] },
+    });
+    // Grid is 7×7 → x=9 is out of bounds. Range=10 ensures we'd otherwise be in range.
+    const result = TurnEngine.apply(state, use('test_bolt', { targetPos: { x: 9, y: 3 } }), rng());
+    expect(result.errors[0]?.code).toBe('OUT_OF_RANGE');
+    expect(result.errors[0]?.message).toMatch(/outside the grid/);
+  });
+
+  it('rejects a tile-target ability with targetPos beyond ability range', () => {
+    const state = baseState({
+      // Range-1 ability, player at (3,3) → targetPos (6,6) is chebyshev=3, in-bounds.
+      player: { ...baseState().player, abilities: [slot(ability({ targetType: 'tile', range: 1, aoeRadius: 0 }))] },
+    });
+    const result = TurnEngine.apply(state, use('test_bolt', { targetPos: { x: 6, y: 6 } }), rng());
+    expect(result.errors[0]?.code).toBe('OUT_OF_RANGE');
+    expect(result.errors[0]?.message).toMatch(/beyond ability range/);
+  });
+
   // ── Purity & determinism ─────────────────────────────────────────────────────
 
   it('is pure — does not mutate the input state', () => {

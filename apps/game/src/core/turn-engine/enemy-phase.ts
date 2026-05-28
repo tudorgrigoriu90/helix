@@ -46,6 +46,10 @@ export function resolveEnemyPhase(state: RunState, rng: Mulberry32): EnemyPhaseR
 
 function resolveEnemyAction(state: RunState, enemyId: string, _rng: Mulberry32): EnemyPhaseResult {
   const enemy = state.enemies.find((e) => e.id === enemyId);
+  // Defensive guard: the calling loop only enumerates living enemies, so
+  // `enemy === undefined` is theoretically unreachable today. Kept because a
+  // future enemy-chain effect (counter-damage, AoE that kills sibling enemies)
+  // could remove an entry between iterations. Branch intentionally uncovered.
   if (enemy === undefined || enemy.hp <= 0) return { state, effects: [] };
 
   // Baseline chase AI, decided against the current board: strike if in melee
@@ -75,8 +79,15 @@ function enemyStepTowardPlayer(state: RunState, enemy: EnemyState): EnemyPhaseRe
     x: enemy.pos.x + Math.sign(state.player.pos.x - enemy.pos.x),
     y: enemy.pos.y + Math.sign(state.player.pos.y - enemy.pos.y),
   };
+  // Defensive: if player and enemy share a tile (zero-distance step), abort.
+  // Unreachable from a valid RunState since player/enemy tile collision is
+  // forbidden upstream. Branch intentionally uncovered.
   if (to.x === enemy.pos.x && to.y === enemy.pos.y) return { state, effects: [] };
   if (!inBounds(state.grid, to) || tileAt(state.grid, to) === 'wall') return { state, effects: [] };
+  // Defensive: never step onto the player's tile. Unreachable today because
+  // the melee-range-1 check above redirects to enemyAttack before this path;
+  // ranged enemies with reach > step distance would exercise it. Branch
+  // intentionally uncovered until ranged AI lands.
   if (to.x === state.player.pos.x && to.y === state.player.pos.y) return { state, effects: [] };
   const occupied = state.enemies.some((e) => e.id !== enemy.id && e.hp > 0 && e.pos.x === to.x && e.pos.y === to.y);
   if (occupied) return { state, effects: [] };

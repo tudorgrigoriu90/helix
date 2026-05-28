@@ -10,6 +10,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/core/**'],
+      // Type-only files have no runtime to cover; excluding them keeps the
+      // coverage % a meaningful signal about behavioural test depth.
+      exclude: [
+        'src/core/**/*.d.ts',
+        'src/core/turn-engine/index.ts', // barrel export
+        'src/core/turn-engine/effect.ts', // type defs only
+        'src/core/turn-engine/turn-error.ts', // type defs only
+      ],
       // 80% line coverage gate on /core/ — enforced once tests land (T-390)
       thresholds: {
         lines: 0, // raised to 80 in T-390

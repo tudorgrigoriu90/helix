@@ -174,6 +174,19 @@ describe('TurnEngine.apply — move (T-60)', () => {
     expect(result.errors[0]?.code).toBe('INVALID_PHASE');
   });
 
+  it('rejects a move while the player is Rooted (GDD §6.5)', () => {
+    const state = baseState({
+      player: {
+        ...baseState().player,
+        statuses: [{ effect: 'rooted', turnsRemaining: 2 }],
+      },
+    });
+    const result = TurnEngine.apply(state, move({ x: 2, y: 1 }), rng());
+    expect(result.errors[0]?.code).toBe('ROOTED');
+    expect(result.state.player.pos).toEqual({ x: 2, y: 2 });
+    expect(result.state.player.ap).toBe(3); // AP not spent
+  });
+
   // ── Determinism ──────────────────────────────────────────────────────────────
 
   it('produces identical results on repeated application', () => {
