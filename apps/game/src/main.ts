@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { RunSandboxScene } from '@scenes/RunSandboxScene';
 import { CombatSandboxScene } from '@scenes/CombatSandboxScene';
 import { FloorGraphSandboxScene } from '@scenes/FloorGraphSandboxScene';
 
@@ -19,7 +20,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
   },
   // First scene in the list boots by default. Tab bar in each scene
   // (scenes/tab-bar.ts) navigates between them.
-  scene: [CombatSandboxScene, FloorGraphSandboxScene],
+  scene: [RunSandboxScene, CombatSandboxScene, FloorGraphSandboxScene],
 };
 
 export const game = new Phaser.Game(gameConfig);

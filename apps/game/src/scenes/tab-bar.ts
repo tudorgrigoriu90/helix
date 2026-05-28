@@ -15,6 +15,7 @@ interface TabDef {
 }
 
 const TABS: readonly TabDef[] = [
+  { label: 'RUN', sceneKey: 'RunSandboxScene' },
   { label: 'COMBAT', sceneKey: 'CombatSandboxScene' },
   { label: 'FLOOR GRAPH', sceneKey: 'FloorGraphSandboxScene' },
 ];
