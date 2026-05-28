@@ -590,7 +590,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-282 | Mutation schema                                        | Game Engineer | P0 | TDD §8.1   | |
-| T-283 | Enemy schema                                           | Game Engineer | P0 | GDD §8     | |
+| T-283 | ~~Enemy schema~~ — **DONE 2026-05-28.** `EnemyDef` schema in `@shared-types/enemy` (schemaVersion, id, name, tier `grunt\|elite\|boss`, zone, maxHp, EntityStats, damageType, aestheticTags) + `parseEnemyDef(input)` loader in `apps/game/src/core/content/enemy-loader.ts` — discriminated-union, never-throws, mirrors the floor-template loader (T-70). Shared content-loader plumbing (error model + predicates + field readers) extracted to `core/content/validation.ts` for reuse by the item loader (T-284) and beyond. Runtime `EnemyState` is instantiated from a def at encounter start; per-floor stat scaling deferred to T-78. 10 tests (happy path, JSON-string input, all error codes, stats-block validation, enum rejection). | Game Engineer | P0 | GDD §8     | DONE |
 | T-284 | Item schema                                            | Game Engineer | P0 | GDD §9     | |
 | T-285 | Floor template schema                                  | Game Engineer | P0 | TDD §7.1   | |
 | T-286 | LACE line schema                                       | Game Engineer | P0 | TDD §9.2   | |

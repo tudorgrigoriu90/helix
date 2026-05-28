@@ -41,6 +41,13 @@ export type {
 } from './item.js';
 
 export type {
+  EnemyTier,
+  EnemyDef,
+} from './enemy.js';
+
+export { CURRENT_ENEMY_SCHEMA_VERSION } from './enemy.js';
+
+export type {
   RoomType,
   Zone,
   ConnectivityRule,
