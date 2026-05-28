@@ -147,7 +147,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                          | Role     | Priority | Refs           | Notes |
 | ----- | -------------------------------------------------------------- | -------- | -------- | -------------- | ----- |
-| T-28  | GitHub Actions workflow: lint + typecheck + Vitest on push to main | DevOps | P0       | TDD §14.3      | |
+| T-28  | ~~GitHub Actions workflow: lint + typecheck + Vitest on push to main~~ — **DONE 2026-05-28.** `.github/workflows/ci.yml` created. Triggers on push to main + PRs. Steps: pnpm install (frozen-lockfile) → lint → typecheck → test → validate → build:web → build:demo. Fixed blockers: `apps/functions/src/index.ts` placeholder (tsc no-inputs), `@types/node` added to functions, `vitest.config.ts` added to both game + functions (`passWithNoTests: true`). Full sequence verified green locally. | DevOps | P0 | TDD §14.3 | DONE |
 | T-29  | Add web build step + Firebase Hosting preview channel per PR   | DevOps   | P0       | TDD §14.3      | |
 | T-30  | Add determinism replay test job (100 fixed seeds; assert stable output) | QA | P0      | TDD §16.2, T4  | NFR P2 — gate; PRs that break determinism are blocked |
 | T-31  | Add Lighthouse CI gate (>= 85) on web build                    | DevOps   | P1       | TDD §15        | |

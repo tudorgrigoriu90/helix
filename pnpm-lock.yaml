@@ -39,6 +39,9 @@ importers:
         specifier: ^5.0.0
         version: 5.1.1(firebase-admin@12.7.0)
     devDependencies:
+      '@types/node':
+        specifier: ^25.9.1
+        version: 25.9.1
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
@@ -2795,7 +2798,7 @@ snapshots:
   '@types/jsonwebtoken@9.0.10':
     dependencies:
       '@types/ms': 2.1.0
-      '@types/node': 22.19.19
+      '@types/node': 25.9.1
 
   '@types/long@4.0.2':
     optional: true
@@ -2817,7 +2820,7 @@ snapshots:
   '@types/request@2.48.13':
     dependencies:
       '@types/caseless': 0.12.5
-      '@types/node': 22.19.19
+      '@types/node': 25.9.1
       '@types/tough-cookie': 4.0.5
       form-data: 2.5.5
     optional: true
