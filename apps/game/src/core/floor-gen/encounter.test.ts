@@ -27,6 +27,16 @@ const typed = (id: string, type: RoomType): TypedRoom => ({ id, pos: { x: 0, y: 
 
 const key = (p: Position): string => `${p.x},${p.y}`;
 
+function hazardTiles(grid: { width: number; height: number; tiles: readonly string[] }): Position[] {
+  const out: Position[] = [];
+  for (let y = 0; y < grid.height; y++) {
+    for (let x = 0; x < grid.width; x++) {
+      if (grid.tiles[y * grid.width + x] === 'hazard') out.push({ x, y });
+    }
+  }
+  return out;
+}
+
 describe('buildRoom — T-74 enemy placement', () => {
   it('combat rooms get 2-4 enemies, all drawn from the pool', () => {
     const t = template();
@@ -86,5 +96,37 @@ describe('buildRoom — T-74 enemy placement', () => {
     expect(room.id).toBe('r5');
     expect(room.type).toBe('combat');
     expect(room.pos).toEqual({ x: 3, y: -2 });
+  });
+});
+
+describe('buildRoom — T-75 hazard placement', () => {
+  it('combat rooms get 1-3 hazard tiles', () => {
+    const t = template();
+    for (let seed = 1; seed <= 50; seed++) {
+      const room = buildRoom(typed('r1', 'combat'), t, new Mulberry32(seed));
+      const hazards = hazardTiles(room.grid);
+      expect(hazards.length, `seed ${seed}`).toBeGreaterThanOrEqual(1);
+      expect(hazards.length, `seed ${seed}`).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it('hazards never overlap the player spawn or any enemy spawn', () => {
+    const t = template();
+    for (let seed = 1; seed <= 50; seed++) {
+      const room = buildRoom(typed('r1', 'combat'), t, new Mulberry32(seed));
+      const hazards = new Set(hazardTiles(room.grid).map(key));
+      expect(hazards.has(key(room.playerSpawn)), `seed ${seed} player`).toBe(false);
+      for (const e of room.enemies) {
+        expect(hazards.has(key(e.pos)), `seed ${seed} enemy`).toBe(false);
+      }
+    }
+  });
+
+  it('non-combat rooms have no hazard tiles', () => {
+    const t = template();
+    for (const type of ['loot', 'safe', 'merchant', 'trap', 'lace_event', 'boss'] as RoomType[]) {
+      const room = buildRoom(typed('r1', type), t, new Mulberry32(4));
+      expect(hazardTiles(room.grid), type).toHaveLength(0);
+    }
   });
 });

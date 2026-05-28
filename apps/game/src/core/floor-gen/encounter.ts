@@ -31,10 +31,41 @@ const BOSS_ROOM_SIZE = 10;
 const COMBAT_ENEMY_MIN = 2;
 const COMBAT_ENEMY_MAX = 4;
 
+/** Inclusive hazard-count range for a combat room (GDD §6.1, §7.2 / T-75). */
+const HAZARD_MIN = 1;
+const HAZARD_MAX = 3;
+
 // ── Grid helpers ─────────────────────────────────────────────────────────────
 
 function openGrid(width: number, height: number): GridState {
   return { width, height, tiles: new Array<TileType>(width * height).fill('open') };
+}
+
+const tileKey = (p: Position): string => `${p.x},${p.y}`;
+
+/**
+ * Returns a copy of `grid` with 1-3 hazard tiles stamped in (T-75), avoiding the
+ * `reserved` tiles (player spawn + enemy spawns). Hazards live in the grid as
+ * the `hazard` TileType — there's no separate hazard list to keep in sync.
+ */
+function withHazards(grid: GridState, reserved: readonly Position[], rng: Mulberry32): GridState {
+  const reservedKeys = new Set(reserved.map(tileKey));
+  const candidates: Position[] = [];
+  for (let y = 0; y < grid.height; y++) {
+    for (let x = 0; x < grid.width; x++) {
+      const p = { x, y };
+      if (grid.tiles[y * grid.width + x] === 'open' && !reservedKeys.has(tileKey(p))) {
+        candidates.push(p);
+      }
+    }
+  }
+
+  const count = HAZARD_MIN + rng.nextInt(HAZARD_MAX - HAZARD_MIN + 1);
+  const picked = sampleTiles(candidates, count, rng);
+
+  const tiles = grid.tiles.slice();
+  for (const p of picked) tiles[p.y * grid.width + p.x] = 'hazard';
+  return { ...grid, tiles };
 }
 
 /** Player enters at the bottom-centre of the room. */
@@ -78,9 +109,15 @@ export function buildRoom(
 ): PopulatedRoom {
   if (typed.type === 'boss') return buildBossRoom(typed, template, rng);
 
-  const grid = openGrid(STANDARD_ROOM_SIZE, STANDARD_ROOM_SIZE);
-  const playerSpawn = playerSpawnFor(grid);
-  const enemies = typed.type === 'combat' ? placeCombatEnemies(grid, template, rng) : [];
+  const base = openGrid(STANDARD_ROOM_SIZE, STANDARD_ROOM_SIZE);
+  const playerSpawn = playerSpawnFor(base);
+  const enemies = typed.type === 'combat' ? placeCombatEnemies(base, template, rng) : [];
+
+  // Hazards only in combat rooms, kept off the player and enemy spawns.
+  const grid =
+    typed.type === 'combat'
+      ? withHazards(base, [playerSpawn, ...enemies.map((e) => e.pos)], rng)
+      : base;
 
   return {
     id: typed.id,
