@@ -118,11 +118,11 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                   | Role     | Priority | Refs              | Notes |
 | ----- | ------------------------------------------------------- | -------- | -------- | ----------------- | ----- |
-| T-15  | Select Privacy Policy template                          | Director | P0       | TDD §17.4         | Must match TDD §17.1/17.2 disclosures exactly |
-| T-16  | Select Terms of Service template                        | Director | P0       | TDD §17.4         | — |
-| T-17  | Confirm Apple Privacy Manifest fields                   | Director | P0       | TDD §17.4         | Required at App Store submission |
-| T-18  | Confirm Google Play Data Safety form fields             | Director | P0       | TDD §17.4         | Required at Play Store submission |
-| T-19  | Confirm COPPA flag handling in AdMob requests           | Director | P0       | TDD §17.4         | Per-request flag, 12+ rating |
+| T-15  | ~~Select Privacy Policy template~~ — **DONE 2026-05-28.** Draft at `docs/Strand Descent — Privacy Policy.md`. Covers TDD §17.1/17.2 disclosures, GDPR/CCPA consent, data retention, deletion rights, third-party services. Needs attorney review + placeholder fields filled before submission. | Director | P0 | TDD §17.4 | DONE |
+| T-16  | ~~Select Terms of Service template~~ — **DONE 2026-05-28.** Draft at `docs/Strand Descent — Terms of Service.md`. Covers licence grant, virtual currency, IAP, subscriptions, user conduct, limitation of liability. Needs attorney review before submission. | Director | P0 | TDD §17.4 | DONE |
+| T-17  | ~~Confirm Apple Privacy Manifest fields~~ — **DONE 2026-05-28.** `apps/game/ios/App/App/PrivacyInfo.xcprivacy` created. Declares: NSPrivacyTracking=false, 5 collected data types (Device ID, Crash, Performance, Usage, Purchase History), 2 Required Reason APIs (NSUserDefaults CA92.1, FileTimestamp C617.1). Needs adding to Xcode target before submission. | Director | P0 | TDD §17.4 | DONE |
+| T-18  | ~~Confirm Google Play Data Safety form fields~~ — **DONE 2026-05-28.** Answers documented in `docs/Strand Descent — Legal Compliance Notes.md` §T-18. Covers all 4 form sections with per-data-type declarations. Fill in Play Console before first review submission. | Director | P0 | TDD §17.4 | DONE |
+| T-19  | ~~Confirm COPPA flag handling in AdMob requests~~ — **DONE 2026-05-28.** Policy and implementation pattern documented in `docs/Strand Descent — Legal Compliance Notes.md` §T-19. tagForChildDirectedTreatment=false, tagForUnderAgeOfConsent=false, set globally in AdMob.initialize() in T-237. | Director | P0 | TDD §17.4 | DONE |
 
 ---
 
@@ -182,8 +182,8 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | ----- | --------------------------------------------------------------------------- | -------- | -------- | ----------------- | ----- |
 | T-46  | ~~Install Phaser 3.80+ in `apps/game`~~ — **DONE 2026-05-27.** Phaser **3.90.0** resolved + installed (485 total packages via `pnpm install`, lockfile committed). pnpm@9.15.9 installed globally first. | Frontend | P0 | TDD §2.1 | DONE |
 | T-47  | ~~Install + configure Capacitor 6.x (iOS + Android)~~ — **DONE 2026-05-28.** All packages installed (T-46). `npx cap init` generated `apps/game/capacitor.config.ts` (appId `software.empathy.strand`, webDir `dist`). `npx cap add ios` scaffolded `apps/game/ios/` (Xcode workspace + Podfile). `npx cap add android` scaffolded `apps/game/android/` (Gradle project). | Frontend | P0 | TDD §2.1 | DONE |
-| T-48  | Configure Vite 5.x dev server + production build for both `game` and `demo` entries | DevOps | P0 | TDD §14.2     | Two entry points share 100% of `core/` |
-| T-49  | First `BootScene` renders on `pnpm dev` localhost:5173                      | Frontend | P0       | UFD S001          | "Hello world" verification |
+| T-48  | ~~Configure Vite 5.x dev server + production build for both `game` and `demo` entries~~ — **DONE 2026-05-28.** `apps/game/vite.config.ts` created. Mode-switched on `--mode demo`: `outDir` → `dist-demo`, `__DEMO_MODE__` → `true`, sourcemaps disabled. Production build: `outDir` → `dist`, `__DEMO_MODE__` → `false`, sourcemaps on. Path aliases wired for all `@core/*`, `@scenes/*`, `@platform/*`, `@ui/*`, `@shared-types/*`, `@balance/*`, `@content/*`. Phaser in own chunk for cache reuse. `index.html` and `src/main.ts` stub created. `pnpm build:web` and `pnpm build:demo` both pass. | DevOps | P0 | TDD §14.2 | DONE |
+| T-49  | ~~First `BootScene` renders on `pnpm dev` localhost:5173~~ — **DONE 2026-05-28.** `src/scenes/BootScene.ts` created (title + studio name + pulsing dot). Registered in `main.ts` via `@scenes/BootScene`. `tsconfig.json` fixed (vite.config.ts moved to `tsconfig.node.json`; `noImplicitOverride` compliance on Scene lifecycle methods). `pnpm typecheck` clean. `pnpm build:web` + `pnpm build:demo` both pass. Dev server starts in 206ms on localhost:5173. | Frontend | P0 | UFD S001 | DONE |
 | T-50  | First Phaser scene renders on iOS device via Capacitor                      | Frontend | P0       | TDD §10           | TestFlight-less device test via Xcode |
 | T-51  | First Phaser scene renders on Android device                                | Frontend | P0       | TDD §10           | |
 
