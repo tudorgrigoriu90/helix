@@ -45,7 +45,7 @@ describe('Common-tier item content — T-292', () => {
       return res.item;
     });
 
-    const kinds = new Set(items.map((i) => i.effect?.kind ?? 'none'));
+    const kinds = new Set<string>(items.map((i) => i.effect?.kind ?? 'none'));
     for (const kind of ['heal', 'damage', 'applyStatus', 'none']) {
       expect(kinds.has(kind), kind).toBe(true);
     }

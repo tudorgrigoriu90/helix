@@ -23,7 +23,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "typecheck": "pnpm -r typecheck",
-    "validate": "pnpm --filter @helix/content validate",
+    "validate": "pnpm --filter @helix/game validate:content",
     "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm validate"
   },
   "devDependencies": {

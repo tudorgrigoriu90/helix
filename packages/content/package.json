@@ -5,6 +5,6 @@
   "description": "Game content as JSON: mutations, enemies, items, floors, lace lines, organism names",
   "type": "module",
   "scripts": {
-    "validate": "echo 'content validators land in T-282..T-288 (E-7 Content Pipeline)'"
+    "validate": "echo 'run content validation from the repo root: pnpm validate (gate lives in @helix/game — it needs the loaders)'"
   }
 }

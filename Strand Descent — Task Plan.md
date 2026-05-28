@@ -595,7 +595,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-285 | Floor template schema                                  | Game Engineer | P0 | TDD §7.1   | |
 | T-286 | LACE line schema                                       | Game Engineer | P0 | TDD §9.2   | |
 | T-287 | Organism name table schemas (prefix/trait/suffix)      | Game Engineer | P1 | UFD §3     | |
-| T-288 | Cross-reference validator (mutation IDs in floors exist, etc.) | DevOps | P0 | TDD §14.1 | |
+| T-288 | ~~Cross-reference validator (mutation IDs in floors exist, etc.)~~ — **DONE 2026-05-28.** `crossReferenceContent({enemies, items, floors})` in `core/content/cross-reference.ts` — pure + total (reports all problems): every floor `enemyPool`/`bossId` resolves to a real enemy, `bossId` is boss-tier, enemy/item ids unique. **Wired the real `pnpm validate` gate**, replacing the echo stub: root `validate` → `@helix/game validate:content` → `content-bundle.test.ts`, which loads every shipped enemy/item/floor file through its schema loader then cross-references the bundle. Runs in `pnpm test` too. content README + content-package script updated. 6 unit tests + 4 bundle-gate tests. (Mutation/LACE/organism-name schemas T-282/T-286/T-287 still pending — added to the bundle when they land.) Full suite 311 green. | DevOps | P0 | TDD §14.1 | DONE |
 
 ### S-7.2 — Prototype subset content (Gate 1)
 
