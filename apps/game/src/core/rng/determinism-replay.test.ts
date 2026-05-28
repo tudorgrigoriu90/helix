@@ -98,7 +98,7 @@ function slot(def: AbilityDef): AbilitySlot {
 }
 
 function healingSerum(): ItemDef {
-  return { id: 'vein_serum', category: 'consumable', effect: { kind: 'heal', amount: 25 } };
+  return { id: 'vein_serum', name: 'Vein Serum', rarity: 'common', category: 'consumable', effect: { kind: 'heal', amount: 25 } };
 }
 
 function combatEnemy(id: string, x: number, y: number): EnemyState {

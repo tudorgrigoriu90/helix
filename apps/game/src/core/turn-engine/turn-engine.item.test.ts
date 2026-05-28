@@ -17,11 +17,11 @@ function openGrid(width = 7, height = 7): GridState {
   return { width, height, tiles: new Array<TileType>(width * height).fill('open') };
 }
 
-const veinSerum: ItemDef = { id: 'vein_serum', category: 'consumable', effect: { kind: 'heal', amount: 25 } };
-const nullGrenade: ItemDef = { id: 'null_grenade', category: 'consumable', effect: { kind: 'damage', amount: 30, damageType: 'true', aoeRadius: 1 } };
-const physGrenade: ItemDef = { id: 'phys_grenade', category: 'consumable', effect: { kind: 'damage', amount: 30, damageType: 'physical', aoeRadius: 0 } };
-const sporeBomb: ItemDef = { id: 'spore_bomb', category: 'consumable', effect: { kind: 'applyStatus', status: 'infected', duration: 4, aoeRadius: 1 } };
-const depthGauge: ItemDef = { id: 'depth_gauge', category: 'passive', effect: null };
+const veinSerum: ItemDef = { id: 'vein_serum', name: 'Vein Serum', rarity: 'common', category: 'consumable', effect: { kind: 'heal', amount: 25 } };
+const nullGrenade: ItemDef = { id: 'null_grenade', name: 'Null Grenade', rarity: 'uncommon', category: 'consumable', effect: { kind: 'damage', amount: 30, damageType: 'true', aoeRadius: 1 } };
+const physGrenade: ItemDef = { id: 'phys_grenade', name: 'Frag Grenade', rarity: 'common', category: 'consumable', effect: { kind: 'damage', amount: 30, damageType: 'physical', aoeRadius: 0 } };
+const sporeBomb: ItemDef = { id: 'spore_bomb', name: 'Spore Bomb', rarity: 'common', category: 'consumable', effect: { kind: 'applyStatus', status: 'infected', duration: 4, aoeRadius: 1 } };
+const depthGauge: ItemDef = { id: 'depth_gauge', name: 'Depth Gauge', rarity: 'uncommon', category: 'passive', effect: null };
 
 function enemy(id: string, pos: Position, over: Partial<EnemyState> = {}): EnemyState {
   return {

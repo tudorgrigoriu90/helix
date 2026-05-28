@@ -36,9 +36,12 @@ export type {
 
 export type {
   ItemCategory,
+  ItemRarity,
   ItemEffect,
   ItemDef,
 } from './item.js';
+
+export { CURRENT_ITEM_SCHEMA_VERSION } from './item.js';
 
 export type {
   EnemyTier,

@@ -2,6 +2,9 @@ import type { DamageType, StatusEffect } from './run-state.js';
 
 export type ItemCategory = 'consumable' | 'passive' | 'equipment';
 
+/** Drop-rarity band (GDD §9.2). Drives drop tables + Dispenser pricing. */
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
 /**
  * Effect produced when a consumable is used (GDD §9.2). Passives/equipment
  * have no use-effect (they are equipped, handled elsewhere).
@@ -15,9 +18,21 @@ export type ItemEffect =
   | { readonly kind: 'damage'; readonly amount: number; readonly damageType: DamageType; readonly aoeRadius: number }
   | { readonly kind: 'applyStatus'; readonly status: StatusEffect; readonly duration: number; readonly aoeRadius: number };
 
+/**
+ * An item as it lives in inventory (`PlayerState.items`) — and therefore in the
+ * save file. The on-disk content file carries an extra `schemaVersion` for
+ * migrations, which the loader (T-284) validates and strips; it is intentionally
+ * absent here to keep RunState lean (NFR P8 "save every turn"). `name`/`rarity`
+ * are kept because the UI shows them straight from inventory.
+ */
 export interface ItemDef {
   readonly id: string;
+  readonly name: string;
+  readonly rarity: ItemRarity;
   readonly category: ItemCategory;
   /** Use-effect for consumables; null for passive/equipment. */
   readonly effect: ItemEffect | null;
 }
+
+/** Current item-content schema version. Increment when the on-disk shape changes. */
+export const CURRENT_ITEM_SCHEMA_VERSION = 1;
