@@ -148,9 +148,7 @@ function slot(def: AbilityDef, cooldownRemaining = 0): AbilitySlot {
 function healingPotion(): ItemDef {
   return {
     id: 'vein_serum',
-    name: 'VEIN Serum',
     category: 'consumable',
-    rarity: 'common',
     effect: { kind: 'heal', amount: 20 },
   };
 }
