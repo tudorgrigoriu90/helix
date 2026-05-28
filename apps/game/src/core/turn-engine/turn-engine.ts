@@ -17,6 +17,18 @@ import { chebyshev, inBounds, tileAt } from './grid';
 /** AP cost to move one tile (GDD §4.4 / §6.3). */
 const MOVE_AP_COST = 1;
 
+// ── Basic attack tuning (GDD §6.3, §6.6) ─────────────────────────────────────
+const ATTACK_AP_COST = 1;
+/** Melee basic-attack reach in tiles (Chebyshev). Ranged needs equipment — not modeled yet. */
+const MELEE_RANGE = 1;
+/** Damage = STR × this (melee). Ranged would be 0.8 once equipment lands. */
+const MELEE_DAMAGE_MULT = 1.0;
+const BASE_CRIT_CHANCE = 0.05;
+const CRIT_MULTIPLIER = 1.5;
+const BASE_AGI = 10;
+/** Crit chance gained per point of AGI above base. Tunable pending Economy.xlsx balance pass. */
+const CRIT_PER_AGI_OVER_BASE = 0.005;
+
 export interface TurnResult {
   readonly state: RunState;
   readonly effects: readonly Effect[];
@@ -85,11 +97,68 @@ function applyMove(
 
 function applyAttack(
   state: RunState,
-  _action: AttackAction,
-  _rng: Mulberry32,
+  action: AttackAction,
+  rng: Mulberry32,
 ): TurnResult {
-  if (state.phase !== 'player') return err(state, 'INVALID_PHASE', 'attack requires player phase');
-  return ok(state);
+  if (state.phase !== 'player') {
+    return err(state, 'INVALID_PHASE', 'attack requires player phase');
+  }
+
+  const targetIndex = state.enemies.findIndex((e) => e.id === action.targetId);
+  if (targetIndex === -1) {
+    return err(state, 'TARGET_NOT_FOUND', `no enemy with id "${action.targetId}"`);
+  }
+
+  const target = state.enemies[targetIndex]!;
+  if (target.hp <= 0) {
+    return err(state, 'INVALID_TARGET', 'target is already dead');
+  }
+
+  if (target.statuses.some((s) => s.effect === 'phased')) {
+    return err(state, 'INVALID_TARGET', 'target is phased (untargetable)');
+  }
+
+  if (chebyshev(state.player.pos, target.pos) > MELEE_RANGE) {
+    return err(state, 'OUT_OF_RANGE', 'target is beyond melee range');
+  }
+
+  if (state.player.ap < ATTACK_AP_COST) {
+    return err(
+      state,
+      'INSUFFICIENT_AP',
+      `attack costs ${ATTACK_AP_COST} AP, player has ${state.player.ap}`,
+    );
+  }
+
+  // Damage = STR × melee mult, ×1.5 on crit, then flat RES mitigation (GDD §6.4/§6.6).
+  const baseDamage = Math.floor(state.player.stats.str * MELEE_DAMAGE_MULT);
+  const critChance =
+    BASE_CRIT_CHANCE + Math.max(0, state.player.stats.agi - BASE_AGI) * CRIT_PER_AGI_OVER_BASE;
+  const isCrit = rng.next() < critChance;
+  const rawDamage = isCrit ? Math.floor(baseDamage * CRIT_MULTIPLIER) : baseDamage;
+  const dealt = Math.max(0, rawDamage - target.stats.res);
+  const newHp = Math.max(0, target.hp - dealt);
+
+  const nextEnemies = state.enemies.map((e, i) =>
+    i === targetIndex ? { ...e, hp: newHp } : e,
+  );
+  const remaining = state.player.ap - ATTACK_AP_COST;
+
+  const effects: Effect[] = [
+    { type: 'damageDealt', targetId: target.id, amount: dealt, isCrit, damageType: 'physical' },
+  ];
+  if (newHp === 0) {
+    effects.push({ type: 'entityDied', entityId: target.id });
+  }
+  effects.push({ type: 'apSpent', amount: ATTACK_AP_COST, remaining });
+
+  const nextState: RunState = {
+    ...state,
+    enemies: nextEnemies,
+    player: { ...state.player, ap: remaining },
+  };
+
+  return ok(nextState, effects);
 }
 
 function applyUseAbility(
