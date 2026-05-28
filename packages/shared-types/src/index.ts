@@ -12,3 +12,13 @@ export type {
   EndTurnAction,
   SurrenderAction,
 } from './action.js';
+
+export type {
+  StatusEffect,
+  ActiveStatus,
+  EntityStats,
+  PlayerState,
+  EnemyState,
+  TurnPhase,
+  RunState,
+} from './run-state.js';
