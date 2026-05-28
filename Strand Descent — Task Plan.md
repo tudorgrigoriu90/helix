@@ -118,11 +118,11 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                   | Role     | Priority | Refs              | Notes |
 | ----- | ------------------------------------------------------- | -------- | -------- | ----------------- | ----- |
-| T-15  | Select Privacy Policy template                          | Director | P0       | TDD §17.4         | Must match TDD §17.1/17.2 disclosures exactly |
-| T-16  | Select Terms of Service template                        | Director | P0       | TDD §17.4         | — |
-| T-17  | Confirm Apple Privacy Manifest fields                   | Director | P0       | TDD §17.4         | Required at App Store submission |
-| T-18  | Confirm Google Play Data Safety form fields             | Director | P0       | TDD §17.4         | Required at Play Store submission |
-| T-19  | Confirm COPPA flag handling in AdMob requests           | Director | P0       | TDD §17.4         | Per-request flag, 12+ rating |
+| T-15  | ~~Select Privacy Policy template~~ — **DONE 2026-05-28.** Draft at `docs/Strand Descent — Privacy Policy.md`. Covers TDD §17.1/17.2 disclosures, GDPR/CCPA consent, data retention, deletion rights, third-party services. Needs attorney review + placeholder fields filled before submission. | Director | P0 | TDD §17.4 | DONE |
+| T-16  | ~~Select Terms of Service template~~ — **DONE 2026-05-28.** Draft at `docs/Strand Descent — Terms of Service.md`. Covers licence grant, virtual currency, IAP, subscriptions, user conduct, limitation of liability. Needs attorney review before submission. | Director | P0 | TDD §17.4 | DONE |
+| T-17  | ~~Confirm Apple Privacy Manifest fields~~ — **DONE 2026-05-28.** `apps/game/ios/App/App/PrivacyInfo.xcprivacy` created. Declares: NSPrivacyTracking=false, 5 collected data types (Device ID, Crash, Performance, Usage, Purchase History), 2 Required Reason APIs (NSUserDefaults CA92.1, FileTimestamp C617.1). Needs adding to Xcode target before submission. | Director | P0 | TDD §17.4 | DONE |
+| T-18  | ~~Confirm Google Play Data Safety form fields~~ — **DONE 2026-05-28.** Answers documented in `docs/Strand Descent — Legal Compliance Notes.md` §T-18. Covers all 4 form sections with per-data-type declarations. Fill in Play Console before first review submission. | Director | P0 | TDD §17.4 | DONE |
+| T-19  | ~~Confirm COPPA flag handling in AdMob requests~~ — **DONE 2026-05-28.** Policy and implementation pattern documented in `docs/Strand Descent — Legal Compliance Notes.md` §T-19. tagForChildDirectedTreatment=false, tagForUnderAgeOfConsent=false, set globally in AdMob.initialize() in T-237. | Director | P0 | TDD §17.4 | DONE |
 
 ---
 
