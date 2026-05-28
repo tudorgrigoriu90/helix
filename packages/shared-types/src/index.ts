@@ -20,5 +20,7 @@ export type {
   PlayerState,
   EnemyState,
   TurnPhase,
+  TileType,
+  GridState,
   RunState,
 } from './run-state.js';

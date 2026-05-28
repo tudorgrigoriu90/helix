@@ -56,12 +56,28 @@ export type TurnPhase =
   | 'victory'
   | 'defeat';
 
+export type TileType =
+  | 'open'
+  | 'wall'
+  | 'hazard'
+  | 'cover'
+  | 'elevated'
+  | 'corruption';
+
+export interface GridState {
+  readonly width: number;
+  readonly height: number;
+  /** Row-major tile array; length === width * height. Index = y * width + x. */
+  readonly tiles: readonly TileType[];
+}
+
 export interface RunState {
   readonly schemaVersion: number;
   readonly seed: number;
   readonly floorNumber: number;
   readonly phase: TurnPhase;
   readonly turn: number;
+  readonly grid: GridState;
   readonly player: PlayerState;
   readonly enemies: readonly EnemyState[];
 }
