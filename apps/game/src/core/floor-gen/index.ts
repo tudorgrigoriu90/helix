@@ -12,3 +12,5 @@ export type {
 } from './connectivity';
 
 export { fillRoomTypes } from './room-fill';
+
+export { buildRoom } from './encounter';
