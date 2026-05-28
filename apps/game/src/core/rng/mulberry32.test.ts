@@ -13,7 +13,7 @@ const CHI_SQ_CRITICAL = 148.23;
 function chiSquared(rng: Mulberry32, bins: number, n: number): number {
   const counts = new Array<number>(bins).fill(0);
   for (let i = 0; i < n; i++) {
-    counts[Math.floor(rng.next() * bins)]++;
+    counts[Math.floor(rng.next() * bins)]!++;
   }
   const expected = n / bins;
   return counts.reduce((sum, obs) => sum + (obs - expected) ** 2 / expected, 0);
