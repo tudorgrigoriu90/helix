@@ -18,9 +18,9 @@ export interface StatusTickResult {
  * every living enemy.
  *
  * The non-damaging status *modifiers* (Infected −RES, Stagger −AP, Fractured
- * +dmg taken, Crushed move-range) are applied at their point of use as combat
- * integration lands; this step only handles ticking and expiry. Rooted's
- * move-block and Phased/Suppressed gating are enforced in the action handlers.
+ * +dmg taken, Crushed immobilise) are resolved at their point of use in
+ * effective-stats.ts; this step only handles the per-turn HP ticks and timer
+ * expiry. Phased/Suppressed gating is enforced in the action handlers.
  */
 export function tickStatuses(state: RunState): StatusTickResult {
   const effects: Effect[] = [];
