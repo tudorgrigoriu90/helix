@@ -1,75 +1,90 @@
-import type { RunState } from '@shared-types/run-state';
 import type { StorageAdapter } from '../platform/storage-adapter';
-import { deserializeRunState, serializeRunState, type RunLoadResult } from './run-save';
+import type { SaveError } from './run-save';
 
 /**
  * Save manager — atomic writes + 3-generation rotation (T-112/T-113, TDD §5.5).
  *
- * Key/value storage can't truly "rename", so we emulate the write-temp→rename
- * pattern with a commit pointer: write the new state to the next generation
- * slot, *then* update the head pointer. A crash between the two leaves the head
- * pointing at the previous, intact generation — the half-written slot is simply
- * never referenced.
+ * Generic over the saved payload via a {@link SaveCodec}, so the same durable
+ * write/rotate/recover logic backs run saves, meta saves, etc.
  *
- * Three generations are kept round-robin, so a corrupt newest save can fall back
- * to the one before it (NFR P8 "save every turn" durability).
+ * Key/value storage can't truly "rename", so we emulate write-temp→rename with a
+ * commit pointer: write the new state to the next generation slot, *then* update
+ * the head pointer. A crash between the two leaves head on the previous, intact
+ * generation. Three generations are kept round-robin so a corrupt newest save
+ * falls back to the one before it (NFR P8 durability).
  */
 
+export type LoadResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: SaveError };
+
+export interface SaveCodec<T> {
+  serialize(value: T): string;
+  deserialize(json: string): LoadResult<T>;
+}
+
 const GEN_COUNT = 3;
-const RUN_SLOTS: readonly string[] = ['helix.run.gen0', 'helix.run.gen1', 'helix.run.gen2'];
-const RUN_HEAD = 'helix.run.head';
 
 interface Head {
   readonly gen: number;
   readonly seq: number;
 }
 
-export class SaveManager {
-  constructor(private readonly adapter: StorageAdapter) {}
+export class SaveManager<T> {
+  private readonly slots: readonly string[];
+  private readonly headKey: string;
+
+  constructor(
+    private readonly adapter: StorageAdapter,
+    private readonly codec: SaveCodec<T>,
+    namespace = 'helix.run',
+  ) {
+    this.slots = [0, 1, 2].map((i) => `${namespace}.gen${i}`);
+    this.headKey = `${namespace}.head`;
+  }
 
   /** Writes a new generation, then commits the head pointer to it. */
-  async saveRun(state: RunState): Promise<void> {
+  async save(value: T): Promise<void> {
     const head = await this.readHead();
     const nextGen = head === null ? 0 : (head.gen + 1) % GEN_COUNT;
     const nextSeq = head === null ? 1 : head.seq + 1;
-    await this.adapter.set(RUN_SLOTS[nextGen]!, serializeRunState(state)); // 1. write generation
-    await this.adapter.set(RUN_HEAD, JSON.stringify({ gen: nextGen, seq: nextSeq })); // 2. commit
+    await this.adapter.set(this.slots[nextGen]!, this.codec.serialize(value)); // 1. write generation
+    await this.adapter.set(this.headKey, JSON.stringify({ gen: nextGen, seq: nextSeq })); // 2. commit
   }
 
   /**
-   * Loads the newest run, falling back to older generations if the newest is
-   * corrupt. Returns null when there is no save at all; a `{ ok: false }` result
-   * means every present generation failed to parse.
+   * Loads the newest payload, falling back to older generations if the newest is
+   * corrupt. null = no save at all; `{ ok: false }` = every generation failed.
    */
-  async loadRun(): Promise<RunLoadResult | null> {
+  async load(): Promise<LoadResult<T> | null> {
     const head = await this.readHead();
     if (head === null) return null;
 
     const order = [head.gen, (head.gen - 1 + GEN_COUNT) % GEN_COUNT, (head.gen - 2 + GEN_COUNT) % GEN_COUNT];
-    let lastError: RunLoadResult | null = null;
+    let lastError: LoadResult<T> | null = null;
     for (const gen of order) {
-      const raw = await this.adapter.get(RUN_SLOTS[gen]!);
+      const raw = await this.adapter.get(this.slots[gen]!);
       if (raw === null) continue;
-      const res = deserializeRunState(raw);
+      const res = this.codec.deserialize(raw);
       if (res.ok) return res;
       lastError = res;
     }
     return lastError;
   }
 
-  /** True when a loadable (non-corrupt) run save exists. */
-  async hasRun(): Promise<boolean> {
-    const res = await this.loadRun();
+  /** True when a loadable (non-corrupt) save exists. */
+  async has(): Promise<boolean> {
+    const res = await this.load();
     return res !== null && res.ok;
   }
 
-  /** Wipes all run generations + the head pointer (e.g. on death / abandon). */
-  async clearRun(): Promise<void> {
-    await Promise.all([...RUN_SLOTS.map((s) => this.adapter.remove(s)), this.adapter.remove(RUN_HEAD)]);
+  /** Wipes all generations + the head pointer. */
+  async clear(): Promise<void> {
+    await Promise.all([...this.slots.map((s) => this.adapter.remove(s)), this.adapter.remove(this.headKey)]);
   }
 
   private async readHead(): Promise<Head | null> {
-    const raw = await this.adapter.get(RUN_HEAD);
+    const raw = await this.adapter.get(this.headKey);
     if (raw === null) return null;
     try {
       const parsed: unknown = JSON.parse(raw);

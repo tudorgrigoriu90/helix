@@ -31,6 +31,24 @@ export interface RunSnapshot {
   readonly player: PlayerState;
 }
 
+/** Schema version for the persisted run-session shape. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 1;
+
+/**
+ * Everything needed to resume a run. The floor graph itself is *not* stored — it
+ * regenerates deterministically from `seed` + `floorNumber` — so a save is just
+ * the seed, where the player is, which rooms are cleared, and the carried player.
+ */
+export interface RunSessionSave {
+  readonly schemaVersion: number;
+  readonly seed: number;
+  readonly floorNumber: number;
+  readonly currentRoomId: string;
+  readonly clearedRoomIds: readonly string[];
+  readonly status: RunStatus;
+  readonly player: PlayerState;
+}
+
 export interface RunSessionOptions {
   readonly seed: number;
   readonly template: FloorTemplate;
@@ -83,6 +101,30 @@ export class RunSession {
 
   get floor(): PopulatedFloor {
     return this.floorData;
+  }
+
+  /** Serialisable snapshot for save/resume. Combat is not persisted — an
+   *  in-combat save resumes at the room (exploring) it was entered from. */
+  toSave(): RunSessionSave {
+    return {
+      schemaVersion: CURRENT_RUN_SESSION_SAVE_VERSION,
+      seed: this.masterSeed,
+      floorNumber: this.floorNumber,
+      currentRoomId: this.current,
+      clearedRoomIds: [...this.cleared],
+      status: this.status === 'in_combat' ? 'exploring' : this.status,
+      player: this.player,
+    };
+  }
+
+  /** Restores a saved run: regenerates the floor deterministically, then
+   *  overlays the saved position, cleared set, player, and status. */
+  applySave(save: RunSessionSave): void {
+    this.loadFloor(save.floorNumber);
+    this.current = save.currentRoomId;
+    this.cleared = new Set(save.clearedRoomIds);
+    this.player = save.player;
+    this.status = save.status === 'in_combat' ? 'exploring' : save.status;
   }
 
   currentRoom(): PopulatedRoom {
