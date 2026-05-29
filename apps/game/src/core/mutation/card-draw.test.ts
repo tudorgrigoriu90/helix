@@ -83,4 +83,22 @@ describe('card draw — T-85 (GDD §5.4 Rules 2 & 4)', () => {
     const cards = drawMutationCards({ pool, owned: pool, rng: makeRng(9, 'mutationdraw') });
     expect(cards).toHaveLength(0);
   });
+
+  it('ownership biases the weighted slots toward the owned family (T-86 wiring)', () => {
+    const pool = makePool(6);
+    // Own several abyssal mutations (not so many the pool runs dry).
+    const owned = pool.filter((m) => m.family === 'abyssal').slice(0, 3);
+    let abyssalWeighted = 0;
+    let otherWeighted = 0;
+    for (let seed = 0; seed < 400; seed++) {
+      const cards = drawMutationCards({ pool, owned, rng: makeRng(seed, 'mutationdraw') });
+      for (const c of cards.filter((x) => x.slot === 'weighted')) {
+        if (c.mutation.family === 'abyssal') abyssalWeighted++;
+        else otherWeighted++;
+      }
+    }
+    // With 3 abyssal owned (the 2+ rule: 50% dominant), the weighted slots should
+    // land on abyssal far more often than any single other family.
+    expect(abyssalWeighted).toBeGreaterThan(otherWeighted);
+  });
 });

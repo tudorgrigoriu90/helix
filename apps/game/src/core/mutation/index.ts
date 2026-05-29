@@ -7,3 +7,12 @@ export {
   type DrawnCard,
   type DrawMutationsParams,
 } from './card-draw';
+export {
+  familyWeights,
+  WEIGHT_UNIFORM,
+  WEIGHT_DOMINANT_SINGLE,
+  WEIGHT_ADJACENT_SINGLE,
+  WEIGHT_OTHER_SINGLE,
+  WEIGHT_DOMINANT_MANY,
+  WEIGHT_OTHER_MANY,
+} from './family-weights';

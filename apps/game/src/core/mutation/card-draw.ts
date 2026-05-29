@@ -1,15 +1,15 @@
 import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import { FAMILY_RING } from '@shared-types/mutation';
 import type { Mulberry32 } from '../rng/mulberry32';
+import { familyWeights } from './family-weights';
 
 /**
  * Strand Event card draw — T-85 (GDD §5.4).
  *
  * Produces the three mutation cards a Strand Event offers (GDD §5.4):
- *   - two **weighted** cards whose families are sampled from a per-family weight
- *     table (Rule 1). This base layer weights all five families equally — which
- *     is exactly Rule 1's "0 mutations owned" case; T-86 layers in the
- *     ownership-based 40/20/20/10/10 (and 2+-same-family 50/50) weighting.
+ *   - two **weighted** cards whose families are sampled from the ownership-based
+ *     {@link familyWeights} table (Rule 1 — 40/20/20/10/10 with one owned,
+ *     50/12.5 with 2+ in a family, uniform with none).
  *   - one **wild** card (Rule 2) whose family is always sampled uniformly across
  *     all families, regardless of what the player owns.
  *
@@ -71,9 +71,9 @@ export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCa
   const ownedIds = new Set(owned.map((m) => m.id));
   const remaining = pool.filter((m) => !ownedIds.has(m.id));
 
-  // T-85 base layer: weighted slots use the uniform distribution. T-86 swaps
-  // this for the ownership-aware `familyWeights(owned)`.
-  const weightedDist = uniformFamilyWeights();
+  // Weighted slots sample families by ownership (GDD §5.4 Rule 1, T-86); with
+  // nothing owned this is exactly the uniform distribution.
+  const weightedDist = familyWeights(owned);
 
   const cards: DrawnCard[] = [];
   const drawn = new Set<string>();
