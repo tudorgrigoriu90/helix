@@ -60,6 +60,13 @@ export type {
 export { CURRENT_LACE_SCHEMA_VERSION } from './lace-line.js';
 
 export type {
+  LifetimeStats,
+  MetaState,
+} from './meta-state.js';
+
+export { CURRENT_META_SCHEMA_VERSION } from './meta-state.js';
+
+export type {
   RoomType,
   Zone,
   ConnectivityRule,

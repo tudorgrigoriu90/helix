@@ -289,7 +289,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | ID    | Title                                                                       | Role          | Priority | Refs             | Notes |
 | ----- | --------------------------------------------------------------------------- | ------------- | -------- | ---------------- | ----- |
 | T-110 | `RunState` interface + `schemaVersion: number` field                        | Game Engineer | P0       | TDD §5.6         | NFR P8 |
-| T-111 | `MetaState` interface (codex, Sigma Strains, achievements, lifetime stats, cosmetics) | Game Engineer | P0 | TDD §4.2 | NFR P8 |
+| T-111 | ~~`MetaState` interface (codex, Sigma Strains, achievements, lifetime stats, cosmetics)~~ — **DONE 2026-05-28.** `MetaState` + `LifetimeStats` in `@shared-types/meta-state` (codex/sigma/achievement/cosmetic id sets + lifetime counters; no PII). `core/save/meta-save.ts`: `newMetaState`, serialize/deserialize reusing the generic migration chain. 3 tests. | Game Engineer | P0 | TDD §4.2 | DONE — NFR P8 |
 | T-112 | Atomic write pattern: write to temp → rename                                | Game Engineer | P0       | TDD §5.5, T5     | NFR P8 |
 | T-113 | Keep last 3 save generations (rotation)                                     | Game Engineer | P0       | TDD §5.5, T5     | NFR P8 |
 | T-114 | Save-on-action hook in turn engine                                          | Game Engineer | P0       | TDD §5.5         | |
