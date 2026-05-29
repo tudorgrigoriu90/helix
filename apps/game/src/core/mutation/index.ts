@@ -18,6 +18,13 @@ export {
   DOMINANT_TRAIT_THRESHOLD,
   type DominantTrait,
 } from './dominant';
+export {
+  HYBRID_SYNERGIES,
+  unlockedSynergies,
+  synergyFor,
+  type HybridSynergy,
+  type FamilyPair,
+} from './synergy';
 export { availableMutations } from './available';
 export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
