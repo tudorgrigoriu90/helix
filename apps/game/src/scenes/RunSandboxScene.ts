@@ -15,6 +15,10 @@ import { parseEnemyDef } from '../core/content/enemy-loader';
 import { parseLaceLines } from '../core/lace/lace-loader';
 import { parseFloorTemplate } from '../core/floor-gen';
 import { RunSession, buildEnemyRegistry } from '../core/run';
+import { restoreRunSession, runSessionCodec } from '../core/run/run-session-save';
+import type { RunSessionSave } from '../core/run/run-session';
+import { SaveManager } from '../core/save/save-manager';
+import { createWebStorageAdapter } from '../platform/storage-web';
 import { LaceNarrator } from '../core/lace';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
 import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
@@ -65,6 +69,7 @@ export class RunSandboxScene extends Phaser.Scene {
 
   /** Run seed — same seed always replays the identical run (determinism, NFR P2). */
   private seed = MASTER_SEED;
+  private saves!: SaveManager<RunSessionSave>;
 
   private view: View = 'map';
   private combat: RunState | null = null;
@@ -100,7 +105,31 @@ export class RunSandboxScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p.x, p.y));
     drawTabBar(this, this.scene.key);
 
-    this.startRun();
+    this.saves = new SaveManager(createWebStorageAdapter(), runSessionCodec);
+    void this.boot();
+  }
+
+  /** Resume a saved run if one exists, otherwise start fresh. */
+  private async boot(): Promise<void> {
+    const res = await this.saves.load();
+    if (res !== null && res.ok) this.resumeFrom(res.value);
+    else this.startRun();
+  }
+
+  private resumeFrom(save: RunSessionSave): void {
+    this.seed = save.seed;
+    this.session = restoreRunSession(save, { template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR });
+    this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
+    this.view = 'map';
+    this.combat = null;
+    this.targeting = null;
+    this.laceText.setText('LACE: ...you came back. The VEIN remembers where it left you.');
+    this.renderAll();
+  }
+
+  /** Persist the run at a room boundary (combat itself is not persisted). */
+  private persist(): void {
+    void this.saves.save(this.session.toSave());
   }
 
   // ── Content + run setup ───────────────────────────────────────────────────
@@ -130,6 +159,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.say('run_start');
+    this.persist();
     this.renderAll();
   }
 
@@ -173,6 +203,7 @@ export class RunSandboxScene extends Phaser.Scene {
       // Non-combat rooms auto-clear. lace_event rooms are narrative beats — let
       // the companion speak. (loot/merchant/trap rooms are content stubs for now.)
       if (room.type === 'lace_event') this.say('generic');
+      this.persist();
       this.renderAll();
       return;
     }
@@ -188,6 +219,7 @@ export class RunSandboxScene extends Phaser.Scene {
   private descendFloor(): void {
     this.session.descend();
     this.say('floor_enter');
+    this.persist();
     this.renderAll();
   }
 
@@ -307,15 +339,19 @@ export class RunSandboxScene extends Phaser.Scene {
     if (status === 'defeat') {
       this.say('player_death');
       this.view = 'over';
+      void this.saves.clear(); // run over — discard the save
     } else if (status === 'victory') {
       this.say('boss_killed');
       this.view = 'over';
+      void this.saves.clear();
     } else if (status === 'floor_complete') {
       this.say('floor_complete');
       this.view = 'map';
+      this.persist();
     } else {
       this.say(wasBoss ? 'boss_killed' : 'room_cleared');
       this.view = 'map';
+      this.persist();
     }
   }
 

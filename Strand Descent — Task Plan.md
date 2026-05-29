@@ -295,7 +295,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-114 | Save-on-action hook in turn engine — **PARTIAL 2026-05-28.** `SaveManager` generalised over a `SaveCodec<T>`; `RunSession.toSave()`/`applySave()` + `runSessionCodec` + `restoreRunSession` persist/rebuild a whole run (the floor regenerates from the seed, so a save is just seed + position + cleared set + player). Resume granularity is per-room (an in-combat save resumes as exploring at that room); full save-every-turn mid-combat persistence is the remaining piece. Scene wiring next. 13 save-layer tests. | Game Engineer | P0       | TDD §5.5         | PARTIAL |
 | T-115 | Migration framework (`core/turn-engine/migrations/`)                        | Game Engineer | P1       | TDD §5.6         | Tested against fixture saves from each prior version |
 | T-116 | Vitest: fixture-save migration tests for every prior schemaVersion          | QA            | P1       | TDD §5.6         | |
-| T-117 | Resume Run? modal trigger logic (S100)                                      | Game Engineer | P0       | UFD S100, E011   | |
+| T-117 | Resume Run? modal trigger logic (S100) — **PARTIAL 2026-05-28.** RunSandboxScene now auto-resumes a saved run on boot (loads via `SaveManager` + `createWebStorageAdapter`, rebuilds the session, surfaces a "you came back" LACE line); persists at every room boundary and clears the save on victory/defeat; REPLAY/REROLL overwrite with a fresh run. The proper S100 "Resume Run?" choice modal (resume vs discard) is the remaining UI piece. | Game Engineer | P0       | UFD S100, E011   | PARTIAL |
 
 ### S-3.8 — Organism Name Generator
 
