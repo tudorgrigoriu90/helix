@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_pressure_membrane",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Pressure Membrane",
+  "sigBonus": 10,
+  "modifiers": [{ "kind": "stat", "stat": "res", "delta": 5 }],
+  "grantsAbility": {
+    "id": "pressurize",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 1,
+    "targetType": "enemy",
+    "baseDamage": 15,
+    "damageType": "pressure",
+    "intScaling": 0,
+    "aoeRadius": 1,
+    "appliesStatus": "crushed",
+    "statusDuration": 2
+  },
+  "lace": "The deep ocean kills most things. You are adapting to make it kill other things instead.",
+  "tags": ["defense", "abyssal_core"]
+}

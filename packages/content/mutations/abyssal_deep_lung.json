@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_deep_lung",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Deep Lung",
+  "sigBonus": 10,
+  "modifiers": [{ "kind": "maxHp", "delta": 15 }],
+  "grantsAbility": null,
+  "lace": "Your chest widens to hold the dark water. It is not comfortable. It was never meant to be.",
+  "tags": ["sustain", "abyssal_core"]
+}

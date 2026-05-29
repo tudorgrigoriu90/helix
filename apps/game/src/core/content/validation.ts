@@ -119,6 +119,19 @@ export function readPositiveInt(
   return v;
 }
 
+/** Reads a required non-negative integer field (0 allowed). */
+export function readNonNegativeInt(
+  payload: Record<string, unknown>,
+  field: string,
+): number | ContentError {
+  const v = payload[field];
+  if (v === undefined) return contentError('MISSING_FIELD', `${field} is required`, field);
+  if (!isFiniteNumber(v) || !Number.isInteger(v) || v < 0) {
+    return contentError('INVALID_VALUE', `${field} must be a non-negative integer`, field);
+  }
+  return v;
+}
+
 /** Reads a required value that must be a member of `allowed`. */
 export function readEnum<T extends string>(
   payload: Record<string, unknown>,

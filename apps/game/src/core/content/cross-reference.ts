@@ -1,6 +1,7 @@
 import type { EnemyDef } from '@shared-types/enemy';
 import type { ItemDef } from '@shared-types/item';
 import type { FloorTemplate } from '@shared-types/floor-template';
+import type { MutationDef } from '@shared-types/mutation';
 import type { ContentError } from './validation';
 import { contentError } from './validation';
 
@@ -22,6 +23,7 @@ export interface ContentBundle {
   readonly enemies: readonly EnemyDef[];
   readonly items: readonly ItemDef[];
   readonly floors: readonly FloorTemplate[];
+  readonly mutations: readonly MutationDef[];
 }
 
 export function crossReferenceContent(bundle: ContentBundle): ContentError[] {
@@ -29,6 +31,7 @@ export function crossReferenceContent(bundle: ContentBundle): ContentError[] {
 
   errors.push(...duplicateIds(bundle.enemies.map((e) => e.id), 'enemy'));
   errors.push(...duplicateIds(bundle.items.map((i) => i.id), 'item'));
+  errors.push(...duplicateIds(bundle.mutations.map((m) => m.id), 'mutation'));
 
   const enemyById = new Map(bundle.enemies.map((e) => [e.id, e]));
 

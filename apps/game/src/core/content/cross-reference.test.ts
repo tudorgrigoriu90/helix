@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { EnemyDef } from '@shared-types/enemy';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { ItemDef } from '@shared-types/item';
+import type { MutationDef } from '@shared-types/mutation';
 import { crossReferenceContent, type ContentBundle } from './cross-reference';
 
 function enemy(id: string, tier: EnemyDef['tier'] = 'grunt'): EnemyDef {
@@ -38,11 +39,26 @@ function floor(over: Partial<FloorTemplate> = {}): FloorTemplate {
   };
 }
 
+function mutation(id: string): MutationDef {
+  return {
+    id,
+    family: 'abyssal',
+    tier: 'minor',
+    name: id,
+    sigBonus: 10,
+    modifiers: [],
+    grantsAbility: null,
+    lace: 'test line',
+    tags: [],
+  };
+}
+
 function bundle(over: Partial<ContentBundle> = {}): ContentBundle {
   return {
     enemies: [enemy('grunt_a'), enemy('big_boss', 'boss')],
     items: [item('x')],
     floors: [floor()],
+    mutations: [mutation('m1')],
     ...over,
   };
 }
@@ -80,6 +96,13 @@ describe('crossReferenceContent — T-288', () => {
     }));
     expect(errs.filter((e) => e.message.includes('duplicate enemy id'))).toHaveLength(1);
     expect(errs.filter((e) => e.message.includes('duplicate item id'))).toHaveLength(1);
+  });
+
+  it('flags duplicate mutation ids', () => {
+    const errs = crossReferenceContent(bundle({
+      mutations: [mutation('dup'), mutation('dup'), mutation('unique')],
+    }));
+    expect(errs.filter((e) => e.message.includes('duplicate mutation id'))).toHaveLength(1);
   });
 
   it('reports every problem at once rather than short-circuiting', () => {
