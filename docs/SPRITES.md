@@ -18,12 +18,19 @@ manifest entry).
 
 ## File + size conventions
 
-| Variant | Filename | Size | Used for |
-| --- | --- | --- | --- |
-| **Primary** (required) | `<key>.png` | **128×128** | Everything — the scene loads this and scales it to fit (tiles ~50px, entities ~46px, map icons ~22px). |
-| **Small** (optional) | `<key>.64.png` | **64×64** | Crisp small-size rendering for UI bars + minimap nodes. Not yet auto-loaded; provide it and we'll wire selection by size. Skip if the 128px scales down cleanly. |
+**The renderer loads exactly one file per sprite: `<key>.png`, and scales it to
+the display size.** Source resolution is up to you — render targets are small
+(tiles ~50px, entities ~46px, map icons ~22px on a 390px-wide canvas), so:
 
-Both variants:
+| Size | Filename | Notes |
+| --- | --- | --- |
+| **64×64** | `<key>.png` | **Fully sufficient** for the prototype — larger than every render target. Name your file exactly `<key>.png`. |
+| **128×128** | `<key>.png` | Optional upgrade for crispness on high-DPI (retina) screens. Same filename — just a higher-res source. |
+
+> ⚠️ Name files **`<key>.png`** (e.g. `filterer.png`). Do **not** use a `.64.png`
+> suffix — only `<key>.png` is auto-loaded.
+
+All sprites:
 - **PNG, transparent background** (RGBA).
 - **Square canvas**, subject **centred** with a few px of padding (so circular
   framing / scaling doesn't clip it).
