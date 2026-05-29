@@ -22,6 +22,8 @@ import { createWebStorageAdapter } from '../platform/storage-web';
 import { LaceNarrator } from '../core/lace';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
 import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
+import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
+import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 
 import filterer from '@content/enemies/filterer.json';
 import caveCrawler from '@content/enemies/cave_crawler.json';
@@ -89,6 +91,10 @@ export class RunSandboxScene extends Phaser.Scene {
 
   constructor() {
     super({ key: 'RunSandboxScene' });
+  }
+
+  preload(): void {
+    queueSpriteLoads(this);
   }
 
   create(): void {
@@ -401,15 +407,22 @@ export class RunSandboxScene extends Phaser.Scene {
       let fill = cleared.has(room.id) ? H.nodeCleared : H.node;
       if (room.id === floor.bossRoomId) fill = H.boss;
       else if (room.id === floor.startRoomId) fill = H.start;
+      // Coloured disc encodes state (cleared/boss/start/current); the room-type
+      // icon sits on top — a sprite if present, else a letter label.
       this.stage.fillStyle(fill).fillCircle(p.x, p.y, 14);
 
       if (adjacent.has(room.id)) this.stage.lineStyle(3, H.adj).strokeCircle(p.x, p.y, 17);
       if (isCurrent) this.stage.lineStyle(3, H.current).strokeCircle(p.x, p.y, 20);
 
-      const label = this.add.text(p.x, p.y, room.type[0]!.toUpperCase(), {
-        fontFamily: 'monospace', fontSize: '11px', color: C.dark,
-      }).setOrigin(0.5);
-      this.transient.push(label);
+      const iconImg = drawSprite(this, this.stage, roomSpriteKey(room.type), p.x, p.y, 22, { fallback: false });
+      if (iconImg !== null) {
+        this.transient.push(iconImg);
+      } else {
+        const label = this.add.text(p.x, p.y, room.type[0]!.toUpperCase(), {
+          fontFamily: 'monospace', fontSize: '11px', color: C.dark,
+        }).setOrigin(0.5);
+        this.transient.push(label);
+      }
     }
 
     const hint = this.add.text(W / 2, STAGE_Y + STAGE_H - 6, 'tap a highlighted room to move', {
@@ -426,6 +439,12 @@ export class RunSandboxScene extends Phaser.Scene {
     return Math.floor((W - this.tileSize(state) * state.grid.width) / 2);
   }
 
+  /** Draw a sprite (or its manifest fallback) and register it for per-frame cleanup. */
+  private sprite(key: string, x: number, y: number, size: number, tint?: number): void {
+    const img = drawSprite(this, this.stage, key, x, y, size, tint === undefined ? {} : { tint });
+    if (img !== null) this.transient.push(img);
+  }
+
   private renderCombat(): void {
     const state = this.combat;
     if (state === null) return;
@@ -434,10 +453,11 @@ export class RunSandboxScene extends Phaser.Scene {
 
     for (let r = 0; r < state.grid.height; r++) {
       for (let c = 0; c < state.grid.width; c++) {
-        const t = state.grid.tiles[r * state.grid.width + c];
+        const t = state.grid.tiles[r * state.grid.width + c]!;
         const px = gx + c * tile;
         const py = STAGE_Y + r * tile;
-        this.stage.fillStyle(t === 'hazard' ? H.hazard : H.tileBg).fillRect(px, py, tile, tile);
+        // Sprite if present, else the manifest fallback colour (the old look).
+        this.sprite(tileSpriteKey(t), px + tile / 2, py + tile / 2, tile);
         this.stage.lineStyle(1, H.tileBorder).strokeRect(px, py, tile, tile);
       }
     }
@@ -450,8 +470,8 @@ export class RunSandboxScene extends Phaser.Scene {
     for (const e of state.enemies) {
       const cx = gx + e.pos.x * tile + tile / 2;
       const cy = STAGE_Y + e.pos.y * tile + tile / 2;
-      if (e.hp <= 0) { this.stage.fillStyle(H.dead).fillCircle(cx, cy, tile * 0.2); continue; }
-      this.stage.fillStyle(H.enemy).fillCircle(cx, cy, tile * 0.34);
+      if (e.hp <= 0) { this.sprite(e.enemyDefId, cx, cy, tile * 0.9, H.dead); continue; }
+      this.sprite(e.enemyDefId, cx, cy, tile * 0.92);
       drawHp(cx, cy, e.hp / e.maxHp, H.hpRed);
     }
 
@@ -472,7 +492,7 @@ export class RunSandboxScene extends Phaser.Scene {
     const pp = state.player;
     const pcx = gx + pp.pos.x * tile + tile / 2;
     const pcy = STAGE_Y + pp.pos.y * tile + tile / 2;
-    this.stage.fillStyle(H.player).fillCircle(pcx, pcy, tile * 0.34);
+    this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, H.hpGreen);
   }
 

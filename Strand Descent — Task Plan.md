@@ -360,9 +360,9 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-150 | S023 FloorScene shell (tile-based exploration)         | Frontend | P0       | UFD 02     | |
-| T-151 | Tile renderer via Phaser Graphics primitives           | Frontend | P0       | TDD §21 Q2 | NFR perf |
-| T-152 | Player entity (runtime-generated geometry)             | Frontend | P0       | TDD §13.5  | |
-| T-153 | Enemy entities (shape encodes behavior)                | Frontend | P0       | GDD §13.3  | |
+| T-151 | Tile renderer via Phaser Graphics primitives — **PARTIAL 2026-05-28.** Tiles render via the sprite registry (`scenes/sprites/`): a `<key>.png` if present, else the geometry fallback (the original coloured rects). `tile_open/wall/hazard/cover/elevated/corruption` keys defined. | Frontend | P0       | TDD §21 Q2 | PARTIAL — NFR perf |
+| T-152 | Player entity (runtime-generated geometry) — **PARTIAL 2026-05-28.** Player renders via sprite registry (`player.png` or the teal-circle fallback). | Frontend | P0       | TDD §13.5  | PARTIAL |
+| T-153 | Enemy entities (shape encodes behavior) — **PARTIAL 2026-05-28.** Enemies render by `enemyDefId` through the sprite registry (per-enemy PNG or coloured-circle fallback, grey-tinted when dead). **Sprite pipeline added:** pure `sprite-manifest.ts` (single source of truth, CI-tested to cover every enemy/tile/room/item id) + `sprite-registry.ts` (Phaser loader with graceful per-file fallback — a missing PNG never errors, just draws the primitive) + `public/sprites/` drop-folder + artist spec `docs/SPRITES.md`. Drop `<key>.png` → it appears live, zero code change. 7 manifest tests; 402 total green. | Frontend | P0       | GDD §13.3  | PARTIAL |
 | T-154 | Fog of war                                             | Frontend | P0       | GDD §7.2   | |
 | T-155 | Minimap (compact + tap-to-expand)                      | Frontend | P0       | GDD §12.6  | |
 | T-156 | Color-blind friendly minimap (shape glyphs)            | Frontend | P1       | GDD §17    | NFR a11y |
