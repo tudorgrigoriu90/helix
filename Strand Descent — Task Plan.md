@@ -379,7 +379,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-162 | S041 Player turn start (AP refresh, save RunState on entry)           | Frontend | P0       | UFD 03         | |
 | T-163 | S042 Move preview (path + AP cost; two-tap confirm for first 5 runs)  | Frontend | P0       | UFD 03         | |
 | T-164 | S043 Attack preview (damage range + accuracy)                         | Frontend | P0       | UFD 03         | |
-| T-165 | S044 Ability targeting (range overlay, AoE preview)                   | Frontend | P0       | UFD 03         | |
+| T-165 | S044 Ability targeting (range overlay, AoE preview) — **PARTIAL 2026-05-28 (Sprint 4).** Sandbox impl in RunSandboxScene: tap an ability → targeting mode with a range overlay → tap an enemy (enemy-cast) or tile (tile-cast) in range → `useAbility`; self-cast fires immediately; tap the ability again to cancel. AoE-preview-on-hover + the polished combat-scene version are still pending. | Frontend | P0       | UFD 03         | PARTIAL |
 | T-166 | S045 Item use prompt                                                  | Frontend | P0       | UFD 03         | |
 | T-167 | S046 Enemy phase trigger                                              | Frontend | P0       | UFD 03         | |
 | T-168 | S047 Combat menu (Resume / Surrender / Settings; double-confirm Surrender) | Frontend | P0 | UFD 03 | NO FLEE in v1 |
@@ -389,7 +389,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-172 | S050 Status tick visualization                                        | Frontend | P0       | UFD 03         | |
 | T-173 | S051 Combat victory (flash + XP, 1.5s dismiss)                        | Frontend | P0       | UFD 03         | |
 | T-174 | S052 Combat loss → triggers S030                                      | Frontend | P0       | UFD 03         | |
-| T-175 | Ability bar UI (6 slots, swipeable, manual assignment)                | Frontend | P0       | GDD §12.3      | |
+| T-175 | Ability bar UI (6 slots, swipeable, manual assignment) — **PARTIAL 2026-05-28 (Sprint 4).** Sandbox ability bar in RunSandboxScene: one button per ability slot showing id + AP cost + cooldown, greyed when on cooldown or unaffordable, highlighted while selected. The 6-slot swipeable/manual-assignment polish is pending. | Frontend | P0       | GDD §12.3      | PARTIAL |
 
 ### S-4.6 — Room screens
 
