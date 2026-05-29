@@ -14,10 +14,10 @@ describe('difficulty scaling — T-78', () => {
     expect(scaledMaxHp(20, 6)).toBe(Math.round(20 * (1 + 5 * HP_SCALE_PER_FLOOR)));
   });
 
-  it('scales STR/RES but leaves AGI/INT flat (stable crit + AI)', () => {
+  it('scales STR but leaves RES/AGI/INT flat (enemies stay killable; stable crit + AI)', () => {
     const s = scaledStats(base, 6);
     expect(s.str).toBeGreaterThan(base.str);
-    expect(s.res).toBeGreaterThan(base.res);
+    expect(s.res).toBe(base.res); // flat so player damage stays meaningful at depth
     expect(s.agi).toBe(base.agi);
     expect(s.int).toBe(base.int);
   });

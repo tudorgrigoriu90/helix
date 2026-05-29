@@ -111,6 +111,7 @@ export class RunSession {
     }
     this.current = roomId;
     this.autoClearIfTrivial(this.current);
+    this.restIfSafe(this.current);
   }
 
   /**
@@ -177,6 +178,7 @@ export class RunSession {
     this.current = this.floorData.startRoomId;
     this.cleared = new Set<string>();
     this.autoClearIfTrivial(this.current);
+    this.restIfSafe(this.current);
     this.status = 'exploring';
   }
 
@@ -194,5 +196,12 @@ export class RunSession {
   /** Rooms with no enemies (safe/loot/merchant/…) clear the moment you enter. */
   private autoClearIfTrivial(id: string): void {
     if (this.roomById(id).enemies.length === 0) this.cleared.add(id);
+  }
+
+  /** Safe rooms are rest points — entering one restores the player to full HP. */
+  private restIfSafe(id: string): void {
+    if (this.roomById(id).type === 'safe' && this.player.hp < this.player.maxHp) {
+      this.player = { ...this.player, hp: this.player.maxHp };
+    }
   }
 }

@@ -52,7 +52,7 @@ const H = {
 };
 
 const MASTER_SEED = 0xc0ffee;
-const FINAL_FLOOR = 3; // short demo descent
+const FINAL_FLOOR = 2; // short, winnable demo descent (beat the Floor 2 boss to win)
 
 type View = 'map' | 'combat' | 'over';
 
