@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_regrowth",
+  "family": "mycelial",
+  "tier": "minor",
+  "name": "Regrowth",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "maxHp", "delta": 10 },
+    { "kind": "stat", "stat": "int", "delta": 2 }
+  ],
+  "grantsAbility": null,
+  "lace": "You stop healing and start composting. The distinction stops mattering by Floor Six.",
+  "tags": ["regen", "sustain"]
+}

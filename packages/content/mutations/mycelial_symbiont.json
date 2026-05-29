@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_symbiont",
+  "family": "mycelial",
+  "tier": "minor",
+  "name": "Symbiont Bloom",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "int", "delta": 4 }
+  ],
+  "grantsAbility": null,
+  "lace": "You are no longer one thing arguing with itself. You are many things, agreeing.",
+  "tags": ["regen", "mycelial_core"]
+}

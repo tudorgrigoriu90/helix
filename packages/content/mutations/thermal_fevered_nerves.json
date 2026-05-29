@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_fevered_nerves",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Fevered Nerves",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "agi", "delta": 4 },
+    { "kind": "stat", "stat": "str", "delta": 2 }
+  ],
+  "grantsAbility": null,
+  "lace": "The heat moves your hands before the thought is finished. Mostly, that helps.",
+  "tags": ["speed", "glass_cannon"]
+}

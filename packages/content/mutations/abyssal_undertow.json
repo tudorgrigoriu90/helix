@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_undertow",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Undertow",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "undertow",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 3,
+    "targetType": "enemy",
+    "baseDamage": 12,
+    "damageType": "pressure",
+    "intScaling": 0.3,
+    "aoeRadius": 0,
+    "appliesStatus": "crushed",
+    "statusDuration": 1
+  },
+  "lace": "The current does not ask where you wanted to go. It only tells you where you are now.",
+  "tags": ["pressure", "control"]
+}

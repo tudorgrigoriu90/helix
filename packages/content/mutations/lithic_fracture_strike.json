@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_fracture_strike",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Fracture Strike",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "fracture_strike",
+    "apCost": 2,
+    "cooldown": 2,
+    "range": 1,
+    "targetType": "enemy",
+    "baseDamage": 14,
+    "damageType": "seismic",
+    "intScaling": 0.2,
+    "aoeRadius": 0,
+    "appliesStatus": "fractured",
+    "statusDuration": 2
+  },
+  "lace": "Everything has a grain. You have learned to read it, and then to split it.",
+  "tags": ["burst", "counter"]
+}

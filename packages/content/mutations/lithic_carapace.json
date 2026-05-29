@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_carapace",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Carapace",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "res", "delta": 6 }
+  ],
+  "grantsAbility": null,
+  "lace": "The soft parts go inward. What is left on the outside does not flinch.",
+  "tags": ["defense", "lithic_core"]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_combustion_sac",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Combustion Sac",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "combustion_sac",
+    "apCost": 3,
+    "cooldown": 5,
+    "range": 4,
+    "targetType": "enemy",
+    "baseDamage": 20,
+    "damageType": "thermal",
+    "intScaling": 0.6,
+    "aoeRadius": 0,
+    "appliesStatus": "burn",
+    "statusDuration": 2
+  },
+  "lace": "You keep the fire in a pocket near the heart. You try very hard not to think about the pocket.",
+  "tags": ["glass_cannon", "burn"]
+}

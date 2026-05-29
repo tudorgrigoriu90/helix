@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_light_step",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Light Step",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "agi", "delta": 5 }
+  ],
+  "grantsAbility": null,
+  "lace": "Gravity files a complaint with someone. By the time it is read, you are already gone.",
+  "tags": ["stealth", "speed"]
+}

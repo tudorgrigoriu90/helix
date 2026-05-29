@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_crystal_lattice",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Crystal Lattice",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "maxHp", "delta": 12 },
+    { "kind": "stat", "stat": "res", "delta": 2 }
+  ],
+  "grantsAbility": null,
+  "lace": "You grow facets. Light enters, and does not come back out the same colour it went in.",
+  "tags": ["defense"]
+}

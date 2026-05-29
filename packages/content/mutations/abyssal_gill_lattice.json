@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_gill_lattice",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Gill Lattice",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "gill_lattice",
+    "apCost": 1,
+    "cooldown": 4,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "pressure",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 3
+  },
+  "lace": "Something in you learns to breathe the wound. It is a strange thing to be grateful for.",
+  "tags": ["sustain", "regen"]
+}

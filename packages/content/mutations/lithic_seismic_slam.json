@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_seismic_slam",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Seismic Slam",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "seismic_slam",
+    "apCost": 3,
+    "cooldown": 4,
+    "range": 1,
+    "targetType": "tile",
+    "baseDamage": 12,
+    "damageType": "seismic",
+    "intScaling": 0.3,
+    "aoeRadius": 1,
+    "appliesStatus": "crushed",
+    "statusDuration": 1
+  },
+  "lace": "You bring the ceiling down by reminding it that it was always, only, falling slowly.",
+  "tags": ["burst", "area"]
+}

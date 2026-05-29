@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_crush_depth",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Crush Depth",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "res", "delta": 3 },
+    { "kind": "maxHp", "delta": 8 }
+  ],
+  "grantsAbility": null,
+  "lace": "Pressure is just gravity that arrived early. You have stopped arguing with it.",
+  "tags": ["sustain", "defense"]
+}

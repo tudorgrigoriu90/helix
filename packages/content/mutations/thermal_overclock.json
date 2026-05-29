@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_overclock",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Overclock",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "maxAp", "delta": 1 }
+  ],
+  "grantsAbility": null,
+  "lace": "You run hot. You will not run long. You intend to be finished long before then.",
+  "tags": ["speed", "glass_cannon"]
+}

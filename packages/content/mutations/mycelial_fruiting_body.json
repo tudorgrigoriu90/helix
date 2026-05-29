@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_fruiting_body",
+  "family": "mycelial",
+  "tier": "minor",
+  "name": "Fruiting Body",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "fruiting_body",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 10,
+    "damageType": "spore",
+    "intScaling": 0.5,
+    "aoeRadius": 1,
+    "appliesStatus": "infected",
+    "statusDuration": 3
+  },
+  "lace": "You bloom where you are struck. It is almost generous, the way you give it back.",
+  "tags": ["area", "control"]
+}

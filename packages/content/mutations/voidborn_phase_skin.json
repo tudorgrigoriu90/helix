@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_phase_skin",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Phase Skin",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "phase_skin",
+    "apCost": 1,
+    "cooldown": 5,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "void",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "phased",
+    "statusDuration": 2
+  },
+  "lace": "You step half a degree sideways from where the world keeps its records of you.",
+  "tags": ["phase", "voidborn_core"]
+}

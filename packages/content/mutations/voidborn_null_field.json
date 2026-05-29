@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_null_field",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Null Field",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "null_field",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 0,
+    "damageType": "void",
+    "intScaling": 0,
+    "aoeRadius": 1,
+    "appliesStatus": "suppressed",
+    "statusDuration": 3
+  },
+  "lace": "In the quiet you make, nothing remembers how it used to be loud.",
+  "tags": ["control", "drain"]
+}

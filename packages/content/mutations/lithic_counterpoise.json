@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_counterpoise",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Counterpoise",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "str", "delta": 2 },
+    { "kind": "stat", "stat": "res", "delta": 3 }
+  ],
+  "grantsAbility": null,
+  "lace": "Push, and the mineral pushes back along the same line. Patiently. Exactly. Forever.",
+  "tags": ["counter", "defense"]
+}

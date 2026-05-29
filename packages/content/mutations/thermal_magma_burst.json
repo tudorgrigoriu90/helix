@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_magma_burst",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Magma Burst",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "magma_burst",
+    "apCost": 3,
+    "cooldown": 4,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 14,
+    "damageType": "thermal",
+    "intScaling": 0.4,
+    "aoeRadius": 1,
+    "appliesStatus": "burn",
+    "statusDuration": 2
+  },
+  "lace": "Everything in reach agrees, briefly and very loudly, to become light.",
+  "tags": ["glass_cannon", "area"]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_entropy_siphon",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Entropy Siphon",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "entropy_siphon",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 2,
+    "targetType": "enemy",
+    "baseDamage": 13,
+    "damageType": "void",
+    "intScaling": 0.4,
+    "aoeRadius": 0,
+    "appliesStatus": "suppressed",
+    "statusDuration": 2
+  },
+  "lace": "What it had, it has less of now. The arithmetic only ever flows one way.",
+  "tags": ["drain"]
+}

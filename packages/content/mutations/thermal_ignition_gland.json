@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_ignition_gland",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Ignition Gland",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "ignition_gland",
+    "apCost": 2,
+    "cooldown": 2,
+    "range": 3,
+    "targetType": "enemy",
+    "baseDamage": 12,
+    "damageType": "thermal",
+    "intScaling": 0.5,
+    "aoeRadius": 0,
+    "appliesStatus": "burn",
+    "statusDuration": 3
+  },
+  "lace": "You learn the exact temperature at which other things begin to reconsider their shape.",
+  "tags": ["burn", "thermal_core"]
+}

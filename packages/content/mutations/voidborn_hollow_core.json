@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_hollow_core",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Hollow Core",
+  "sigBonus": 10,
+  "modifiers": [
+    { "kind": "stat", "stat": "agi", "delta": 2 },
+    { "kind": "stat", "stat": "int", "delta": 3 }
+  ],
+  "grantsAbility": null,
+  "lace": "You make room inside by deciding that less of you ever needed to be there.",
+  "tags": ["drain", "phase"]
+}

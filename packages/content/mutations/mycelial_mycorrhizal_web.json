@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_mycorrhizal_web",
+  "family": "mycelial",
+  "tier": "minor",
+  "name": "Mycorrhizal Web",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "mycorrhizal_web",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 0,
+    "damageType": "spore",
+    "intScaling": 0,
+    "aoeRadius": 1,
+    "appliesStatus": "rooted",
+    "statusDuration": 2
+  },
+  "lace": "Threads find every foot. The floor is no longer neutral ground, and neither are you.",
+  "tags": ["control", "area"]
+}
