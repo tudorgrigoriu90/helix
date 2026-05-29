@@ -11,6 +11,13 @@ export {
 } from './card-draw';
 export { rerollCard, type RerollParams } from './reroll';
 export { applyMutation } from './apply';
+export {
+  unlockedDominantTraits,
+  dominantTraitFor,
+  DOMINANT_TRAITS,
+  DOMINANT_TRAIT_THRESHOLD,
+  type DominantTrait,
+} from './dominant';
 export { availableMutations } from './available';
 export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
