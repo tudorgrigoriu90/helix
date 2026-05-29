@@ -415,18 +415,18 @@ Status markers in the tables below were reconciled against git history on 2026-0
 
 | ID    | Title                                                                 | Role     | Priority | Refs       | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
-| T-181 | S060 Strand Event intro (LACE narrates; not-skippable first-per-run)  | Frontend | P0       | UFD 04     | |
+| T-181 | S060 Strand Event intro (LACE narrates; not-skippable first-per-run) — **PARTIAL 2026-05-29 (sandbox).** Clearing a floor boss in the RUN sandbox opens a `strand` view; LACE narrates the intro (generic pool) / a saturation line on intermission. Polished not-skippable first-per-run intro pending. | Frontend | P0       | UFD 04     | PARTIAL |
 | T-182 | S061 Card reveal animation (~1.5s, deterministic per seed)            | Frontend | P0       | UFD 04     | NFR P2 |
-| T-183 | S062 Card selection UI (no timer, tap-and-hold to mark reroll)        | Frontend | P0       | UFD 04     | |
+| T-183 | S062 Card selection UI (no timer, tap-and-hold to mark reroll) — **PARTIAL 2026-05-29 (sandbox).** Three card panels in RunSandboxScene (family·tier·WILD header, name, passive + active summary, SIG); tap to select → shows the card's LACE line; TAKE confirms. The tap-and-hold-to-mark + card-reveal polish is pending. | Frontend | P0       | UFD 04     | PARTIAL |
 | T-184 | S063 Card detail modal (effect text + family lore + synergy hints)    | Frontend | P0       | UFD 04     | |
-| T-185 | S064 Choice confirm (skipped after first 3 confirms in player history) | Frontend | P0      | UFD 04     | |
-| T-186 | S065 Reroll prompt (player-picked card, 1 reroll per Strand Event)    | Frontend | P0       | UFD 04     | |
+| T-185 | S064 Choice confirm (skipped after first 3 confirms in player history) — **PARTIAL 2026-05-29 (sandbox).** Select-then-TAKE two-step confirm in the sandbox; the history-aware auto-skip is pending. | Frontend | P0      | UFD 04     | PARTIAL |
+| T-186 | S065 Reroll prompt (player-picked card, 1 reroll per Strand Event) — **PARTIAL 2026-05-29 (sandbox).** REROLL button rerolls the selected card once per event (`RunSession.rerollStrandCard`, same RNG sub-stream → deterministic); button hides after use. Token/ad gating + prompt polish pending. | Frontend | P0       | UFD 04     | PARTIAL |
 | T-187 | S066 Token confirm (shows token balance)                              | Frontend | P1       | UFD 04     | |
 | T-188 | S067 New card drawn (animate replacement)                             | Frontend | P0       | UFD 04     | |
-| T-189 | S068 Mutation applied (visual transform of player geometry)           | Frontend | P0       | UFD 04     | |
-| T-190 | S069 LACE reaction (mood-aware)                                       | Frontend | P0       | UFD 04     | |
-| T-191 | S070 Dominant Trait reveal (big celebration; first-time achievement)  | Frontend | P0       | UFD 04     | |
-| T-192 | S071 VEIN Intermission (replaces Strand Event when 4 mutations cap)   | Frontend | P1       | UFD 04     | |
+| T-189 | S068 Mutation applied (visual transform of player geometry) — **PARTIAL 2026-05-29 (sandbox).** TAKE applies the mutation via `RunSession.chooseStrandMutation` (stats/HP/AP/ability + SIG, shown live in the HUD: `SIG x/40  MUT n/4`). The visual player-geometry transform is pending. | Frontend | P0       | UFD 04     | PARTIAL |
+| T-190 | S069 LACE reaction (mood-aware) — **PARTIAL 2026-05-29 (sandbox).** The selected/applied mutation's authored `lace` line surfaces on select + on TAKE. Full mood-aware reaction pool pending. | Frontend | P0       | UFD 04     | PARTIAL |
+| T-191 | S070 Dominant Trait reveal (big celebration; first-time achievement)  | Frontend | P0       | UFD 04     | detection done (T-91); reveal UI pending |
+| T-192 | S071 VEIN Intermission (replaces Strand Event when 4 mutations cap) — **PARTIAL 2026-05-29 (sandbox).** At the 4-mutation cap the Strand view shows the VEIN Intermission panel (+100 VC) with a CONTINUE button (`RunSession.acceptIntermission`). Polished screen pending. | Frontend | P1       | UFD 04     | PARTIAL |
 
 ### S-4.8 — Run-end & Share-bridge scenes
 

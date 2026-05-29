@@ -6,12 +6,14 @@ import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { AbilitySlot } from '@shared-types/ability';
 import type { ItemDef } from '@shared-types/item';
+import type { MutationDef } from '@shared-types/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
 import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { parseEnemyDef } from '../core/content/enemy-loader';
+import { parseMutationDef } from '../core/content/mutation-loader';
 import { parseLaceLines } from '../core/lace/lace-loader';
 import { parseFloorTemplate } from '../core/floor-gen';
 import { RunSession, buildEnemyRegistry } from '../core/run';
@@ -33,6 +35,14 @@ import shellBrute from '@content/enemies/shell_brute.json';
 import pressureWarden from '@content/enemies/pressure_warden.json';
 import floor01 from '@content/floors/floor_01.json';
 import laceCore from '@content/lace-lines/core.json';
+// Every mutation file, loaded eagerly — the Strand Event draw pool grows with
+// content automatically (no per-file import to maintain). Glob patterns can't use
+// path aliases, so this is the relative path to packages/content/mutations.
+// `import.meta.glob` is a Vite macro typed by vite/client; tsc resolves it but the
+// lint project doesn't pick up the ImportMeta augmentation, hence the disable.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const mutationModules = import.meta.glob('../../../../packages/content/mutations/*.json', { eager: true });
+const mutationFiles = mutationModules as Record<string, { readonly default: unknown }>;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 const W = 390;
@@ -59,8 +69,11 @@ const H = {
 
 const MASTER_SEED = 0xc0ffee;
 const FINAL_FLOOR = 2; // short, winnable demo descent (beat the Floor 2 boss to win)
+// Demo cadence: a Strand Event after every floor's boss (the real game uses 5),
+// so the short 2-floor demo still shows the mutation pick.
+const STRAND_INTERVAL = 1;
 
-type View = 'map' | 'combat' | 'over';
+type View = 'map' | 'combat' | 'strand' | 'over';
 
 export class RunSandboxScene extends Phaser.Scene {
   private session!: RunSession;
@@ -68,6 +81,11 @@ export class RunSandboxScene extends Phaser.Scene {
   private enemyRegistry!: ReadonlyMap<string, EnemyDef>;
   private template!: FloorTemplate;
   private laceLines: readonly LaceLine[] = [];
+  private mutationPool: readonly MutationDef[] = [];
+
+  /** Strand Event UI state: which card is selected, and whether the reroll was spent. */
+  private strandSelected: number | null = null;
+  private strandRerollUsed = false;
 
   /** Run seed — same seed always replays the identical run (determinism, NFR P2). */
   private seed = MASTER_SEED;
@@ -129,13 +147,18 @@ export class RunSandboxScene extends Phaser.Scene {
 
   private resumeFrom(save: RunSessionSave): void {
     this.seed = save.seed;
-    this.session = restoreRunSession(save, { template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR });
+    this.session = restoreRunSession(save, {
+      template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR,
+      mutations: this.mutationPool, strandEventEveryNFloors: STRAND_INTERVAL,
+    });
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
-    this.view = 'map';
     this.combat = null;
     this.targeting = null;
     this.laceText.setText('LACE: ...you came back. The VEIN remembers where it left you.');
-    this.renderAll();
+    // A run saved mid-Strand-Event resumes straight into the pick.
+    this.view = save.status === 'strand_event' ? 'strand' : 'map';
+    if (this.view === 'strand') this.openStrandEvent();
+    else this.renderAll();
   }
 
   /** Persist the run at a room boundary (combat itself is not persisted). */
@@ -160,11 +183,22 @@ export class RunSandboxScene extends Phaser.Scene {
     const lace = parseLaceLines(laceCore);
     if (!lace.ok) throw new Error(`RunSandbox: bad LACE content — ${lace.error.message}`);
     this.laceLines = lace.lines;
+
+    const pool: MutationDef[] = [];
+    for (const mod of Object.values(mutationFiles)) {
+      const res = parseMutationDef(mod.default);
+      if (!res.ok) throw new Error(`RunSandbox: bad mutation content — ${res.error.message}`);
+      pool.push(res.mutation);
+    }
+    this.mutationPool = pool;
   }
 
   /** (Re)starts the run on the current seed — everything is derived from it. */
   private startRun(): void {
-    this.session = new RunSession({ seed: this.seed, template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR });
+    this.session = new RunSession({
+      seed: this.seed, template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR,
+      mutations: this.mutationPool, strandEventEveryNFloors: STRAND_INTERVAL,
+    });
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
     this.view = 'map';
     this.combat = null;
@@ -192,6 +226,7 @@ export class RunSandboxScene extends Phaser.Scene {
   private onPointer(x: number, y: number): void {
     if (this.view === 'map') this.onMapPointer(x, y);
     else if (this.view === 'combat') this.onCombatPointer(x, y);
+    else if (this.view === 'strand') this.onStrandPointer(x, y);
   }
 
   private onMapPointer(x: number, y: number): void {
@@ -230,6 +265,68 @@ export class RunSandboxScene extends Phaser.Scene {
   private descendFloor(): void {
     this.session.descend();
     this.say('floor_enter');
+    this.persist();
+    this.renderAll();
+  }
+
+  // ── Strand Event (GDD §5) ─────────────────────────────────────────────────
+
+  /** Opens the Strand Event view for the current floor (card draw or intermission). */
+  private openStrandEvent(): void {
+    const outcome = this.session.beginStrandEvent();
+    this.strandSelected = null;
+    this.strandRerollUsed = false;
+    this.view = 'strand';
+    // Intro: LACE's saturation/strand commentary (generic pool).
+    if (outcome.kind === 'intermission') {
+      this.laceText.setText('LACE: You are saturated. The VEIN offers crystals instead — a consolation it does not believe in.');
+    } else {
+      this.say('generic');
+    }
+    this.persist();
+    this.renderAll();
+  }
+
+  private onStrandPointer(x: number, y: number): void {
+    const cards = this.session.strandOffer;
+    if (cards.length === 0) return; // intermission — only the CONTINUE button acts
+    for (let i = 0; i < cards.length; i++) {
+      const r = this.strandCardRect(i);
+      if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+        this.strandSelected = i;
+        this.laceText.setText(`LACE: ${cards[i]!.mutation.lace}`); // the card's own commentary
+        this.renderAll();
+        return;
+      }
+    }
+  }
+
+  /** Take the selected card: apply its mutation, then drop to floor_complete. */
+  private takeStrandCard(): void {
+    if (this.strandSelected === null) return;
+    const card = this.session.strandOffer[this.strandSelected];
+    if (card === undefined) return;
+    this.session.chooseStrandMutation(card.mutation.id);
+    this.laceText.setText(`LACE: ${card.mutation.lace}`); // the applied mutation speaks
+    this.view = 'map';
+    this.persist();
+    this.renderAll();
+  }
+
+  /** Reroll the selected card (one per Strand Event). */
+  private rerollStrandCard(): void {
+    if (this.strandSelected === null || this.strandRerollUsed) return;
+    this.session.rerollStrandCard(this.strandSelected);
+    this.strandRerollUsed = true;
+    const card = this.session.strandOffer[this.strandSelected];
+    if (card !== undefined) this.laceText.setText(`LACE: ${card.mutation.lace}`);
+    this.renderAll();
+  }
+
+  /** Acknowledge a VEIN Intermission: bank the crystals and move on. */
+  private continueIntermission(): void {
+    this.session.acceptIntermission();
+    this.view = 'map';
     this.persist();
     this.renderAll();
   }
@@ -355,6 +452,9 @@ export class RunSandboxScene extends Phaser.Scene {
       this.say('boss_killed');
       this.view = 'over';
       void this.saves.clear();
+    } else if (status === 'strand_event') {
+      this.say('boss_killed');
+      this.openStrandEvent();
     } else if (status === 'floor_complete') {
       this.say('floor_complete');
       this.view = 'map';
@@ -379,6 +479,7 @@ export class RunSandboxScene extends Phaser.Scene {
 
     if (this.view === 'map') this.renderMap();
     else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); this.renderItemBar(); }
+    else if (this.view === 'strand') this.renderStrand();
     else this.renderOver();
 
     this.renderButtons();
@@ -563,6 +664,86 @@ export class RunSandboxScene extends Phaser.Scene {
     }
   }
 
+  // ── Strand Event rendering ──────────────────────────────────────────────────
+
+  private strandCardRect(i: number): { x: number; y: number; w: number; h: number } {
+    return { x: 16, y: STAGE_Y + 28 + i * 128, w: W - 32, h: 116 };
+  }
+
+  private static modifierSummary(m: MutationDef): string {
+    if (m.modifiers.length === 0) return '—';
+    return m.modifiers
+      .map((mod) =>
+        mod.kind === 'stat' ? `+${mod.delta} ${mod.stat.toUpperCase()}`
+        : mod.kind === 'maxHp' ? `+${mod.delta} HP`
+        : `+${mod.delta} AP`,
+      )
+      .join(', ');
+  }
+
+  private static abilitySummary(m: MutationDef): string {
+    return m.grantsAbility === null ? 'passive only' : `grants ${m.grantsAbility.id} (${m.grantsAbility.apCost} AP)`;
+  }
+
+  private renderStrand(): void {
+    const cards = this.session.strandOffer;
+
+    // VEIN Intermission (player at the mutation cap): no cards, a VC payout.
+    if (cards.length === 0) {
+      this.stage.fillStyle(0x101830).fillRoundedRect(16, STAGE_Y + 40, W - 32, 150, 10);
+      this.stage.lineStyle(1, 0xffdd44).strokeRoundedRect(16, STAGE_Y + 40, W - 32, 150, 10);
+      this.transient.push(
+        this.add.text(W / 2, STAGE_Y + 80, 'VEIN INTERMISSION', {
+          fontFamily: 'monospace', fontSize: '16px', color: C.yellow,
+        }).setOrigin(0.5),
+        this.add.text(W / 2, STAGE_Y + 120, '+100 VEIN Crystals', {
+          fontFamily: 'monospace', fontSize: '13px', color: C.green,
+        }).setOrigin(0.5),
+        this.add.text(W / 2, STAGE_Y + 150, '(saturated — 4 mutations held)', {
+          fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+        }).setOrigin(0.5),
+      );
+      return;
+    }
+
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 12, 'STRAND EVENT — choose one', {
+        fontFamily: 'monospace', fontSize: '12px', color: C.green,
+      }).setOrigin(0.5, 0),
+    );
+
+    cards.forEach((card, i) => {
+      const r = this.strandCardRect(i);
+      const m = card.mutation;
+      const selected = this.strandSelected === i;
+      this.stage.fillStyle(selected ? 0x16243c : 0x0e1626).fillRoundedRect(r.x, r.y, r.w, r.h, 8);
+      this.stage.lineStyle(selected ? 2 : 1, selected ? 0xffdd44 : H.edge).strokeRoundedRect(r.x, r.y, r.w, r.h, 8);
+
+      const wild = card.slot === 'wild' ? '  ·  WILD' : '';
+      this.transient.push(
+        this.add.text(r.x + 12, r.y + 10, `${m.family.toUpperCase()} · ${m.tier.toUpperCase()}${wild}`, {
+          fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+        }),
+        this.add.text(r.x + 12, r.y + 26, m.name, {
+          fontFamily: 'monospace', fontSize: '14px', color: selected ? C.yellow : C.text,
+        }),
+        this.add.text(r.x + 12, r.y + 50, `Passive: ${RunSandboxScene.modifierSummary(m)}`, {
+          fontFamily: 'monospace', fontSize: '10px', color: C.green,
+        }),
+        this.add.text(r.x + 12, r.y + 68, `Active:  ${RunSandboxScene.abilitySummary(m)}`, {
+          fontFamily: 'monospace', fontSize: '10px', color: C.green,
+        }),
+        this.add.text(r.x + 12, r.y + 90, `SIG +${m.sigBonus}`, {
+          fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+        }),
+      );
+
+      const z = this.add.zone(r.x, r.y, r.w, r.h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.onStrandPointer(r.x + 1, r.y + 1));
+      this.buttonZones.push(z);
+    });
+  }
+
   private renderOver(): void {
     const status = this.session.snapshot.status;
     this.overlay.fillStyle(0x000000, 0.6).fillRect(0, STAGE_Y, W, STAGE_H);
@@ -577,6 +758,15 @@ export class RunSandboxScene extends Phaser.Scene {
   // ── Buttons ─────────────────────────────────────────────────────────────────
 
   private renderButtons(): void {
+    if (this.view === 'strand') {
+      const cards = this.session.strandOffer;
+      if (cards.length === 0) { this.button(20, 'CONTINUE', C.yellow, () => this.continueIntermission()); return; }
+      if (this.strandSelected !== null) {
+        this.button(20, 'TAKE', C.green, () => this.takeStrandCard());
+        if (!this.strandRerollUsed) this.button(210, 'REROLL', C.yellow, () => this.rerollStrandCard());
+      }
+      return;
+    }
     if (this.view === 'combat') {
       // End Turn is always available during the player phase — it does NOT
       // require spending all AP.
@@ -616,9 +806,10 @@ export class RunSandboxScene extends Phaser.Scene {
     // During combat, show AP + turn so End Turn is visibly effective (AP refreshes
     // to max after the enemy phase) and you can see you may end a turn with AP left.
     const combatInfo = combat ? `   AP ${here.ap}/${here.maxAp}   Turn ${combat.turn}` : '';
+    const muts = snap.player.mutations.length;
     this.hudText.setText([
       `Floor ${snap.floorNumber}/${FINAL_FLOOR}    ${this.view.toUpperCase()}    ${snap.status}`,
-      `HP ${here.hp}/${here.maxHp}${combatInfo}`,
+      `HP ${here.hp}/${here.maxHp}${combatInfo}    SIG ${snap.sig}/40    MUT ${muts}/4`,
       `Room ${snap.currentRoomId} (${this.session.currentRoom().type})   seed 0x${this.seed.toString(16).padStart(8, '0')}`,
     ]);
   }
