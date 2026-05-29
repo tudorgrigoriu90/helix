@@ -159,7 +159,9 @@ export class RunSandboxScene extends Phaser.Scene {
     const room = this.session.currentRoom();
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
-      this.say('floor_enter');
+      // Non-combat rooms auto-clear. lace_event rooms are narrative beats — let
+      // the companion speak. (loot/merchant/trap rooms are content stubs for now.)
+      if (room.type === 'lace_event') this.say('generic');
       this.renderAll();
       return;
     }
@@ -167,6 +169,13 @@ export class RunSandboxScene extends Phaser.Scene {
     this.combat = encounter;
     this.combatRng = makeRng(encounter.seed, 'combat');
     this.view = 'combat';
+    this.renderAll();
+  }
+
+  /** Advance to the next floor after a boss clear. */
+  private descendFloor(): void {
+    this.session.descend();
+    this.say('floor_enter');
     this.renderAll();
   }
 
@@ -352,13 +361,21 @@ export class RunSandboxScene extends Phaser.Scene {
 
   private renderButtons(): void {
     if (this.view === 'combat') {
+      // End Turn is always available during the player phase — it does NOT
+      // require spending all AP.
       if (this.combat?.phase === 'player') {
         this.button(20, 'END TURN', C.green, () => this.combatAction({ type: 'endTurn' }));
       }
       return;
     }
-    // Map + game-over: seed controls. REPLAY re-runs the same seed (identical
-    // run — determinism); REROLL advances to a new deterministic seed.
+    // Boss cleared → offer the descent to the next floor.
+    if (this.view === 'map' && this.session.snapshot.status === 'floor_complete') {
+      this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
+      this.button(210, 'REROLL', C.dim, () => this.reroll());
+      return;
+    }
+    // Exploring / game-over: seed controls. REPLAY re-runs the same seed
+    // (identical run — determinism); REROLL advances to a new deterministic seed.
     this.button(20, 'REPLAY', C.green, () => this.startRun());
     this.button(210, 'REROLL', C.yellow, () => this.reroll());
   }
@@ -377,12 +394,15 @@ export class RunSandboxScene extends Phaser.Scene {
 
   private updateHud(): void {
     const snap = this.session.snapshot;
-    const p = snap.player;
-    const here = this.view === 'combat' ? this.combat?.player ?? p : p;
+    const combat = this.view === 'combat' ? this.combat : null;
+    const here = combat?.player ?? snap.player;
+    // During combat, show AP + turn so End Turn is visibly effective (AP refreshes
+    // to max after the enemy phase) and you can see you may end a turn with AP left.
+    const combatInfo = combat ? `   AP ${here.ap}/${here.maxAp}   Turn ${combat.turn}` : '';
     this.hudText.setText([
       `Floor ${snap.floorNumber}/${FINAL_FLOOR}    ${this.view.toUpperCase()}    ${snap.status}`,
-      `HP ${here.hp}/${here.maxHp}    Room: ${snap.currentRoomId} (${this.session.currentRoom().type})`,
-      `seed 0x${this.seed.toString(16).padStart(8, '0')}   ·  REPLAY = same run · REROLL = new seed`,
+      `HP ${here.hp}/${here.maxHp}${combatInfo}`,
+      `Room ${snap.currentRoomId} (${this.session.currentRoom().type})   seed 0x${this.seed.toString(16).padStart(8, '0')}`,
     ]);
   }
 
