@@ -84,6 +84,8 @@ export class RunSandboxScene extends Phaser.Scene {
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
+  /** Above-sprite layer for HP bars, targeting tint, threat markers. */
+  private topGfx!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
   private laceText!: Phaser.GameObjects.Text;
   private transient: Phaser.GameObjects.GameObject[] = [];
@@ -101,8 +103,11 @@ export class RunSandboxScene extends Phaser.Scene {
     this.loadContent();
     this.add.graphics().fillStyle(H.bg).fillRect(0, 0, W, 844);
 
-    this.stage = this.add.graphics();
-    this.overlay = this.add.graphics();
+    // Layering by depth: stage (ground: tiles, borders, map, buttons) < sprites
+    // (entities, depth 1) < topGfx (HP bars, targeting tint) < overlay (game-over).
+    this.stage = this.add.graphics().setDepth(0);
+    this.topGfx = this.add.graphics().setDepth(2);
+    this.overlay = this.add.graphics().setDepth(3);
     this.hudText = this.add.text(16, HUD_Y, '', { fontFamily: 'monospace', fontSize: '13px', color: C.text, lineSpacing: 4 });
     this.laceText = this.add.text(16, LACE_Y, '', {
       fontFamily: 'monospace', fontSize: '11px', color: C.green, fontStyle: 'italic', wordWrap: { width: W - 32 },
@@ -365,6 +370,7 @@ export class RunSandboxScene extends Phaser.Scene {
 
   private renderAll(): void {
     this.stage.clear();
+    this.topGfx.clear();
     this.overlay.clear();
     this.transient.forEach((t) => t.destroy());
     this.transient = [];
@@ -442,7 +448,7 @@ export class RunSandboxScene extends Phaser.Scene {
   /** Draw a sprite (or its manifest fallback) and register it for per-frame cleanup. */
   private sprite(key: string, x: number, y: number, size: number, tint?: number): void {
     const img = drawSprite(this, this.stage, key, x, y, size, tint === undefined ? {} : { tint });
-    if (img !== null) this.transient.push(img);
+    if (img !== null) { img.setDepth(1); this.transient.push(img); }
   }
 
   private renderCombat(): void {
@@ -463,8 +469,8 @@ export class RunSandboxScene extends Phaser.Scene {
     }
 
     const drawHp = (cx: number, cy: number, frac: number, color: number): void => {
-      this.stage.fillStyle(H.hpBg).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, tile - 4, 3);
-      if (frac > 0) this.stage.fillStyle(color).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, Math.round((tile - 4) * frac), 3);
+      this.topGfx.fillStyle(H.hpBg).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, tile - 4, 3);
+      if (frac > 0) this.topGfx.fillStyle(color).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, Math.round((tile - 4) * frac), 3);
     };
 
     for (const e of state.enemies) {
@@ -483,7 +489,7 @@ export class RunSandboxScene extends Phaser.Scene {
         for (let c = 0; c < state.grid.width; c++) {
           if (c === state.player.pos.x && r === state.player.pos.y) continue;
           if (chebyshev(state.player.pos, { x: c, y: r }) <= range) {
-            this.stage.fillStyle(0x44ccff, 0.16).fillRect(gx + c * tile, STAGE_Y + r * tile, tile, tile);
+            this.topGfx.fillStyle(0x44ccff, 0.16).fillRect(gx + c * tile, STAGE_Y + r * tile, tile, tile);
           }
         }
       }
