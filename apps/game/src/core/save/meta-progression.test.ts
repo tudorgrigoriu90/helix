@@ -1,0 +1,61 @@
+import { describe, it, expect } from 'vitest';
+import { newMetaState } from './meta-save';
+import { recordRunOutcome } from './meta-progression';
+
+describe('recordRunOutcome — T-111 meta-progression', () => {
+  it('increments runs and (on a win) wins', () => {
+    const after = recordRunOutcome(newMetaState(), {
+      won: true, floorReached: 2, enemiesKilled: 5, playtimeMs: 60000,
+    });
+    expect(after.lifetime.runs).toBe(1);
+    expect(after.lifetime.wins).toBe(1);
+  });
+
+  it('does not count a loss as a win', () => {
+    const after = recordRunOutcome(newMetaState(), {
+      won: false, floorReached: 1, enemiesKilled: 2, playtimeMs: 1000,
+    });
+    expect(after.lifetime.runs).toBe(1);
+    expect(after.lifetime.wins).toBe(0);
+  });
+
+  it('tracks the deepest floor as a max, not the latest', () => {
+    let m = recordRunOutcome(newMetaState(), { won: false, floorReached: 3, enemiesKilled: 0, playtimeMs: 0 });
+    m = recordRunOutcome(m, { won: false, floorReached: 1, enemiesKilled: 0, playtimeMs: 0 });
+    expect(m.lifetime.deepestFloor).toBe(3);
+  });
+
+  it('accumulates kills and playtime across runs', () => {
+    let m = recordRunOutcome(newMetaState(), { won: false, floorReached: 1, enemiesKilled: 4, playtimeMs: 1000 });
+    m = recordRunOutcome(m, { won: true, floorReached: 2, enemiesKilled: 6, playtimeMs: 2000 });
+    expect(m.lifetime.enemiesKilled).toBe(10);
+    expect(m.lifetime.totalPlaytimeMs).toBe(3000);
+  });
+
+  it('unions codex + achievement ids without duplicates', () => {
+    let m = recordRunOutcome(newMetaState(), {
+      won: false, floorReached: 1, enemiesKilled: 0, playtimeMs: 0,
+      codexFound: ['codex_01'], achievementsEarned: ['first_blood'],
+    });
+    m = recordRunOutcome(m, {
+      won: false, floorReached: 1, enemiesKilled: 0, playtimeMs: 0,
+      codexFound: ['codex_01', 'codex_02'],
+    });
+    expect([...m.codexEntryIds].sort()).toEqual(['codex_01', 'codex_02']);
+    expect(m.achievementIds).toEqual(['first_blood']);
+  });
+
+  it('clamps negative kills/playtime to zero (defensive)', () => {
+    const after = recordRunOutcome(newMetaState(), {
+      won: false, floorReached: 1, enemiesKilled: -5, playtimeMs: -100,
+    });
+    expect(after.lifetime.enemiesKilled).toBe(0);
+    expect(after.lifetime.totalPlaytimeMs).toBe(0);
+  });
+
+  it('is pure — does not mutate the input', () => {
+    const before = newMetaState();
+    recordRunOutcome(before, { won: true, floorReached: 5, enemiesKilled: 9, playtimeMs: 5 });
+    expect(before.lifetime.runs).toBe(0);
+  });
+});
