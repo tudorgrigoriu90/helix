@@ -59,6 +59,14 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 ---
 
+## Reality Check (2026-05-29)
+
+The build deliberately departed from strict task-ID order to **prove the core loop is fun before deepening the engine** — if a turn-based descent isn't satisfying at Floor 1, there's no point layering systems on top. So work fanned out across stories to stand up a **playable Floor 1 vertical slice** (the `RUN` sandbox): floor generation end-to-end (S-3.3), the save/resume layer (S-3.7: T-110/111/112/113/115/116, T-114/117 partial), the web storage adapter (S-5.1: T-222/223/225), a LACE narrator core (S-3.5: T-96/104), Zone-1 content (T-290 enemies, T-292 items), and a sprite pipeline (T-151) — all ahead of their nominal slot. Three sandbox scenes (`COMBAT` / `FLOOR GRAPH` / `RUN`) bridge E-3 ↔ E-4.
+
+The verdict from that slice: the loop holds up — which is why the **Genetic Mutation System (S-3.4)** is now the active focus. It's the literal Strand Event, the pillar the game is named around, and the one empty core directory. This section of the plan is being worked top-to-bottom now (T-82 → T-95), one task per commit, every line tested.
+
+Status markers in the tables below were reconciled against git history on 2026-05-29; rows that shipped during the vertical-slice push but were left blank have been flipped to DONE with their commit noted.
+
 ## Epic Index
 
 | Epic   | Title                              | Span                   | Notes                                                       |
@@ -288,13 +296,13 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                                       | Role          | Priority | Refs             | Notes |
 | ----- | --------------------------------------------------------------------------- | ------------- | -------- | ---------------- | ----- |
-| T-110 | `RunState` interface + `schemaVersion: number` field                        | Game Engineer | P0       | TDD §5.6         | NFR P8 |
+| T-110 | ~~`RunState` interface + `schemaVersion: number` field~~ — **DONE 2026-05-28.** `RunState` in `@shared-types/run-state` carries `schemaVersion`; `core/save/run-save.ts` serializes/deserializes through the generic migration chain. (git `d9748f6`) | Game Engineer | P0       | TDD §5.6         | DONE — NFR P8 |
 | T-111 | ~~`MetaState` interface (codex, Sigma Strains, achievements, lifetime stats, cosmetics)~~ — **DONE 2026-05-28.** `MetaState` + `LifetimeStats` in `@shared-types/meta-state` (codex/sigma/achievement/cosmetic id sets + lifetime counters; no PII). `core/save/meta-save.ts`: `newMetaState`, serialize/deserialize reusing the generic migration chain, `metaCodec` for SaveManager persistence; `meta-progression.ts` `recordRunOutcome` folds a finished run into the profile (runs/wins/deepest-floor/kills/playtime + codex/achievement union). `core/save/index.ts` barrel ties the layer together. 10 tests. | Game Engineer | P0 | TDD §4.2 | DONE — NFR P8 |
 | T-112 | ~~Atomic write pattern: write to temp → rename~~ — **DONE 2026-05-28.** `SaveManager` (`core/save/save-manager.ts`) emulates write-temp→rename over key/value storage with a commit pointer: write the new generation slot, *then* update the head pointer; a crash between the two leaves head on the prior intact generation. 6 tests (incl. a half-written-no-commit case). | Game Engineer | P0       | TDD §5.5, T5     | DONE — NFR P8 |
 | T-113 | ~~Keep last 3 save generations (rotation)~~ — **DONE 2026-05-28.** `SaveManager` rotates round-robin through 3 generation slots; `loadRun` returns the newest and falls back to older generations when the newest is corrupt (tested: corrupt-newest recovery). | Game Engineer | P0       | TDD §5.5, T5     | DONE — NFR P8 |
 | T-114 | Save-on-action hook in turn engine — **PARTIAL 2026-05-28.** `SaveManager` generalised over a `SaveCodec<T>`; `RunSession.toSave()`/`applySave()` + `runSessionCodec` + `restoreRunSession` persist/rebuild a whole run (the floor regenerates from the seed, so a save is just seed + position + cleared set + player). Resume granularity is per-room (an in-combat save resumes as exploring at that room); full save-every-turn mid-combat persistence is the remaining piece. Scene wiring next. 13 save-layer tests. | Game Engineer | P0       | TDD §5.5         | PARTIAL |
-| T-115 | Migration framework (`core/turn-engine/migrations/`)                        | Game Engineer | P1       | TDD §5.6         | Tested against fixture saves from each prior version |
-| T-116 | Vitest: fixture-save migration tests for every prior schemaVersion          | QA            | P1       | TDD §5.6         | |
+| T-115 | ~~Migration framework~~ — **DONE 2026-05-28.** Generic version-chained migration in `core/save/run-save.ts` (`migrate()` walks `schemaVersion` upward through registered steps); reused by both run-save and meta-save. (git `d9748f6`) Note: landed under `core/save/` rather than `core/turn-engine/migrations/` — co-located with the codecs that use it. | Game Engineer | P1       | TDD §5.6         | DONE |
+| T-116 | ~~Vitest: fixture-save migration tests for every prior schemaVersion~~ — **DONE 2026-05-28.** `core/save/run-save.test.ts` exercises the migration chain (current-version round-trip + an older-version fixture migrated forward + unknown-future-version rejection). (git `d9748f6`) | QA            | P1       | TDD §5.6         | DONE |
 | T-117 | Resume Run? modal trigger logic (S100) — **PARTIAL 2026-05-28.** RunSandboxScene now auto-resumes a saved run on boot (loads via `SaveManager` + `createWebStorageAdapter`, rebuilds the session, surfaces a "you came back" LACE line); persists at every room boundary and clears the save on victory/defeat; REPLAY/REROLL overwrite with a fresh run. The proper S100 "Resume Run?" choice modal (resume vs discard) is the remaining UI piece. | Game Engineer | P0       | UFD S100, E011   | PARTIAL |
 
 ### S-3.8 — Organism Name Generator
@@ -465,10 +473,10 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-222 | `StorageAdapter` interface in `core/platform`          | Game Engineer | P0  | TDD §10.1  | |
-| T-223 | Web impl: IndexedDB via `idb-keyval`                   | Frontend | P0       | TDD §10.1  | |
+| T-222 | ~~`StorageAdapter` interface in `core/platform`~~ — **DONE 2026-05-28.** `StorageAdapter` (async `get`/`set`/`remove`/`keys`, string values) in `core/platform/storage-adapter.ts`; the save layer talks only to this seam. (git `T-222`) | Game Engineer | P0  | TDD §10.1  | DONE |
+| T-223 | ~~Web impl~~ — **DONE 2026-05-28.** `createWebStorageAdapter` over `localStorage` (not `idb-keyval` — localStorage is sufficient for the MetaState/RunState sizes and simpler; revisit IndexedDB only if a value exceeds ~5MB). (git `9e3cb1f`) | Frontend | P0       | TDD §10.1  | DONE |
 | T-224 | Capacitor impl: `@capacitor/preferences` (small) + Filesystem (large) | Frontend | P0 | TDD §10.1 | |
-| T-225 | Vitest mocks for tests                                 | QA       | P0       | TDD §10.1  | |
+| T-225 | ~~Vitest mocks for tests~~ — **DONE 2026-05-28.** `MemoryStorageAdapter` (in-memory `Map`) is the test double and the safe default when no persistent backend is available. (git `T-225`) | QA       | P0       | TDD §10.1  | DONE |
 
 ### S-5.2 — Cloud storage adapter (TDD §21 Q6)
 
