@@ -32,6 +32,14 @@ export {
   VEIN_INTERMISSION_REWARD_VC,
   type StrandOutcome,
 } from './intermission';
+export {
+  accumulateSig,
+  sigBonusFor,
+  gainMutationSig,
+  SIG_CAP,
+  LACE_EVENT_SIG_BONUS,
+  type SigSource,
+} from './sig';
 export { availableMutations } from './available';
 export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
