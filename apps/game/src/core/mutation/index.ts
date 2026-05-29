@@ -7,6 +7,7 @@ export {
   type DrawnCard,
   type DrawMutationsParams,
 } from './card-draw';
+export { availableMutations } from './available';
 export {
   familyWeights,
   WEIGHT_UNIFORM,

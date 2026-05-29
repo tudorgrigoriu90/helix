@@ -2,6 +2,7 @@ import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import { FAMILY_RING } from '@shared-types/mutation';
 import type { Mulberry32 } from '../rng/mulberry32';
 import { familyWeights } from './family-weights';
+import { availableMutations } from './available';
 
 /**
  * Strand Event card draw — T-85 (GDD §5.4).
@@ -68,19 +69,20 @@ function pickMutation(candidates: readonly MutationDef[], rng: Mulberry32): Muta
 
 export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCard[] {
   const { pool, owned, rng } = params;
-  const ownedIds = new Set(owned.map((m) => m.id));
-  const remaining = pool.filter((m) => !ownedIds.has(m.id));
 
   // Weighted slots sample families by ownership (GDD §5.4 Rule 1, T-86); with
   // nothing owned this is exactly the uniform distribution.
   const weightedDist = familyWeights(owned);
 
+  // One growing exclude set enforces Rule 4 both ways: it starts with everything
+  // the player owns and gains each card as it's drawn, so the offer never repeats
+  // an owned mutation nor itself (T-87).
+  const excluded = new Set<string>(owned.map((m) => m.id));
   const cards: DrawnCard[] = [];
-  const drawn = new Set<string>();
   const weightedSlots = STRAND_CARD_COUNT - WILD_CARD_COUNT;
 
   for (let i = 0; i < STRAND_CARD_COUNT; i++) {
-    const available = remaining.filter((m) => !drawn.has(m.id));
+    const available = availableMutations(pool, excluded);
     if (available.length === 0) break; // pool exhausted — return fewer cards
 
     const slot: DrawSlot = i < weightedSlots ? 'weighted' : 'wild';
@@ -88,11 +90,11 @@ export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCa
     const family = pickFamily(dist, rng);
 
     // Prefer the sampled family; if it has nothing left, broaden to anything
-    // still available so a thin family never wastes a card (T-87 hardens this).
+    // still available so a thin family never wastes a card.
     const inFamily = available.filter((m) => m.family === family);
     const mutation = pickMutation(inFamily.length > 0 ? inFamily : available, rng);
 
-    drawn.add(mutation.id);
+    excluded.add(mutation.id);
     cards.push({ mutation, slot });
   }
 
