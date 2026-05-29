@@ -10,6 +10,7 @@ export {
   type DrawOneParams,
 } from './card-draw';
 export { rerollCard, type RerollParams } from './reroll';
+export { applyMutation } from './apply';
 export { availableMutations } from './available';
 export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
