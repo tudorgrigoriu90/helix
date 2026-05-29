@@ -1,8 +1,12 @@
-import type { MutationDef, MutationFamily } from '@shared-types/mutation';
+import type { MutationDef, MutationFamily, MutationTier } from '@shared-types/mutation';
 import { FAMILY_RING } from '@shared-types/mutation';
 import type { Mulberry32 } from '../rng/mulberry32';
 import { familyWeights } from './family-weights';
 import { availableMutations } from './available';
+import { STRAND_CARD_COUNT, WILD_CARD_COUNT } from './constants';
+import { tiersForFloor } from './tiers';
+
+export { STRAND_CARD_COUNT, WILD_CARD_COUNT };
 
 /**
  * Strand Event card draw — T-85 (GDD §5.4).
@@ -13,6 +17,10 @@ import { availableMutations } from './available';
  *     50/12.5 with 2+ in a family, uniform with none).
  *   - one **wild** card (Rule 2) whose family is always sampled uniformly across
  *     all families, regardless of what the player owns.
+ *
+ * Each slot also carries a required **tier** that escalates with depth (Rule 3,
+ * {@link tiersForFloor}); tier is honoured with graceful fallback so a thin pool
+ * never leaves a slot empty.
  *
  * All three cards are distinct mutations the player does not already own
  * (Rule 4 — hardened in T-87). Deterministic: the only entropy is the supplied
@@ -29,6 +37,9 @@ export type DrawSlot = 'weighted' | 'wild';
 export interface DrawnCard {
   readonly mutation: MutationDef;
   readonly slot: DrawSlot;
+  /** The tier this slot required (GDD §5.4 Rule 3). Usually equals
+   *  `mutation.tier`, but can differ when a thin pool forced a tier fallback. */
+  readonly tier: MutationTier;
 }
 
 export interface DrawMutationsParams {
@@ -36,14 +47,12 @@ export interface DrawMutationsParams {
   readonly pool: readonly MutationDef[];
   /** Mutations the player already owns — excluded from the draw (Rule 4). */
   readonly owned: readonly MutationDef[];
+  /** Current floor — sets the per-slot tier mix (Rule 3). Defaults to floor 1
+   *  (all Minor) so early callers/tests need not supply it. */
+  readonly floor?: number;
   /** The `mutationdraw` sub-generator — `makeRng(seed, 'mutationdraw')`. */
   readonly rng: Mulberry32;
 }
-
-/** Number of cards a Strand Event offers (GDD §5.4). */
-export const STRAND_CARD_COUNT = 3;
-/** Of those, how many are wild (full-random family); the rest are weighted. */
-export const WILD_CARD_COUNT = 1;
 
 /** Equal weight for every family — Rule 1's "0 mutations owned" distribution. */
 function uniformFamilyWeights(): ReadonlyMap<MutationFamily, number> {
@@ -67,8 +76,35 @@ function pickMutation(candidates: readonly MutationDef[], rng: Mulberry32): Muta
   return candidates[rng.nextInt(candidates.length)]!;
 }
 
+/**
+ * Resolves one card from the still-available pool, honouring tier then family
+ * with graceful fallback so a slot is never wasted on a thin pool:
+ *   1. required tier ∩ sampled family   (the ideal card)
+ *   2. required tier, any family         (tier matters more than family)
+ *   3. sampled family, any tier          (keep the family flavour)
+ *   4. anything still available          (last resort)
+ * `available` is guaranteed non-empty by the caller.
+ */
+function pickForSlot(
+  available: readonly MutationDef[],
+  tier: MutationTier,
+  family: MutationFamily,
+  rng: Mulberry32,
+): MutationDef {
+  const tierMatches = available.filter((m) => m.tier === tier);
+  const tierAndFamily = tierMatches.filter((m) => m.family === family);
+  if (tierAndFamily.length > 0) return pickMutation(tierAndFamily, rng);
+  if (tierMatches.length > 0) return pickMutation(tierMatches, rng);
+
+  const familyMatches = available.filter((m) => m.family === family);
+  if (familyMatches.length > 0) return pickMutation(familyMatches, rng);
+
+  return pickMutation(available, rng);
+}
+
 export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCard[] {
   const { pool, owned, rng } = params;
+  const tiers = tiersForFloor(params.floor ?? 1); // Rule 3 — per-slot tier mix.
 
   // Weighted slots sample families by ownership (GDD §5.4 Rule 1, T-86); with
   // nothing owned this is exactly the uniform distribution.
@@ -86,16 +122,13 @@ export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCa
     if (available.length === 0) break; // pool exhausted — return fewer cards
 
     const slot: DrawSlot = i < weightedSlots ? 'weighted' : 'wild';
+    const tier = tiers[i] ?? 'minor';
     const dist = slot === 'wild' ? uniformFamilyWeights() : weightedDist;
     const family = pickFamily(dist, rng);
 
-    // Prefer the sampled family; if it has nothing left, broaden to anything
-    // still available so a thin family never wastes a card.
-    const inFamily = available.filter((m) => m.family === family);
-    const mutation = pickMutation(inFamily.length > 0 ? inFamily : available, rng);
-
+    const mutation = pickForSlot(available, tier, family, rng);
     excluded.add(mutation.id);
-    cards.push({ mutation, slot });
+    cards.push({ mutation, slot, tier });
   }
 
   return cards;

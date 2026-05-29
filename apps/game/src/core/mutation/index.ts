@@ -8,6 +8,7 @@ export {
   type DrawMutationsParams,
 } from './card-draw';
 export { availableMutations } from './available';
+export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
   familyWeights,
   WEIGHT_UNIFORM,
