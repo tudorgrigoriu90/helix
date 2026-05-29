@@ -25,6 +25,13 @@ export {
   type HybridSynergy,
   type FamilyPair,
 } from './synergy';
+export {
+  resolveStrandEvent,
+  isMutationCapped,
+  MUTATION_CAP,
+  VEIN_INTERMISSION_REWARD_VC,
+  type StrandOutcome,
+} from './intermission';
 export { availableMutations } from './available';
 export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
