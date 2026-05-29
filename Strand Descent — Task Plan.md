@@ -619,7 +619,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-298 | Floor templates: Zones 1–2 (Floors 1–10)               | Director | P1       | GDD §7.1   | |
 | T-299 | 15 Sigma Strains implemented                           | Director | P1       | GDD §11.2  | |
 | T-300 | 20 Codex entries for Zones 1–2                         | Director | P1       | GDD §2.7   | |
-| T-301 | 5 Origins (default + 2 alpha-unlock)                   | Director | P1       | GDD §4.1   | |
+| T-301 | 5 Origins (default + 2 alpha-unlock) — **PARTIAL 2026-05-28 (Sprint 4).** Hardcoded default loadout in `core/run/start-player.ts` (`newRunPlayer`): stats STR10/RES6/AGI8/INT10, two abilities (`pressure_lance` single-target + `rupture` AoE/crush), three Common consumables (vein_serum/frag_grenade/spore_bomb). A precursor to real Origins content + an ability content pipeline. 4 tests. | Director | P1       | GDD §4.1   | PARTIAL |
 
 ### S-7.4 — Soft-launch content (Gate 3)
 
