@@ -1,8 +1,18 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedFloor, PopulatedRoom } from '@shared-types/floor-plan';
 import type { PlayerState, RunState } from '@shared-types/run-state';
-import { Mulberry32 } from '../rng/mulberry32';
+import type { MutationDef } from '@shared-types/mutation';
+import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { buildAdjacency, generateFloor } from '../floor-gen';
+import {
+  drawMutationCards,
+  rerollCard,
+  applyMutation,
+  resolveStrandEvent,
+  gainMutationSig,
+  type DrawnCard,
+  type StrandOutcome,
+} from '../mutation';
 import { buildEncounterState, type EnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
 
@@ -20,8 +30,16 @@ import { newRunPlayer } from './start-player';
  */
 
 const FINAL_FLOOR_DEFAULT = 20;
+/** A Strand Event fires after clearing the boss of every Nth floor (GDD §5). */
+const STRAND_INTERVAL_DEFAULT = 5;
 
-export type RunStatus = 'exploring' | 'in_combat' | 'floor_complete' | 'victory' | 'defeat';
+export type RunStatus =
+  | 'exploring'
+  | 'in_combat'
+  | 'strand_event'
+  | 'floor_complete'
+  | 'victory'
+  | 'defeat';
 
 export interface RunSnapshot {
   readonly status: RunStatus;
@@ -29,10 +47,15 @@ export interface RunSnapshot {
   readonly currentRoomId: string;
   readonly clearedRoomIds: readonly string[];
   readonly player: PlayerState;
+  /** Sigma Resonance accrued this run (GDD §4.2; capped at 40). */
+  readonly sig: number;
+  /** VEIN Crystals banked this run (e.g. from VEIN Intermissions). */
+  readonly veinCrystals: number;
 }
 
-/** Schema version for the persisted run-session shape. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 1;
+/** Schema version for the persisted run-session shape.
+ *  v2 added `sig` + `veinCrystals`; v1 saves load fine (missing fields → 0). */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 2;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -47,6 +70,10 @@ export interface RunSessionSave {
   readonly clearedRoomIds: readonly string[];
   readonly status: RunStatus;
   readonly player: PlayerState;
+  /** Sigma Resonance (added in save v2; absent in v1 saves → treated as 0). */
+  readonly sig?: number;
+  /** VEIN Crystals (added in save v2; absent in v1 saves → treated as 0). */
+  readonly veinCrystals?: number;
 }
 
 export interface RunSessionOptions {
@@ -56,6 +83,14 @@ export interface RunSessionOptions {
   readonly player?: PlayerState;
   /** Boss kill on this floor wins the run (default 20). */
   readonly finalFloor?: number;
+  /**
+   * The mutation draw pool. When non-empty, clearing a qualifying floor's boss
+   * triggers a Strand Event (GDD §5); when empty (the default), Strand Events are
+   * disabled and the run loop behaves exactly as before.
+   */
+  readonly mutations?: readonly MutationDef[];
+  /** Strand Event cadence — fires every Nth floor's boss clear (default 5). */
+  readonly strandEventEveryNFloors?: number;
 }
 
 function hashString(s: string): number {
@@ -69,6 +104,8 @@ export class RunSession {
   private readonly template: FloorTemplate;
   private readonly registry: EnemyRegistry;
   private readonly finalFloor: number;
+  private readonly mutationPool: readonly MutationDef[];
+  private readonly strandInterval: number;
 
   private floorNumber = 1;
   private floorData!: PopulatedFloor;
@@ -78,11 +115,21 @@ export class RunSession {
   private status: RunStatus = 'exploring';
   private player: PlayerState;
 
+  // Run-scoped mutation state (carries across floors, never resets mid-run).
+  private sig = 0;
+  private veinCrystals = 0;
+  // Transient per-Strand-Event state (regenerated deterministically on resume).
+  private strandRng: Mulberry32 | null = null;
+  private strandOutcome: StrandOutcome | null = null;
+  private strandCards: readonly DrawnCard[] = [];
+
   constructor(options: RunSessionOptions) {
     this.masterSeed = options.seed;
     this.template = options.template;
     this.registry = options.registry;
     this.finalFloor = options.finalFloor ?? FINAL_FLOOR_DEFAULT;
+    this.mutationPool = options.mutations ?? [];
+    this.strandInterval = options.strandEventEveryNFloors ?? STRAND_INTERVAL_DEFAULT;
     this.player = options.player ?? newRunPlayer();
     this.loadFloor(1);
   }
@@ -96,6 +143,8 @@ export class RunSession {
       currentRoomId: this.current,
       clearedRoomIds: [...this.cleared],
       player: this.player,
+      sig: this.sig,
+      veinCrystals: this.veinCrystals,
     };
   }
 
@@ -112,19 +161,25 @@ export class RunSession {
       floorNumber: this.floorNumber,
       currentRoomId: this.current,
       clearedRoomIds: [...this.cleared],
+      // In-combat saves resume at the room (exploring); a Strand Event is
+      // preserved and its offer regenerates deterministically on resume.
       status: this.status === 'in_combat' ? 'exploring' : this.status,
       player: this.player,
+      sig: this.sig,
+      veinCrystals: this.veinCrystals,
     };
   }
 
   /** Restores a saved run: regenerates the floor deterministically, then
-   *  overlays the saved position, cleared set, player, and status. */
+   *  overlays the saved position, cleared set, player, status, and run currencies. */
   applySave(save: RunSessionSave): void {
     this.loadFloor(save.floorNumber);
     this.current = save.currentRoomId;
     this.cleared = new Set(save.clearedRoomIds);
     this.player = save.player;
     this.status = save.status === 'in_combat' ? 'exploring' : save.status;
+    this.sig = save.sig ?? 0; // absent in v1 saves
+    this.veinCrystals = save.veinCrystals ?? 0;
   }
 
   currentRoom(): PopulatedRoom {
@@ -197,18 +252,113 @@ export class RunSession {
     this.cleared.add(this.current);
 
     if (this.current === this.floorData.bossRoomId) {
-      this.status = this.floorNumber >= this.finalFloor ? 'victory' : 'floor_complete';
+      if (this.floorNumber >= this.finalFloor) this.status = 'victory';
+      else if (this.strandEventDue()) this.status = 'strand_event';
+      else this.status = 'floor_complete';
     } else {
       this.status = 'exploring';
     }
   }
 
-  /** Advances to the next floor after a boss clear. */
+  /** Advances to the next floor after a boss clear (and any Strand Event). */
   descend(): void {
     if (this.status !== 'floor_complete') {
       throw new Error(`descend: floor not complete (status: ${this.status})`);
     }
     this.loadFloor(this.floorNumber + 1);
+  }
+
+  // ── Strand Event (GDD §5) ─────────────────────────────────────────────────
+
+  /** True when this floor's boss clear should open a Strand Event. */
+  private strandEventDue(): boolean {
+    return this.mutationPool.length > 0 && this.floorNumber % this.strandInterval === 0;
+  }
+
+  /** The owned mutations resolved to their defs (for weighting + application). */
+  private ownedMutationDefs(): MutationDef[] {
+    const byId = new Map(this.mutationPool.map((m) => [m.id, m]));
+    return this.player.mutations.flatMap((id) => {
+      const def = byId.get(id);
+      return def === undefined ? [] : [def];
+    });
+  }
+
+  /**
+   * Opens the current floor's Strand Event, returning whether it's a card draw
+   * or a VEIN Intermission (at the mutation cap). Idempotent for the floor — the
+   * offer is computed once (deterministically from the seed) and cached, so the
+   * scene can call it freely and it survives a resume.
+   */
+  beginStrandEvent(): StrandOutcome {
+    if (this.status !== 'strand_event') {
+      throw new Error(`beginStrandEvent: not at a Strand Event (status: ${this.status})`);
+    }
+    if (this.strandOutcome !== null) return this.strandOutcome;
+
+    const owned = this.ownedMutationDefs();
+    const outcome = resolveStrandEvent(owned.length);
+    if (outcome.kind === 'draw') {
+      this.strandRng = makeRng((this.masterSeed ^ Math.imul(this.floorNumber, 0x9e3779b1)) >>> 0, 'mutationdraw');
+      this.strandCards = drawMutationCards({
+        pool: this.mutationPool,
+        owned,
+        floor: this.floorNumber,
+        rng: this.strandRng,
+      });
+    }
+    this.strandOutcome = outcome;
+    return outcome;
+  }
+
+  /** The three cards on offer (empty unless an active draw). */
+  get strandOffer(): readonly DrawnCard[] {
+    return this.strandCards;
+  }
+
+  /** Rerolls one offered card on the same RNG sub-stream (GDD §5.4 Rule 5). */
+  rerollStrandCard(index: number): void {
+    if (this.status !== 'strand_event' || this.strandRng === null) {
+      throw new Error('rerollStrandCard: no active Strand Event draw');
+    }
+    this.strandCards = rerollCard({
+      offer: this.strandCards,
+      index,
+      pool: this.mutationPool,
+      owned: this.ownedMutationDefs(),
+      rng: this.strandRng,
+    });
+  }
+
+  /** Takes a card: applies its mutation, accrues SIG, then ends the event. */
+  chooseStrandMutation(mutationId: string): void {
+    if (this.status !== 'strand_event') {
+      throw new Error(`chooseStrandMutation: not at a Strand Event (status: ${this.status})`);
+    }
+    const card = this.strandCards.find((c) => c.mutation.id === mutationId);
+    if (card === undefined) {
+      throw new Error(`chooseStrandMutation: "${mutationId}" is not in the current offer`);
+    }
+    this.player = applyMutation(this.player, card.mutation);
+    this.sig = gainMutationSig(this.sig, card.mutation, 'strand');
+    this.endStrandEvent();
+  }
+
+  /** Acknowledges a VEIN Intermission: banks its VEIN Crystals, ends the event. */
+  acceptIntermission(): void {
+    if (this.status !== 'strand_event') {
+      throw new Error(`acceptIntermission: not at a Strand Event (status: ${this.status})`);
+    }
+    const outcome = this.beginStrandEvent();
+    if (outcome.kind === 'intermission') this.veinCrystals += outcome.veinCrystals;
+    this.endStrandEvent();
+  }
+
+  private endStrandEvent(): void {
+    this.strandRng = null;
+    this.strandOutcome = null;
+    this.strandCards = [];
+    this.status = 'floor_complete';
   }
 
   // ── Internals ───────────────────────────────────────────────────────────

@@ -411,6 +411,8 @@ Status markers in the tables below were reconciled against git history on 2026-0
 
 ### S-4.7 — Strand Event scenes (UFD Scope 4)
 
+> **Run-loop integration landed 2026-05-29 (core side).** `RunSession` now drives Strand Events end-to-end: clearing a qualifying floor's boss (every Nth floor; off entirely when no mutation pool is supplied, so prior tests/balance are unchanged) transitions to a new `strand_event` status. `beginStrandEvent()` returns a card draw or a VEIN Intermission (at the 4-mutation cap); `strandOffer`, `rerollStrandCard()`, `chooseStrandMutation()` (applies the mutation + accrues SIG), and `acceptIntermission()` complete it → `floor_complete` → `descend()`. Run-scoped **SIG + VEIN Crystals** added to the snapshot and persisted (save schema v2; v1 saves load with both defaulting to 0). The offer is deterministic from seed+floor and regenerates on resume. 9 new run-session tests. The rows below are the *scene UI* on top of this.
+
 | ID    | Title                                                                 | Role     | Priority | Refs       | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
 | T-181 | S060 Strand Event intro (LACE narrates; not-skippable first-per-run)  | Frontend | P0       | UFD 04     | |

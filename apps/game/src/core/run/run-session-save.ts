@@ -1,5 +1,6 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PlayerState } from '@shared-types/run-state';
+import type { MutationDef } from '@shared-types/mutation';
 import type { SaveCodec, LoadResult } from '../save/save-manager';
 import type { EnemyRegistry } from './encounter';
 import {
@@ -15,7 +16,9 @@ import {
  * Never throws on load; a malformed save reports a structured error.
  */
 
-const VALID_STATUSES = new Set<RunStatus>(['exploring', 'in_combat', 'floor_complete', 'victory', 'defeat']);
+const VALID_STATUSES = new Set<RunStatus>([
+  'exploring', 'in_combat', 'strand_event', 'floor_complete', 'victory', 'defeat',
+]);
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -62,6 +65,8 @@ export interface RestoreOptions {
   readonly template: FloorTemplate;
   readonly registry: EnemyRegistry;
   readonly finalFloor?: number;
+  readonly mutations?: readonly MutationDef[];
+  readonly strandEventEveryNFloors?: number;
 }
 
 /** Rebuilds a live RunSession from a save (floor regenerates from the seed). */
@@ -71,6 +76,8 @@ export function restoreRunSession(save: RunSessionSave, options: RestoreOptions)
     template: options.template,
     registry: options.registry,
     finalFloor: options.finalFloor,
+    mutations: options.mutations,
+    strandEventEveryNFloors: options.strandEventEveryNFloors,
     player: save.player,
   });
   session.applySave(save);

@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import type { EnemyDef } from '@shared-types/enemy';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { Action } from '@shared-types/action';
-import type { RunState } from '@shared-types/run-state';
+import type { RunState, PlayerState } from '@shared-types/run-state';
+import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import { makeRng } from '../rng/mulberry32';
 import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances } from '../floor-gen';
@@ -131,6 +132,121 @@ describe('RunSession', () => {
     autoplayFloor(s);
     expect(s.snapshot.status).toBe('victory');
     expect(s.snapshot.clearedRoomIds).toContain(s.floor.bossRoomId);
+  });
+});
+
+// ── Strand Events (GDD §5) ──────────────────────────────────────────────────
+
+function mut(id: string, family: MutationFamily, sigBonus = 10): MutationDef {
+  return {
+    id, family, tier: 'minor', name: id, sigBonus,
+    modifiers: [{ kind: 'stat', stat: 'str', delta: 1 }], grantsAbility: null, lace: 'x', tags: [],
+  };
+}
+
+const POOL: MutationDef[] = [
+  mut('m_ab1', 'abyssal'), mut('m_ab2', 'abyssal'), mut('m_my1', 'mycelial'),
+  mut('m_li1', 'lithic'), mut('m_vo1', 'voidborn'), mut('m_th1', 'thermal'),
+];
+
+function hero(mutations: string[] = []): PlayerState {
+  return { ...newRunPlayer(), hp: 9999, maxHp: 9999, stats: { str: 99, res: 99, agi: 50, int: 10 }, mutations };
+}
+
+/** A session whose every floor-boss clear opens a Strand Event. */
+function strandSession(seed: number, owned: string[] = []): RunSession {
+  return new RunSession({
+    seed, template: template(), registry, player: hero(owned),
+    finalFloor: 20, mutations: POOL, strandEventEveryNFloors: 1,
+  });
+}
+
+describe('RunSession — Strand Events', () => {
+  it('does NOT open a Strand Event when no mutation pool is supplied', () => {
+    const s = new RunSession({ seed: 4, template: template(), registry, player: hero(), finalFloor: 20 });
+    autoplayFloor(s);
+    expect(s.snapshot.status).toBe('floor_complete'); // old behaviour preserved
+  });
+
+  it('opens a card-draw Strand Event after clearing a qualifying boss', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    expect(s.snapshot.status).toBe('strand_event');
+    expect(s.beginStrandEvent()).toEqual({ kind: 'draw' });
+    expect(s.strandOffer).toHaveLength(3);
+  });
+
+  it('choosing a card applies the mutation, accrues SIG, and completes the floor', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    const pick = s.strandOffer[0]!.mutation;
+    s.chooseStrandMutation(pick.id);
+    expect(s.snapshot.player.mutations).toContain(pick.id);
+    expect(s.snapshot.sig).toBe(pick.sigBonus); // +10 from the strand pick
+    expect(s.snapshot.status).toBe('floor_complete');
+    s.descend();
+    expect(s.snapshot.floorNumber).toBe(2);
+  });
+
+  it('reroll changes a chosen card, deterministically per seed', () => {
+    const run = (): string[] => {
+      const s = strandSession(11);
+      autoplayFloor(s);
+      s.beginStrandEvent();
+      s.rerollStrandCard(0);
+      return s.strandOffer.map((c) => c.mutation.id);
+    };
+    const a = run();
+    const s2 = strandSession(11);
+    autoplayFloor(s2);
+    s2.beginStrandEvent();
+    const before = s2.strandOffer[0]!.mutation.id;
+    s2.rerollStrandCard(0);
+    expect(s2.strandOffer[0]!.mutation.id).not.toBe(before); // actually rerolled
+    expect(run()).toEqual(a); // identical on replay
+  });
+
+  it('the offer is deterministic for a given seed', () => {
+    const offer = (): string[] => {
+      const s = strandSession(21);
+      autoplayFloor(s);
+      s.beginStrandEvent();
+      return s.strandOffer.map((c) => c.mutation.id);
+    };
+    expect(offer()).toEqual(offer());
+  });
+
+  it('at the 4-mutation cap the Strand Event becomes a VEIN Intermission', () => {
+    const s = strandSession(4, ['m_ab1', 'm_ab2', 'm_my1', 'm_li1']); // already at cap
+    autoplayFloor(s);
+    expect(s.snapshot.status).toBe('strand_event');
+    expect(s.beginStrandEvent()).toEqual({ kind: 'intermission', veinCrystals: 100 });
+    s.acceptIntermission();
+    expect(s.snapshot.veinCrystals).toBe(100);
+    expect(s.snapshot.status).toBe('floor_complete');
+  });
+
+  it('descend is blocked while a Strand Event is open', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    expect(() => s.descend()).toThrow(/not complete/);
+  });
+
+  it('persists SIG + VEIN Crystals through save/restore', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+    const save = s.toSave();
+    expect(save.sig).toBeGreaterThan(0);
+    expect(save.schemaVersion).toBe(2);
+
+    const resumed = new RunSession({
+      seed: 4, template: template(), registry, mutations: POOL, strandEventEveryNFloors: 1,
+    });
+    resumed.applySave(save);
+    expect(resumed.snapshot.sig).toBe(save.sig);
   });
 });
 
