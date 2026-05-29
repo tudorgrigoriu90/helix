@@ -5,6 +5,7 @@ import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { AbilitySlot } from '@shared-types/ability';
+import type { ItemDef } from '@shared-types/item';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
@@ -68,8 +69,11 @@ export class RunSandboxScene extends Phaser.Scene {
   private view: View = 'map';
   private combat: RunState | null = null;
   private combatRng!: Mulberry32;
-  /** Active ability awaiting a target tap (null = not targeting). */
-  private targeting: AbilitySlot | null = null;
+  /** Active ability/item awaiting a target tap (null = not targeting). */
+  private targeting:
+    | { readonly kind: 'ability'; readonly slot: AbilitySlot }
+    | { readonly kind: 'item'; readonly item: ItemDef }
+    | null = null;
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -195,9 +199,9 @@ export class RunSandboxScene extends Phaser.Scene {
     const row = Math.floor((y - STAGE_Y) / tile);
     if (col < 0 || col >= state.grid.width || row < 0 || row >= state.grid.height) return;
 
-    // Ability targeting takes over the tap while an ability is selected.
+    // Ability/item targeting takes over the tap while something is selected.
     if (this.targeting !== null) {
-      this.onAbilityTarget(col, row);
+      this.onTargetTile(col, row);
       return;
     }
 
@@ -217,32 +221,57 @@ export class RunSandboxScene extends Phaser.Scene {
     const state = this.combat;
     if (state === null || state.phase !== 'player') return;
     if (slot.cooldownRemaining > 0 || state.player.ap < slot.def.apCost) return; // not usable
-    if (this.targeting?.def.id === slot.def.id) { this.targeting = null; this.renderAll(); return; } // toggle off
+    if (this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id) {
+      this.targeting = null; this.renderAll(); return; // toggle off
+    }
     if (slot.def.targetType === 'self') {
-      this.combatAction({ type: 'useAbility', abilityId: slot.def.id });
       this.targeting = null;
+      this.combatAction({ type: 'useAbility', abilityId: slot.def.id });
       return;
     }
-    this.targeting = slot;
+    this.targeting = { kind: 'ability', slot };
     this.renderAll();
   }
 
-  /** Tap on the grid while targeting: resolve the ability against the tile/enemy. */
-  private onAbilityTarget(col: number, row: number): void {
+  /** Tap on a consumable button: heals fire immediately, grenades enter tile targeting. */
+  private onItemButton(item: ItemDef): void {
     const state = this.combat;
-    const slot = this.targeting;
-    if (state === null || slot === null) return;
-    const inRange = chebyshev(state.player.pos, { x: col, y: row }) <= slot.def.range;
-    if (!inRange) return; // out of range — stay in targeting (tap the ability again to cancel)
+    if (state === null || state.phase !== 'player' || state.player.ap < 1) return;
+    if (this.targeting?.kind === 'item' && this.targeting.item.id === item.id) {
+      this.targeting = null; this.renderAll(); return; // toggle off
+    }
+    if (item.effect?.kind === 'heal') {
+      this.targeting = null;
+      this.combatAction({ type: 'useItem', itemId: item.id });
+      return;
+    }
+    this.targeting = { kind: 'item', item }; // damage / status grenades need a tile
+    this.renderAll();
+  }
 
-    if (slot.def.targetType === 'enemy') {
+  /** Tap on the grid while targeting: resolve the selected ability/item. */
+  private onTargetTile(col: number, row: number): void {
+    const state = this.combat;
+    const target = this.targeting;
+    if (state === null || target === null) return;
+
+    if (target.kind === 'item') {
+      // Grenades target any in-bounds tile (already bounds-checked by the caller).
+      this.targeting = null;
+      this.combatAction({ type: 'useItem', itemId: target.item.id, targetPos: { x: col, y: row } });
+      return;
+    }
+
+    const def = target.slot.def;
+    if (chebyshev(state.player.pos, { x: col, y: row }) > def.range) return; // out of range — stay targeting
+    if (def.targetType === 'enemy') {
       const enemy = state.enemies.find((e) => e.hp > 0 && e.pos.x === col && e.pos.y === row);
       if (enemy === undefined) return;
       this.targeting = null;
-      this.combatAction({ type: 'useAbility', abilityId: slot.def.id, targetId: enemy.id });
+      this.combatAction({ type: 'useAbility', abilityId: def.id, targetId: enemy.id });
     } else {
       this.targeting = null;
-      this.combatAction({ type: 'useAbility', abilityId: slot.def.id, targetPos: { x: col, y: row } });
+      this.combatAction({ type: 'useAbility', abilityId: def.id, targetPos: { x: col, y: row } });
     }
   }
 
@@ -301,7 +330,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.buttonZones = [];
 
     if (this.view === 'map') this.renderMap();
-    else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); }
+    else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); this.renderItemBar(); }
     else this.renderOver();
 
     this.renderButtons();
@@ -390,9 +419,10 @@ export class RunSandboxScene extends Phaser.Scene {
       drawHp(cx, cy, e.hp / e.maxHp, H.hpRed);
     }
 
-    // Targeting range overlay: tint tiles reachable by the selected ability.
+    // Targeting overlay: tint valid target tiles. Abilities are range-limited;
+    // items (grenades) can target any tile.
     if (this.targeting !== null && state.phase === 'player') {
-      const range = this.targeting.def.range;
+      const range = this.targeting.kind === 'ability' ? this.targeting.slot.def.range : Infinity;
       for (let r = 0; r < state.grid.height; r++) {
         for (let c = 0; c < state.grid.width; c++) {
           if (c === state.player.pos.x && r === state.player.pos.y) continue;
@@ -418,7 +448,7 @@ export class RunSandboxScene extends Phaser.Scene {
     state.player.abilities.forEach((slot, i) => {
       const x = 20 + i * 178;
       const ready = slot.cooldownRemaining === 0 && state.player.ap >= slot.def.apCost;
-      const active = this.targeting?.def.id === slot.def.id;
+      const active = this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id;
       const border = active ? 0xffdd44 : ready ? H.btnBrd : 0x2a3050;
       const color = active ? C.yellow : ready ? C.green : C.dim;
 
@@ -435,9 +465,36 @@ export class RunSandboxScene extends Phaser.Scene {
       z.on('pointerdown', () => this.onAbilityButton(slot));
       this.buttonZones.push(z);
     });
+  }
+
+  /** Consumable buttons below the ability bar, plus the active-targeting hint. */
+  private renderItemBar(): void {
+    const state = this.combat;
+    if (state === null || state.phase !== 'player') return;
+
+    const items = state.player.items.filter((it) => it.category === 'consumable');
+    items.slice(0, 3).forEach((item, i) => {
+      const x = 20 + i * 118;
+      const ready = state.player.ap >= 1;
+      const active = this.targeting?.kind === 'item' && this.targeting.item.id === item.id;
+      const border = active ? 0xffdd44 : ready ? H.btnBrd : 0x2a3050;
+      const color = active ? C.yellow : ready ? C.green : C.dim;
+
+      this.stage.fillStyle(H.btnBg).fillRoundedRect(x, ITEM_Y, 112, 28, 6);
+      this.stage.lineStyle(1, border).strokeRoundedRect(x, ITEM_Y, 112, 28, 6);
+      const label = this.add.text(x + 6, ITEM_Y + 14, item.name, {
+        fontFamily: 'monospace', fontSize: '9px', color,
+      }).setOrigin(0, 0.5);
+      this.transient.push(label);
+
+      const z = this.add.zone(x, ITEM_Y, 112, 28).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.onItemButton(item));
+      this.buttonZones.push(z);
+    });
 
     if (this.targeting !== null) {
-      const hint = this.add.text(W / 2, ITEM_Y + 16, `targeting ${this.targeting.def.id} — tap a target (range ${this.targeting.def.range})`, {
+      const name = this.targeting.kind === 'ability' ? this.targeting.slot.def.id : this.targeting.item.name;
+      const hint = this.add.text(W / 2, ITEM_Y + 38, `targeting ${name} — tap a target tile (tap again to cancel)`, {
         fontFamily: 'monospace', fontSize: '10px', color: C.yellow,
       }).setOrigin(0.5);
       this.transient.push(hint);

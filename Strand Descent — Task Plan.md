@@ -380,7 +380,7 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 | T-163 | S042 Move preview (path + AP cost; two-tap confirm for first 5 runs)  | Frontend | P0       | UFD 03         | |
 | T-164 | S043 Attack preview (damage range + accuracy)                         | Frontend | P0       | UFD 03         | |
 | T-165 | S044 Ability targeting (range overlay, AoE preview) — **PARTIAL 2026-05-28 (Sprint 4).** Sandbox impl in RunSandboxScene: tap an ability → targeting mode with a range overlay → tap an enemy (enemy-cast) or tile (tile-cast) in range → `useAbility`; self-cast fires immediately; tap the ability again to cancel. AoE-preview-on-hover + the polished combat-scene version are still pending. | Frontend | P0       | UFD 03         | PARTIAL |
-| T-166 | S045 Item use prompt                                                  | Frontend | P0       | UFD 03         | |
+| T-166 | S045 Item use prompt — **PARTIAL 2026-05-28 (Sprint 4).** Sandbox consumable bar in RunSandboxScene (below the ability bar): heal items fire immediately on tap; damage/status grenades enter tile-targeting (tap any in-bounds tile → `useItem` with targetPos). Buttons grey out at 0 AP; used items leave the inventory. Shares the targeting flow with abilities. Polished prompt/confirm UI pending. | Frontend | P0       | UFD 03         | PARTIAL |
 | T-167 | S046 Enemy phase trigger                                              | Frontend | P0       | UFD 03         | |
 | T-168 | S047 Combat menu (Resume / Surrender / Settings; double-confirm Surrender) | Frontend | P0 | UFD 03 | NO FLEE in v1 |
 | T-169 | S048 Action resolution animation                                      | Frontend | P0       | UFD 03         | |
