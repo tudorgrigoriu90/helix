@@ -14,7 +14,7 @@ import type { Effect } from './effect';
 import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
 import { applyCrit, rollCrit } from './combat';
-import { damageTo, effectiveMaxAp, isImmobilized } from './effective-stats';
+import { damageTo, effectiveMaxAp, hasDominantTrait, isImmobilized } from './effective-stats';
 import { resolveEnemyPhase } from './enemy-phase';
 import { tickStatuses } from './status-tick';
 import { detectOutcome } from './outcome';
@@ -31,6 +31,10 @@ const MELEE_DAMAGE_MULT = 1.0;
 
 /** AP cost to use a consumable (GDD §4.4 / §6.3). */
 const ITEM_AP_COST = 1;
+
+/** Combustion Engine (Thermal dominant): every damaging player attack also
+ *  applies Burn (5 dmg/turn via status-tick) for this many turns (GDD §5.5). */
+const COMBUSTION_BURN_TURNS = 2;
 
 export interface TurnResult {
   readonly state: RunState;
@@ -144,9 +148,15 @@ function applyAttack(
   const dealt = damageTo(target, rawDamage, 'physical');
   const newHp = Math.max(0, target.hp - dealt);
 
-  const nextEnemies = state.enemies.map((e, i) =>
-    i === targetIndex ? { ...e, hp: newHp } : e,
-  );
+  // Combustion Engine: a surviving target also catches Burn (GDD §5.5).
+  const burns = hasDominantTrait(state.player, 'thermal') && newHp > 0;
+  const burn: ActiveStatus = { effect: 'burn', turnsRemaining: COMBUSTION_BURN_TURNS };
+
+  const nextEnemies = state.enemies.map((e, i) => {
+    if (i !== targetIndex) return e;
+    const hit: EnemyState = { ...e, hp: newHp };
+    return burns ? { ...hit, statuses: [...e.statuses, burn] } : hit;
+  });
   const remaining = state.player.ap - ATTACK_AP_COST;
 
   const effects: Effect[] = [
@@ -154,6 +164,8 @@ function applyAttack(
   ];
   if (newHp === 0) {
     effects.push({ type: 'entityDied', entityId: target.id });
+  } else if (burns) {
+    effects.push({ type: 'statusApplied', targetId: target.id, status: 'burn', turns: COMBUSTION_BURN_TURNS });
   }
   effects.push({ type: 'apSpent', amount: ATTACK_AP_COST, remaining });
 
@@ -245,6 +257,11 @@ function applyUseAbility(
   const effects: Effect[] = [{ type: 'abilityUsed', entityId: 'player', abilityId: def.id }];
   const affectedSet = new Set(affected);
 
+  // Combustion Engine: damaging abilities also ignite surviving targets (unless
+  // the ability already applies Burn itself — no point double-stacking it).
+  const combustionBurns = hasDominantTrait(state.player, 'thermal') && def.appliesStatus !== 'burn';
+  const combustionBurn: ActiveStatus = { effect: 'burn', turnsRemaining: COMBUSTION_BURN_TURNS };
+
   const nextEnemies = state.enemies.map((e, i) => {
     if (!affectedSet.has(i)) return e;
     let next: EnemyState = e;
@@ -258,6 +275,10 @@ function applyUseAbility(
     if (status && next.hp > 0) {
       next = { ...next, statuses: [...next.statuses, status] };
       effects.push({ type: 'statusApplied', targetId: e.id, status: status.effect, turns: status.turnsRemaining });
+    }
+    if (combustionBurns && damage > 0 && next.hp > 0) {
+      next = { ...next, statuses: [...next.statuses, combustionBurn] };
+      effects.push({ type: 'statusApplied', targetId: e.id, status: 'burn', turns: COMBUSTION_BURN_TURNS });
     }
     return next;
   });
