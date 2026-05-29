@@ -69,5 +69,6 @@ export function newRunPlayer(): PlayerState {
     abilities: STARTER_ABILITIES.map((s) => ({ ...s })),
     items: STARTER_ITEMS.map((i) => ({ ...i })),
     mutations: [],
+    dominantTraits: [],
   };
 }

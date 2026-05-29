@@ -10,6 +10,7 @@ import {
   applyMutation,
   resolveStrandEvent,
   gainMutationSig,
+  unlockedDominantTraits,
   type DrawnCard,
   type StrandOutcome,
 } from '../mutation';
@@ -341,6 +342,7 @@ export class RunSession {
     }
     this.player = applyMutation(this.player, card.mutation);
     this.sig = gainMutationSig(this.sig, card.mutation, 'strand');
+    this.refreshDominantTraits();
     this.endStrandEvent();
   }
 
@@ -359,6 +361,13 @@ export class RunSession {
     this.strandOutcome = null;
     this.strandCards = [];
     this.status = 'floor_complete';
+  }
+
+  /** Recomputes the active Dominant Trait families onto the player (GDD §5.5) so
+   *  the turn engine can read trait effects without a content registry. */
+  private refreshDominantTraits(): void {
+    const families = unlockedDominantTraits(this.ownedMutationDefs()).map((t) => t.family);
+    this.player = { ...this.player, dominantTraits: families };
   }
 
   // ── Internals ───────────────────────────────────────────────────────────

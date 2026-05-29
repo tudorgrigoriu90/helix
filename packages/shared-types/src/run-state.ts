@@ -1,6 +1,7 @@
 import type { Position } from './action.js';
 import type { AbilitySlot } from './ability.js';
 import type { ItemDef } from './item.js';
+import type { MutationFamily } from './mutation.js';
 
 export type StatusEffect =
   | 'burn'
@@ -56,6 +57,13 @@ export interface PlayerState {
   readonly abilities: readonly AbilitySlot[];
   readonly items: readonly ItemDef[];
   readonly mutations: readonly string[];
+  /**
+   * Families with an active Dominant Trait (3+ mutations of that family,
+   * GDD §5.5). Precomputed at mutation-selection time so the engine reads trait
+   * effects without a content registry. Optional — absent on pre-trait saves and
+   * treated as none.
+   */
+  readonly dominantTraits?: readonly MutationFamily[];
 }
 
 /**

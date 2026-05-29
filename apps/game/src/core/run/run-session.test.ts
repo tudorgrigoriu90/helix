@@ -233,6 +233,27 @@ describe('RunSession — Strand Events', () => {
     expect(() => s.descend()).toThrow(/not complete/);
   });
 
+  it('keeps dominantTraits empty after a single pick (no family at 3 yet)', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+    expect(s.snapshot.player.dominantTraits).toEqual([]);
+  });
+
+  it('activates a Dominant Trait when a third same-family mutation is taken', () => {
+    const abyssalOnly = [mut('a1', 'abyssal'), mut('a2', 'abyssal'), mut('a3', 'abyssal')];
+    const s = new RunSession({
+      seed: 4, template: template(), registry, player: hero(['a1', 'a2']),
+      finalFloor: 20, mutations: abyssalOnly, strandEventEveryNFloors: 1,
+    });
+    autoplayFloor(s);
+    expect(s.beginStrandEvent()).toEqual({ kind: 'draw' });
+    expect(s.strandOffer.map((c) => c.mutation.id)).toEqual(['a3']); // only one left to offer
+    s.chooseStrandMutation('a3');
+    expect(s.snapshot.player.dominantTraits).toEqual(['abyssal']); // Leviathan Core unlocked
+  });
+
   it('persists SIG + VEIN Crystals through save/restore', () => {
     const s = strandSession(4);
     autoplayFloor(s);
