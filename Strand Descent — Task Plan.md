@@ -253,7 +253,7 @@ Status markers in the tables below were reconciled against git history on 2026-0
 
 | ID    | Title                                                                 | Role          | Priority | Refs              | Notes |
 | ----- | --------------------------------------------------------------------- | ------------- | -------- | ----------------- | ----- |
-| T-82  | JSON schema for mutations (matches TDD §8.1 example)                  | Game Engineer | P0       | TDD §8.1          | |
+| T-82  | ~~JSON schema for mutations~~ — **DONE 2026-05-29.** `MutationDef` in `@shared-types/mutation`: `family` (5), `tier` (minor/major/dominant), flat `name`, `sigBonus`, `modifiers` (`stat`/`maxHp`/`maxAp` deltas targeting real `PlayerState` fields), `grantsAbility: AbilityDef \| null`, `lace` commentary, `tags`. Matches the working item.ts/enemy.ts conventions (flat English strings, `schemaVersion` stripped by loader) rather than the TDD §8.1 sketch (which used locale objects + non-existent `armor`/`crush` targets — divergence noted in the file). `FAMILY_RING` + `core/mutation/family.ts` adjacency helpers (`adjacentFamilies`/`otherFamilies`/`isAdjacent`) give the clean 2/2 split that makes §5.4 weighting sum to 100%. 9 tests. | Game Engineer | P0 | TDD §8.1, GDD §5.2 | DONE |
 | T-83  | Mutation loader + schema validator                                    | Game Engineer | P0       | TDD §8.2          | NFR P7 |
 | T-84  | `pnpm validate:content` aggregates all schema validators              | DevOps        | P0       | TDD §14.1         | |
 | T-85  | Card draw: 1 dominant family + 1 adjacent + 1 wild (deterministic)    | Game Engineer | P0       | GDD §5.4          | Uses `rng.mutationdraw` |

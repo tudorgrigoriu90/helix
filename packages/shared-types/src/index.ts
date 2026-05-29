@@ -93,3 +93,15 @@ export type {
   PopulatedRoom,
   PopulatedFloor,
 } from './floor-plan.js';
+
+export type {
+  MutationFamily,
+  MutationTier,
+  MutationModifier,
+  MutationDef,
+} from './mutation.js';
+
+export {
+  CURRENT_MUTATION_SCHEMA_VERSION,
+  FAMILY_RING,
+} from './mutation.js';
