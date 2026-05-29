@@ -7,6 +7,7 @@ import {
   damageTo,
   effectiveMaxAp,
   effectiveRes,
+  hasDominantTrait,
   isImmobilized,
 } from './effective-stats';
 
@@ -35,6 +36,26 @@ describe('effective-stats — modifier layer (T-65 deferred half)', () => {
     expect(isImmobilized({ stats, statuses: [] })).toBe(false);
     expect(isImmobilized({ stats, statuses: [st('rooted')] })).toBe(true);
     expect(isImmobilized({ stats, statuses: [st('crushed')] })).toBe(true);
+  });
+
+  it('Fortress Form (Lithic dominant) adds +10 effective RES', () => {
+    expect(effectiveRes({ stats, statuses: [], dominantTraits: ['lithic'] })).toBe(16); // 6 + 10
+    expect(effectiveRes({ stats, statuses: [], dominantTraits: ['thermal'] })).toBe(6); // other family → no bonus
+    // Stacks with the Infected penalty: 6 − 5 + 10 = 11.
+    expect(effectiveRes({ stats, statuses: [st('infected')], dominantTraits: ['lithic'] })).toBe(11);
+  });
+
+  it('Combustion Engine (Thermal dominant) adds +2 effective max AP', () => {
+    expect(effectiveMaxAp({ maxAp: 3, statuses: [], dominantTraits: ['thermal'] })).toBe(5);
+    expect(effectiveMaxAp({ maxAp: 3, statuses: [], dominantTraits: ['lithic'] })).toBe(3);
+    // Net with Stagger: 3 − 1 + 2 = 4.
+    expect(effectiveMaxAp({ maxAp: 3, statuses: [st('stagger')], dominantTraits: ['thermal'] })).toBe(4);
+  });
+
+  it('hasDominantTrait reads the precomputed families (default none)', () => {
+    expect(hasDominantTrait({ dominantTraits: ['lithic'] }, 'lithic')).toBe(true);
+    expect(hasDominantTrait({ dominantTraits: ['lithic'] }, 'thermal')).toBe(false);
+    expect(hasDominantTrait({}, 'lithic')).toBe(false);
   });
 
   it('damageTo composes effective RES then the fractured multiplier', () => {
