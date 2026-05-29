@@ -26,6 +26,7 @@ import { computeBounds, computeLayout, project } from './floor-graph-layout';
 import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
+import { queueAudioLoads, playSfx, playMusic, stopMusic } from './audio/audio-registry';
 
 import filterer from '@content/enemies/filterer.json';
 import caveCrawler from '@content/enemies/cave_crawler.json';
@@ -115,6 +116,7 @@ export class RunSandboxScene extends Phaser.Scene {
 
   preload(): void {
     queueSpriteLoads(this);
+    queueAudioLoads(this);
   }
 
   create(): void {
@@ -155,6 +157,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.laceText.setText('LACE: ...you came back. The VEIN remembers where it left you.');
+    playMusic(this, 'music_run');
     // A run saved mid-Strand-Event resumes straight into the pick.
     this.view = save.status === 'strand_event' ? 'strand' : 'map';
     if (this.view === 'strand') this.openStrandEvent();
@@ -204,6 +207,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.say('run_start');
+    playMusic(this, 'music_run');
     this.persist();
     this.renderAll();
   }
@@ -254,6 +258,7 @@ export class RunSandboxScene extends Phaser.Scene {
       return;
     }
     this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
+    if (room.type === 'boss') playMusic(this, 'music_boss');
     this.combat = encounter;
     this.combatRng = makeRng(encounter.seed, 'combat');
     this.targeting = null;
@@ -265,6 +270,7 @@ export class RunSandboxScene extends Phaser.Scene {
   private descendFloor(): void {
     this.session.descend();
     this.say('floor_enter');
+    playSfx(this, 'sfx_descend');
     this.persist();
     this.renderAll();
   }
@@ -307,6 +313,7 @@ export class RunSandboxScene extends Phaser.Scene {
     const card = this.session.strandOffer[this.strandSelected];
     if (card === undefined) return;
     this.session.chooseStrandMutation(card.mutation.id);
+    playSfx(this, 'sfx_mutation');
     this.laceText.setText(`LACE: ${card.mutation.lace}`); // the applied mutation speaks
     this.view = 'map';
     this.persist();
@@ -420,6 +427,9 @@ export class RunSandboxScene extends Phaser.Scene {
     if (state === null) return;
     const result = TurnEngine.apply(state, action, this.combatRng);
     if (result.errors.length === 0) {
+      if (action.type === 'attack') playSfx(this, 'sfx_attack');
+      else if (action.type === 'useAbility') playSfx(this, 'sfx_ability');
+      else if (action.type === 'useItem') playSfx(this, 'sfx_item');
       this.combat = result.state;
       this.reactToCombatEffects(result.effects);
       this.maybeEndCombat();
@@ -428,9 +438,15 @@ export class RunSandboxScene extends Phaser.Scene {
   }
 
   private reactToCombatEffects(effects: readonly Effect[]): void {
+    let playerHurt = false;
     for (const fx of effects) {
-      if (fx.type === 'entityDied' && fx.entityId !== 'player') this.say('enemy_killed');
+      if (fx.type === 'entityDied' && fx.entityId !== 'player') {
+        this.say('enemy_killed');
+        playSfx(this, 'sfx_enemy_death');
+      }
+      if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
     }
+    if (playerHurt) playSfx(this, 'sfx_player_hurt'); // once per resolution, not per hit
   }
 
   private maybeEndCombat(): void {
@@ -446,10 +462,14 @@ export class RunSandboxScene extends Phaser.Scene {
 
     if (status === 'defeat') {
       this.say('player_death');
+      playSfx(this, 'sfx_defeat');
+      stopMusic();
       this.view = 'over';
       void this.saves.clear(); // run over — discard the save
     } else if (status === 'victory') {
       this.say('boss_killed');
+      playSfx(this, 'sfx_victory');
+      stopMusic();
       this.view = 'over';
       void this.saves.clear();
     } else if (status === 'strand_event') {
@@ -457,10 +477,12 @@ export class RunSandboxScene extends Phaser.Scene {
       this.openStrandEvent();
     } else if (status === 'floor_complete') {
       this.say('floor_complete');
+      if (wasBoss) playMusic(this, 'music_run'); // leave the boss track
       this.view = 'map';
       this.persist();
     } else {
       this.say(wasBoss ? 'boss_killed' : 'room_cleared');
+      if (wasBoss) playMusic(this, 'music_run');
       this.view = 'map';
       this.persist();
     }
@@ -793,7 +815,7 @@ export class RunSandboxScene extends Phaser.Scene {
     const t = this.add.text(x + 80, BTN_Y + 22, label, { fontFamily: 'monospace', fontSize: '14px', color }).setOrigin(0.5);
     this.transient.push(t);
     const z = this.add.zone(x + 80, BTN_Y + 22, 160, 44).setInteractive({ useHandCursor: true });
-    z.on('pointerdown', onTap);
+    z.on('pointerdown', () => { playSfx(this, 'ui_click'); onTap(); });
     this.buttonZones.push(z);
   }
 

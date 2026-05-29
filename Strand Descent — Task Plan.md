@@ -454,7 +454,7 @@ Status markers in the tables below were reconciled against git history on 2026-0
 | T-207 | S087 Origin detail                                                             | Frontend | P1       | UFD 05     | |
 | T-208 | S088 Origin skin selector (Preview state for not-yet-unlocked Origins)         | Frontend | P2       | UFD 05, DR-006a | |
 | T-209 | S089 Achievement detail                                                        | Frontend | P1       | UFD 05     | |
-| T-210 | S090 Audio settings (Music/SFX/Ambient sliders, live preview)                  | Frontend | P0       | UFD 05     | |
+| T-210 | S090 Audio settings (Music/SFX/Ambient sliders, live preview) — **GROUNDWORK 2026-05-29.** Audio pipeline shipped (`scenes/audio/audio-manifest.ts` + `audio-registry.ts`, mirrors the sprite pipeline with graceful no-file fallback): `setCategoryVolume(kind, vol)` per-kind master volume is the live hook these sliders will drive (already updates the playing music track). Wired into RunSandboxScene (music, button clicks, combat/Strand SFX). `docs/AUDIO.md` lists the 16 sound keys + licensing. The slider UI itself is pending. | Frontend | P0       | UFD 05     | PARTIAL |
 | T-211 | S091 Display settings (brightness, color blindness, motion)                    | Frontend | P0       | UFD 05     | NFR a11y |
 | T-212 | S092 Accessibility (cognitive load mode, dyslexia font, font size, motion)     | Frontend | P0       | UFD 05, GDD §17 | NFR a11y |
 | T-213 | S093 Controls (confirm-tap toggle, animation speed)                            | Frontend | P0       | UFD 05     | |
