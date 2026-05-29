@@ -5,10 +5,10 @@ import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { Effect } from '../core/turn-engine/effect';
-import type { LaceContext } from '@shared-types/lace-line';
+import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
-import { makeRng, type Mulberry32 } from '../core/rng/mulberry32';
+import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { parseEnemyDef } from '../core/content/enemy-loader';
 import { parseLaceLines } from '../core/lace/lace-loader';
 import { parseFloorTemplate } from '../core/floor-gen';
@@ -29,8 +29,8 @@ import laceCore from '@content/lace-lines/core.json';
 // ── Layout ────────────────────────────────────────────────────────────────────
 const W = 390;
 const HUD_Y = TAB_BAR_HEIGHT + 8;
-const LACE_Y = HUD_Y + 44;
-const STAGE_Y = LACE_Y + 40;
+const LACE_Y = HUD_Y + 60;
+const STAGE_Y = LACE_Y + 36;
 const STAGE_H = 430;
 const BTN_Y = STAGE_Y + STAGE_H + 16;
 const GRID_PX = 350;
@@ -56,6 +56,10 @@ export class RunSandboxScene extends Phaser.Scene {
   private narrator!: LaceNarrator;
   private enemyRegistry!: ReadonlyMap<string, EnemyDef>;
   private template!: FloorTemplate;
+  private laceLines: readonly LaceLine[] = [];
+
+  /** Run seed — same seed always replays the identical run (determinism, NFR P2). */
+  private seed = MASTER_SEED;
 
   private view: View = 'map';
   private combat: RunState | null = null;
@@ -105,16 +109,23 @@ export class RunSandboxScene extends Phaser.Scene {
 
     const lace = parseLaceLines(laceCore);
     if (!lace.ok) throw new Error(`RunSandbox: bad LACE content — ${lace.error.message}`);
-    this.narrator = new LaceNarrator(lace.lines, makeRng(MASTER_SEED, 'events'));
+    this.laceLines = lace.lines;
   }
 
+  /** (Re)starts the run on the current seed — everything is derived from it. */
   private startRun(): void {
-    this.session = new RunSession({ seed: MASTER_SEED, template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR });
-    this.narrator.reset();
+    this.session = new RunSession({ seed: this.seed, template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR });
+    this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
     this.view = 'map';
     this.combat = null;
     this.say('run_start');
     this.renderAll();
+  }
+
+  /** Advances to a new deterministic seed and starts a fresh run on it. */
+  private reroll(): void {
+    this.seed = (new Mulberry32(this.seed).next() * 0x1_0000_0000) >>> 0;
+    this.startRun();
   }
 
   // ── LACE ────────────────────────────────────────────────────────────────────
@@ -340,12 +351,16 @@ export class RunSandboxScene extends Phaser.Scene {
   // ── Buttons ─────────────────────────────────────────────────────────────────
 
   private renderButtons(): void {
-    if (this.view === 'combat' && this.combat?.phase === 'player') {
-      this.button(20, 'END TURN', C.green, () => this.combatAction({ type: 'endTurn' }));
+    if (this.view === 'combat') {
+      if (this.combat?.phase === 'player') {
+        this.button(20, 'END TURN', C.green, () => this.combatAction({ type: 'endTurn' }));
+      }
+      return;
     }
-    if (this.view === 'over') {
-      this.button(20, 'NEW RUN', C.green, () => this.startRun());
-    }
+    // Map + game-over: seed controls. REPLAY re-runs the same seed (identical
+    // run — determinism); REROLL advances to a new deterministic seed.
+    this.button(20, 'REPLAY', C.green, () => this.startRun());
+    this.button(210, 'REROLL', C.yellow, () => this.reroll());
   }
 
   private button(x: number, label: string, color: string, onTap: () => void): void {
@@ -367,6 +382,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.hudText.setText([
       `Floor ${snap.floorNumber}/${FINAL_FLOOR}    ${this.view.toUpperCase()}    ${snap.status}`,
       `HP ${here.hp}/${here.maxHp}    Room: ${snap.currentRoomId} (${this.session.currentRoom().type})`,
+      `seed 0x${this.seed.toString(16).padStart(8, '0')}   ·  REPLAY = same run · REROLL = new seed`,
     ]);
   }
 
