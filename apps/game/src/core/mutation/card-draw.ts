@@ -102,13 +102,36 @@ function pickForSlot(
   return pickMutation(available, rng);
 }
 
+/** Inputs to {@link drawOneCard} — one card for a known slot + tier. */
+export interface DrawOneParams {
+  readonly pool: readonly MutationDef[];
+  /** Owned set — only feeds the weighted-slot family distribution (Rule 1). */
+  readonly owned: readonly MutationDef[];
+  /** Ids the card must avoid (owned + anything already on the table). */
+  readonly excludeIds: ReadonlySet<string>;
+  readonly slot: DrawSlot;
+  readonly tier: MutationTier;
+  readonly rng: Mulberry32;
+}
+
+/**
+ * Draws a single card for a fixed slot + tier, or null if nothing is available.
+ * Shared by the full {@link drawMutationCards} and by reroll (T-89), so both
+ * resolve a card identically and consume the `mutationdraw` stream the same way.
+ */
+export function drawOneCard(params: DrawOneParams): DrawnCard | null {
+  const available = availableMutations(params.pool, params.excludeIds);
+  if (available.length === 0) return null;
+
+  const dist = params.slot === 'wild' ? uniformFamilyWeights() : familyWeights(params.owned);
+  const family = pickFamily(dist, params.rng);
+  const mutation = pickForSlot(available, params.tier, family, params.rng);
+  return { mutation, slot: params.slot, tier: params.tier };
+}
+
 export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCard[] {
   const { pool, owned, rng } = params;
   const tiers = tiersForFloor(params.floor ?? 1); // Rule 3 — per-slot tier mix.
-
-  // Weighted slots sample families by ownership (GDD §5.4 Rule 1, T-86); with
-  // nothing owned this is exactly the uniform distribution.
-  const weightedDist = familyWeights(owned);
 
   // One growing exclude set enforces Rule 4 both ways: it starts with everything
   // the player owns and gains each card as it's drawn, so the offer never repeats
@@ -118,17 +141,13 @@ export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCa
   const weightedSlots = STRAND_CARD_COUNT - WILD_CARD_COUNT;
 
   for (let i = 0; i < STRAND_CARD_COUNT; i++) {
-    const available = availableMutations(pool, excluded);
-    if (available.length === 0) break; // pool exhausted — return fewer cards
-
     const slot: DrawSlot = i < weightedSlots ? 'weighted' : 'wild';
     const tier = tiers[i] ?? 'minor';
-    const dist = slot === 'wild' ? uniformFamilyWeights() : weightedDist;
-    const family = pickFamily(dist, rng);
+    const card = drawOneCard({ pool, owned, excludeIds: excluded, slot, tier, rng });
+    if (card === null) break; // pool exhausted — return fewer cards
 
-    const mutation = pickForSlot(available, tier, family, rng);
-    excluded.add(mutation.id);
-    cards.push({ mutation, slot, tier });
+    excluded.add(card.mutation.id);
+    cards.push(card);
   }
 
   return cards;

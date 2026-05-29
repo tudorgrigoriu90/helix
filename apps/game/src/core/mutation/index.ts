@@ -1,12 +1,15 @@
 export { adjacentFamilies, otherFamilies, isAdjacent } from './family';
 export {
   drawMutationCards,
+  drawOneCard,
   STRAND_CARD_COUNT,
   WILD_CARD_COUNT,
   type DrawSlot,
   type DrawnCard,
   type DrawMutationsParams,
+  type DrawOneParams,
 } from './card-draw';
+export { rerollCard, type RerollParams } from './reroll';
 export { availableMutations } from './available';
 export { tiersForFloor, STRAND_MAJOR_FLOOR, STRAND_DOMINANT_FLOOR } from './tiers';
 export {
