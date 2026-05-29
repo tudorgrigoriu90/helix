@@ -1,6 +1,7 @@
 import type { EnemyDef } from '@shared-types/enemy';
 import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { EnemyState, PlayerState, RunState } from '@shared-types/run-state';
+import { scaledMaxHp, scaledStats } from './scaling';
 
 /**
  * Encounter builder — the bridge from floor generation to the turn engine.
@@ -42,13 +43,16 @@ export function buildEncounterState(params: EncounterParams): RunState {
       // guarantees every pooled/boss id resolves) — guard anyway.
       throw new Error(`buildEncounterState: no enemy def for "${spawn.enemyDefId}"`);
     }
+    // Per-floor difficulty scaling (T-78): defs are authored at the Floor 1
+    // baseline and scaled up for deeper floors.
+    const maxHp = scaledMaxHp(def.maxHp, floorNumber);
     return {
       id: `${spawn.enemyDefId}#${i}`,
       enemyDefId: def.id,
       pos: spawn.pos,
-      hp: def.maxHp,
-      maxHp: def.maxHp,
-      stats: def.stats,
+      hp: maxHp,
+      maxHp,
+      stats: scaledStats(def.stats, floorNumber),
       statuses: [],
       telegraph: null,
     };

@@ -84,4 +84,12 @@ describe('buildEncounterState — encounter bridge', () => {
     const state = buildEncounterState({ room: safe, registry, player: newRunPlayer(), floorNumber: 1, seed: 1 });
     expect(state.enemies).toHaveLength(0);
   });
+
+  it('scales enemies up on deeper floors (T-78)', () => {
+    const f1 = buildEncounterState({ room: room(), registry, player: newRunPlayer(), floorNumber: 1, seed: 1 });
+    const f5 = buildEncounterState({ room: room(), registry, player: newRunPlayer(), floorNumber: 5, seed: 1 });
+    expect(f5.enemies[0]!.maxHp).toBeGreaterThan(f1.enemies[0]!.maxHp);
+    expect(f5.enemies[0]!.stats.str).toBeGreaterThan(f1.enemies[0]!.stats.str);
+    expect(f1.enemies[0]!.maxHp).toBe(16); // floor 1 = authored baseline
+  });
 });
