@@ -13,7 +13,8 @@ import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
-import { applyCrit, mitigate, rollCrit } from './combat';
+import { applyCrit, rollCrit } from './combat';
+import { damageTo, effectiveMaxAp, isImmobilized } from './effective-stats';
 import { resolveEnemyPhase } from './enemy-phase';
 import { tickStatuses } from './status-tick';
 import { detectOutcome } from './outcome';
@@ -54,8 +55,8 @@ function applyMove(
     return err(state, 'INVALID_PHASE', 'move requires player phase');
   }
 
-  if (state.player.statuses.some((s) => s.effect === 'rooted')) {
-    return err(state, 'ROOTED', 'player is rooted and cannot move');
+  if (isImmobilized(state.player)) {
+    return err(state, 'ROOTED', 'player is immobilised (rooted/crushed) and cannot move');
   }
 
   const from = state.player.pos;
@@ -140,7 +141,7 @@ function applyAttack(
   const baseDamage = Math.floor(state.player.stats.str * MELEE_DAMAGE_MULT);
   const isCrit = rollCrit(rng, state.player.stats.agi);
   const rawDamage = applyCrit(baseDamage, isCrit);
-  const dealt = mitigate(rawDamage, target.stats.res, 'physical');
+  const dealt = damageTo(target, rawDamage, 'physical');
   const newHp = Math.max(0, target.hp - dealt);
 
   const nextEnemies = state.enemies.map((e, i) =>
@@ -248,7 +249,7 @@ function applyUseAbility(
     if (!affectedSet.has(i)) return e;
     let next: EnemyState = e;
     if (damage > 0) {
-      const dealt = mitigate(damage, e.stats.res, def.damageType);
+      const dealt = damageTo(e, damage, def.damageType);
       const newHp = Math.max(0, e.hp - dealt);
       next = { ...next, hp: newHp };
       effects.push({ type: 'damageDealt', targetId: e.id, amount: dealt, isCrit: false, damageType: def.damageType });
@@ -348,7 +349,7 @@ function applyUseItem(
       if (!hitSet.has(i)) return e;
       let next: EnemyState = e;
       if (effect.kind === 'damage') {
-        const dealt = mitigate(effect.amount, e.stats.res, effect.damageType);
+        const dealt = damageTo(e, effect.amount, effect.damageType);
         const newHp = Math.max(0, e.hp - dealt);
         next = { ...next, hp: newHp };
         effects.push({ type: 'damageDealt', targetId: e.id, amount: dealt, isCrit: false, damageType: effect.damageType });
@@ -413,7 +414,7 @@ function endPlayerTurn(state: RunState, rng: Mulberry32): TurnResult {
 
   const nextPlayer = {
     ...outcome.state.player,
-    ap: outcome.state.player.maxAp,
+    ap: effectiveMaxAp(outcome.state.player),
     abilities: outcome.state.player.abilities.map((s) => ({
       ...s,
       cooldownRemaining: Math.max(0, s.cooldownRemaining - 1),

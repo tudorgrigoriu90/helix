@@ -43,7 +43,7 @@ describe('effective-stats — modifier layer (T-65 deferred half)', () => {
     expect(damageTo({ stats, statuses: [st('infected')] }, 20, 'physical')).toBe(19); // 20 - 1
     expect(damageTo({ stats, statuses: [st('fractured')] }, 20, 'physical')).toBe(Math.floor(14 * 1.2)); // 16
     expect(damageTo(plain, 20, 'true')).toBe(20); // true ignores RES
-    expect(damageTo(plain, 1, 'physical')).toBe(1); // clamps to >= 1
+    expect(damageTo(plain, 4, 'physical')).toBe(0); // RES (6) fully blocks a 4-dmg hit
   });
 });
 

@@ -51,10 +51,11 @@ export function isImmobilized(c: Combatant): boolean {
 
 /**
  * Final damage dealt to `defender`: RES mitigation through {@link effectiveRes}
- * (Infected) then the Fractured multiplier, clamped to ≥1. `rawDamage` is the
+ * (Infected) then the Fractured multiplier. Floored at 0 — RES can fully block
+ * an attack, matching the engine's base mitigation rule. `rawDamage` is the
  * pre-mitigation amount (crit already applied by the caller).
  */
 export function damageTo(defender: Combatant, rawDamage: number, damageType: DamageType): number {
   const mitigated = mitigate(rawDamage, effectiveRes(defender), damageType);
-  return Math.max(1, Math.floor(mitigated * damageTakenMultiplier(defender)));
+  return Math.floor(mitigated * damageTakenMultiplier(defender));
 }

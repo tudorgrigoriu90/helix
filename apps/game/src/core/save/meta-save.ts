@@ -1,6 +1,7 @@
 import type { MetaState } from '@shared-types/meta-state';
 import { CURRENT_META_SCHEMA_VERSION } from '@shared-types/meta-state';
 import { migrate, type Migration, type SaveError } from './run-save';
+import type { LoadResult, SaveCodec } from './save-manager';
 
 /**
  * MetaState (de)serialisation + migration — T-111 (TDD §4.2). Reuses the
@@ -74,3 +75,12 @@ export function deserializeMetaState(json: string): MetaLoadResult {
 
   return { ok: true, meta: migrated.data as unknown as MetaState };
 }
+
+/** {@link SaveCodec} for persisting MetaState through the SaveManager. */
+export const metaCodec: SaveCodec<MetaState> = {
+  serialize: serializeMetaState,
+  deserialize: (json): LoadResult<MetaState> => {
+    const res = deserializeMetaState(json);
+    return res.ok ? { ok: true, value: res.meta } : { ok: false, error: res.error };
+  },
+};

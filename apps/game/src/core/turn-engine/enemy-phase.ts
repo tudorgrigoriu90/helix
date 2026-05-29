@@ -3,7 +3,7 @@ import type { Position } from '@shared-types/action';
 import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import { chebyshev, inBounds, tileAt } from './grid';
-import { mitigate } from './combat';
+import { damageTo, isImmobilized } from './effective-stats';
 
 const ENEMY_MELEE_RANGE = 1;
 
@@ -61,7 +61,7 @@ function resolveEnemyAction(state: RunState, enemyId: string, _rng: Mulberry32):
 }
 
 function enemyAttack(state: RunState, enemy: EnemyState, rawDamage: number): EnemyPhaseResult {
-  const dealt = mitigate(rawDamage, state.player.stats.res, 'physical');
+  const dealt = damageTo(state.player, rawDamage, 'physical');
   const newHp = Math.max(0, state.player.hp - dealt);
   const effects: Effect[] = [
     { type: 'damageDealt', targetId: 'player', amount: dealt, isCrit: false, damageType: 'physical' },
@@ -73,7 +73,7 @@ function enemyAttack(state: RunState, enemy: EnemyState, rawDamage: number): Ene
 }
 
 function enemyStepTowardPlayer(state: RunState, enemy: EnemyState): EnemyPhaseResult {
-  if (enemy.statuses.some((s) => s.effect === 'rooted')) return { state, effects: [] };
+  if (isImmobilized(enemy)) return { state, effects: [] };
 
   const to: Position = {
     x: enemy.pos.x + Math.sign(state.player.pos.x - enemy.pos.x),
