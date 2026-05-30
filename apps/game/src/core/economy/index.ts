@@ -41,3 +41,9 @@ export {
   FLOORS_PER_ZONE,
   ZONE_PRICE_GROWTH,
 } from './pricing';
+export {
+  rollDispenserStock,
+  DISPENSER_MIN_STOCK,
+  DISPENSER_MAX_STOCK,
+  type DispenserStockParams,
+} from './dispenser-stock';
