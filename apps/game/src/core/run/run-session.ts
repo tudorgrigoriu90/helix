@@ -2,6 +2,7 @@ import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedFloor, PopulatedRoom } from '@shared-types/floor-plan';
 import type { EnemyState, EntityStats, PlayerState, RunState } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
+import type { ItemDef } from '@shared-types/item';
 import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { buildAdjacency, generateFloor } from '../floor-gen';
 import {
@@ -23,6 +24,7 @@ import {
   levelForTotalXp,
   levelUpReward,
   ALLOCATABLE_STATS,
+  dispenserPriceForFloor,
 } from '../economy';
 
 /**
@@ -357,6 +359,43 @@ export class RunSession {
       ...this.player,
       stats: { ...this.player.stats, [stat]: this.player.stats[stat] + 1 },
     };
+  }
+
+  // ── VEIN Dispenser (GDD §10.3) ────────────────────────────────────────────
+
+  /** True when the player stands at a VEIN Dispenser (a merchant room). The
+   *  scene gates the Dispenser UI on this; the economic rules below don't. */
+  isAtDispenser(): boolean {
+    return this.currentRoom().type === 'merchant';
+  }
+
+  /** VEIN price of `item` at the current floor's Dispenser (T-108 zoned pricing). */
+  dispenserPriceOf(item: ItemDef): number {
+    return dispenserPriceForFloor(item.rarity, this.floorNumber);
+  }
+
+  /** True when the run's VEIN balance covers `item` at the current Dispenser. */
+  canAfford(item: ItemDef): boolean {
+    return this.veinCrystals >= this.dispenserPriceOf(item);
+  }
+
+  /**
+   * Buys `item` from the VEIN Dispenser (GDD §10.3): deducts the floor-zoned
+   * price from the run's VEIN and adds it to the player's inventory. Throws if
+   * VEIN is insufficient, or if called mid-combat. The scene gates presentation
+   * on {@link isAtDispenser}; slot-limit enforcement (GDD §7) is the inventory
+   * layer's concern, not handled here.
+   */
+  purchaseItem(item: ItemDef): void {
+    if (this.status === 'in_combat') {
+      throw new Error('purchaseItem: cannot trade during combat');
+    }
+    const price = this.dispenserPriceOf(item);
+    if (this.veinCrystals < price) {
+      throw new Error(`purchaseItem: insufficient VEIN (need ${price}, have ${this.veinCrystals})`);
+    }
+    this.veinCrystals -= price;
+    this.player = { ...this.player, items: [...this.player.items, item] };
   }
 
   /** Advances to the next floor after a boss clear (and any Strand Event). */
