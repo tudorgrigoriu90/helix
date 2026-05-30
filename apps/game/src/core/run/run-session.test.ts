@@ -261,7 +261,7 @@ describe('RunSession — Strand Events', () => {
     s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
     const save = s.toSave();
     expect(save.sig).toBeGreaterThan(0);
-    expect(save.schemaVersion).toBe(2);
+    expect(save.schemaVersion).toBe(4);
 
     const resumed = new RunSession({
       seed: 4, template: template(), registry, mutations: POOL, strandEventEveryNFloors: 1,

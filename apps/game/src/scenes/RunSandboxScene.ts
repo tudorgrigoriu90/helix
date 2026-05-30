@@ -516,9 +516,6 @@ export class RunSandboxScene extends Phaser.Scene {
   }
 
   private renderMap(): void {
-    // Combat-only overlays don't belong on the map view.
-    this.combatLog.setVisible(false);
-    this.clearEnemyLabels();
     const floor = this.session.floor;
     const { bounds, transform } = this.mapTransform();
     const snap = this.session.snapshot;

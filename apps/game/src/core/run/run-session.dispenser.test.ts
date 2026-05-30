@@ -124,9 +124,11 @@ describe('VEIN Dispenser purchases — T-112 (GDD §10.3)', () => {
 
   it('throws when VEIN is insufficient and leaves state untouched', () => {
     const s = newSession(); // fresh: 0 VEIN
+    const items0 = s.snapshot.player.items.length; // starter loadout
     expect(() => s.purchaseItem(COMMON_ITEM)).toThrow(/insufficient VEIN/);
     expect(s.snapshot.veinCrystals).toBe(0);
-    expect(s.snapshot.player.items.length).toBe(0);
+    expect(s.snapshot.player.items.length).toBe(items0); // unchanged
+    expect(s.snapshot.player.items.some((i) => i.id === COMMON_ITEM.id)).toBe(false);
   });
 
   it('refuses trading during combat', () => {
