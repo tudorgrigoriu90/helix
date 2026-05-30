@@ -25,6 +25,7 @@ import {
   levelUpReward,
   ALLOCATABLE_STATS,
   dispenserPriceForFloor,
+  rollDispenserStock,
 } from '../economy';
 
 /**
@@ -117,6 +118,12 @@ export interface RunSessionOptions {
   readonly mutations?: readonly MutationDef[];
   /** Strand Event cadence — fires every Nth floor's boss clear (default 5). */
   readonly strandEventEveryNFloors?: number;
+  /**
+   * The item pool a floor's VEIN Dispensers stock from (GDD §10.3). When empty
+   * (the default), merchant rooms offer nothing and {@link RunSession.dispenserStock}
+   * returns `[]` — the run loop is otherwise unchanged.
+   */
+  readonly itemPool?: readonly ItemDef[];
 }
 
 /** Sums the VEIN dropped by the fallen enemies of a cleared encounter (T-106). */
@@ -154,6 +161,11 @@ export class RunSession {
   private readonly finalFloor: number;
   private readonly mutationPool: readonly MutationDef[];
   private readonly strandInterval: number;
+  private readonly itemPool: readonly ItemDef[];
+
+  // Dispenser stock per merchant room, keyed by room id. Computed once per room
+  // (deterministically) and reset each floor — GDD §10.3 "refresh once per floor".
+  private dispenserStockByRoom = new Map<string, ItemDef[]>();
 
   private floorNumber = 1;
   private floorData!: PopulatedFloor;
@@ -183,6 +195,7 @@ export class RunSession {
     this.finalFloor = options.finalFloor ?? FINAL_FLOOR_DEFAULT;
     this.mutationPool = options.mutations ?? [];
     this.strandInterval = options.strandEventEveryNFloors ?? STRAND_INTERVAL_DEFAULT;
+    this.itemPool = options.itemPool ?? [];
     this.player = options.player ?? newRunPlayer();
     this.loadFloor(1);
   }
@@ -386,6 +399,23 @@ export class RunSession {
     return dispenserPriceForFloor(item.rarity, this.floorNumber);
   }
 
+  /**
+   * The current merchant room's stock (GDD §10.3: 4–6 items from the floor's
+   * item pool, T-115b). Empty unless the player is at a Dispenser and an item
+   * pool was supplied. Computed once per room (deterministic from seed + floor +
+   * room) and cached, so it's stable across reads and refreshes once per floor.
+   */
+  dispenserStock(): readonly ItemDef[] {
+    if (!this.isAtDispenser() || this.itemPool.length === 0) return [];
+    const cached = this.dispenserStockByRoom.get(this.current);
+    if (cached !== undefined) return cached;
+    const seed =
+      (this.masterSeed ^ Math.imul(this.floorNumber, 0xc2b2ae35) ^ hashString(this.current)) >>> 0;
+    const stock = rollDispenserStock({ pool: this.itemPool, rng: makeRng(seed, 'loot') });
+    this.dispenserStockByRoom.set(this.current, stock);
+    return stock;
+  }
+
   /** True when the run's VEIN balance covers `item` at the current Dispenser. */
   canAfford(item: ItemDef): boolean {
     return this.veinCrystals >= this.dispenserPriceOf(item);
@@ -408,6 +438,12 @@ export class RunSession {
     }
     this.veinCrystals -= price;
     this.player = { ...this.player, items: [...this.player.items, item] };
+    // Sold items leave the shelf so they can't be bought twice (GDD §10.3).
+    const stock = this.dispenserStockByRoom.get(this.current);
+    if (stock !== undefined) {
+      const idx = stock.findIndex((s) => s.id === item.id);
+      if (idx !== -1) this.dispenserStockByRoom.set(this.current, stock.filter((_, i) => i !== idx));
+    }
   }
 
   /** Banks VEIN income: raises both the spendable balance and the lifetime
@@ -535,6 +571,7 @@ export class RunSession {
     this.adjacency = buildAdjacency(this.floorData.rooms, this.floorData.edges);
     this.current = this.floorData.startRoomId;
     this.cleared = new Set<string>();
+    this.dispenserStockByRoom = new Map(); // fresh shelves each floor (GDD §10.3)
     this.autoClearIfTrivial(this.current);
     this.restIfSafe(this.current);
     this.status = 'exploring';
