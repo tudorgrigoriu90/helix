@@ -107,6 +107,9 @@ export class RunSandboxScene extends Phaser.Scene {
   private topGfx!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
   private laceText!: Phaser.GameObjects.Text;
+  /** Rolling, plain-English combat event log (for testers). */
+  private combatLog!: Phaser.GameObjects.Text;
+  private logLines: string[] = [];
   private transient: Phaser.GameObjects.GameObject[] = [];
   private buttonZones: Phaser.GameObjects.Zone[] = [];
 
@@ -132,6 +135,11 @@ export class RunSandboxScene extends Phaser.Scene {
     this.laceText = this.add.text(16, LACE_Y, '', {
       fontFamily: 'monospace', fontSize: '11px', color: C.green, fontStyle: 'italic', wordWrap: { width: W - 32 },
     });
+    // Combat event log: sits just below the action buttons, hidden outside combat.
+    this.combatLog = this.add.text(16, BTN_Y + 44, '', {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim, lineSpacing: 2, wordWrap: { width: W - 32 },
+    }).setDepth(2);
+    this.combatLog.setVisible(false);
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p.x, p.y));
     drawTabBar(this, this.scene.key);
@@ -516,6 +524,7 @@ export class RunSandboxScene extends Phaser.Scene {
   }
 
   private renderMap(): void {
+    this.combatLog.setVisible(false); // combat-only overlay
     const floor = this.session.floor;
     const { bounds, transform } = this.mapTransform();
     const snap = this.session.snapshot;
@@ -596,12 +605,24 @@ export class RunSandboxScene extends Phaser.Scene {
       if (frac > 0) this.topGfx.fillStyle(color).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, Math.round((tile - 4) * frac), 3);
     };
 
+    // Small name/HP label above an entity; pushed to `transient` (cleared each render).
+    const addLabel = (cx: number, topY: number, text: string, color: string): void => {
+      const t = this.add.text(cx, topY - 2, text, {
+        fontFamily: 'monospace', fontSize: '9px', align: 'center', color,
+      }).setOrigin(0.5, 1).setDepth(2);
+      this.transient.push(t);
+    };
+
     for (const e of state.enemies) {
       const cx = gx + e.pos.x * tile + tile / 2;
       const cy = STAGE_Y + e.pos.y * tile + tile / 2;
       if (e.hp <= 0) { this.sprite(e.enemyDefId, cx, cy, tile * 0.9, H.dead); continue; }
       this.sprite(e.enemyDefId, cx, cy, tile * 0.92);
       drawHp(cx, cy, e.hp / e.maxHp, H.hpRed);
+      // Tester label: which organism is this, what tier, and its current HP.
+      const def = this.enemyRegistry.get(e.enemyDefId);
+      const name = def ? `${def.name} [${def.tier}]` : e.enemyDefId;
+      addLabel(cx, STAGE_Y + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def?.tier === 'boss' ? C.red : C.yellow);
     }
 
     // Targeting overlay: tint valid target tiles. Abilities are range-limited;
@@ -623,6 +644,10 @@ export class RunSandboxScene extends Phaser.Scene {
     const pcy = STAGE_Y + pp.pos.y * tile + tile / 2;
     this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, H.hpGreen);
+    addLabel(pcx, STAGE_Y + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
+
+    this.combatLog.setVisible(true);
+    this.refreshCombatLog(state);
   }
 
   /** Ability buttons below the grid; tap to target (or self-cast). */
