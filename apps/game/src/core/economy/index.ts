@@ -9,3 +9,13 @@ export {
   ALLOCATABLE_STATS,
   type LevelUpReward,
 } from './xp';
+export {
+  veinForKill,
+  expectedFloorVein,
+  rollKillDrops,
+  VEIN_PER_KILL,
+  FLOOR_VEIN_CONSTANT,
+  DROP_RATES,
+  type DropRates,
+  type KillDrops,
+} from './drops';
