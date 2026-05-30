@@ -286,7 +286,7 @@ Status markers in the tables below were reconciled against git history on 2026-0
 
 | ID    | Title                                                  | Role          | Priority | Refs             | Notes |
 | ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
-| T-105 | XP curve per level (1–20) from Economy.xlsx tab        | Game Engineer | P0       | GDD §4.3, Econ E | |
+| T-105 | ~~XP curve per level (1–20) from Economy.xlsx tab~~ — **DONE 2026-05-30.** `core/economy/xp.ts`, drivers read straight from the Economy.xlsx "XP & Level Curve" tab: `XP_BASE=100`, `XP_GROWTH=0.15` → `xpToNext(L)=round(100·1.15^(L−1))` (100/115/132/152/175…, verified against the workbook's per-level + cumulative columns). `cumulativeXpForLevel`, `levelForTotalXp` (clamped to `RUN_LEVEL_CAP=20`, GDD §4.3 one-level-per-floor), `levelUpReward()` = +10 HP / +1 stat (AP doesn't scale). XP reset-on-death is the caller's lifecycle. 8 tests. | Game Engineer | P0       | GDD §4.3, Econ E | DONE |
 | T-106 | VC drop tables per enemy tier per floor                | Game Engineer | P0       | GDD §9.4, Econ E | |
 | T-107 | SC earn rates (daily, achievement, run completion)     | Game Engineer | P1       | GDD §15.5, Econ E | |
 | T-108 | Item pricing function per zone (Dispenser costs)       | Game Engineer | P1       | GDD §9, Econ E   | |
