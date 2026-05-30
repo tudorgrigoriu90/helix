@@ -14,6 +14,8 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
   height: 844,
   backgroundColor: '#0A0E1A',
   parent: 'game',
+  // Crisp nearest-neighbour scaling for pixel-art sprites (no blur on up/downscale).
+  pixelArt: true,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

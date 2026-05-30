@@ -1,0 +1,9 @@
+{
+  "player": [25, 0],
+  "filterer": [25, 8],
+  "cave_crawler": [26, 5],
+  "acid_spitter": [18, 9],
+  "scavenger": [18, 8],
+  "shell_brute": [30, 9],
+  "pressure_warden": [24, 9]
+}
