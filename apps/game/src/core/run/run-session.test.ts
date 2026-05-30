@@ -222,8 +222,9 @@ describe('RunSession — Strand Events', () => {
     autoplayFloor(s);
     expect(s.snapshot.status).toBe('strand_event');
     expect(s.beginStrandEvent()).toEqual({ kind: 'intermission', veinCrystals: 100 });
+    const veinBefore = s.snapshot.veinCrystals; // kills + floor loot already banked (T-110)
     s.acceptIntermission();
-    expect(s.snapshot.veinCrystals).toBe(100);
+    expect(s.snapshot.veinCrystals).toBe(veinBefore + 100); // intermission adds 100 on top
     expect(s.snapshot.status).toBe('floor_complete');
   });
 
