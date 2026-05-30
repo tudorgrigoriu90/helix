@@ -78,27 +78,26 @@ function reachMerchant(s: RunSession): string {
   throw new Error('reachMerchant: no reachable merchant room');
 }
 
-/** Clears the nearest combat room (if any reachable) to bank VEIN. */
+/** Banks a generous VEIN balance by clearing one combat encounter as though a
+ *  big pack of grunts fell (enough to afford any common-priced item). */
 function fundByCombat(s: RunSession): void {
-  for (let i = 0; i < 30; i++) {
-    if (s.needsCombat()) {
-      const combat = s.beginEncounter();
-      if (combat !== null) {
-        const dead: RunState = {
-          ...combat,
-          enemies: combat.enemies.map((e) => ({ ...e, hp: 0 })),
-          phase: 'floor_complete',
-        };
-        s.endEncounter(dead);
-        return;
-      }
-    }
-    // step to any uncleared room with enemies
+  // Walk to the nearest uncleared combat room, enter it, then end with a
+  // terminal state padded with dead grunts so the kill payout is comfortably
+  // above a common item's price (40 VEIN; grunt = 8 each → 10 kills = 80).
+  for (let i = 0; i < 40 && !s.needsCombat(); i++) {
     const target = s.floor.rooms.find(
       (r) => r.enemies.length > 0 && r.id !== s.floor.bossRoomId && !s.snapshot.clearedRoomIds.includes(r.id),
     );
-    if (target === undefined || !walkTo(s, target.id)) return;
+    if (target === undefined || !walkTo(s, target.id)) break;
   }
+  if (!s.needsCombat()) throw new Error('fundByCombat: no combat room reachable');
+  const combat = s.beginEncounter()!;
+  const grunts = Array.from({ length: 10 }, (_, k) => ({
+    id: `pad${k}`, enemyDefId: 'filterer', pos: { x: 0, y: 0 },
+    hp: 0, maxHp: 16, stats: { str: 6, res: 2, agi: 5, int: 2 }, statuses: [], telegraph: null,
+  }));
+  const dead: RunState = { ...combat, enemies: grunts, phase: 'floor_complete' };
+  s.endEncounter(dead);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────

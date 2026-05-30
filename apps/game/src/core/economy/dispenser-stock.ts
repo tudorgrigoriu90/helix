@@ -38,7 +38,9 @@ export interface DispenserStockParams {
  */
 export function rollDispenserStock(params: DispenserStockParams): ItemDef[] {
   const { pool, rng } = params;
-  const target = params.count ?? rng.nextInt(DISPENSER_MIN_STOCK, DISPENSER_MAX_STOCK);
+  // nextInt(n) returns [0, n); map it onto the inclusive [MIN, MAX] count range.
+  const span = DISPENSER_MAX_STOCK - DISPENSER_MIN_STOCK + 1;
+  const target = params.count ?? DISPENSER_MIN_STOCK + rng.nextInt(span);
   const take = Math.max(0, Math.min(target, pool.length));
 
   // Partial Fisher–Yates over a copy: swap `take` items into the front.
