@@ -50,7 +50,7 @@ function newSession(seed = 11): RunSession {
 function nextTowardBoss(s: RunSession, target: string): string {
   const adj = s.adjacentRooms();
   if (adj.includes(target)) return target;
-  const dist = bfsDistances(s.floor.edges, target);
+  const dist = bfsDistances(s.floor.rooms, s.floor.edges, target);
   let best = adj[0]!;
   let bestD = Infinity;
   for (const r of adj) {
