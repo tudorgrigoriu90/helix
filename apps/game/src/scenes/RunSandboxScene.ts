@@ -90,6 +90,7 @@ export class RunSandboxScene extends Phaser.Scene {
   private template!: FloorTemplate;
   private laceLines: readonly LaceLine[] = [];
   private mutationPool: readonly MutationDef[] = [];
+  private itemPool: readonly ItemDef[] = [];
 
   /** Strand Event UI state: which card is selected, and whether the reroll was spent. */
   private strandSelected: number | null = null;

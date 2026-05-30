@@ -1,6 +1,7 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PlayerState } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
+import type { ItemDef } from '@shared-types/item';
 import type { SaveCodec, LoadResult } from '../save/save-manager';
 import type { EnemyRegistry } from './encounter';
 import {
@@ -67,6 +68,7 @@ export interface RestoreOptions {
   readonly finalFloor?: number;
   readonly mutations?: readonly MutationDef[];
   readonly strandEventEveryNFloors?: number;
+  readonly itemPool?: readonly ItemDef[];
 }
 
 /** Rebuilds a live RunSession from a save (floor regenerates from the seed). */
@@ -78,6 +80,7 @@ export function restoreRunSession(save: RunSessionSave, options: RestoreOptions)
     finalFloor: options.finalFloor,
     mutations: options.mutations,
     strandEventEveryNFloors: options.strandEventEveryNFloors,
+    itemPool: options.itemPool,
     player: save.player,
   });
   session.applySave(save);
