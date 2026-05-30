@@ -7,6 +7,8 @@ export {
   XP_GROWTH,
   RUN_LEVEL_CAP,
   ALLOCATABLE_STATS,
+  XP_PER_KILL,
+  xpForKill,
   type LevelUpReward,
 } from './xp';
 export {

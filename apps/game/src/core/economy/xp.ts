@@ -1,4 +1,5 @@
 import type { EntityStats } from '@shared-types/run-state';
+import type { EnemyTier } from '@shared-types/enemy';
 
 /**
  * In-run XP & levelling curve — T-105 (GDD §4.3, Economy.xlsx "XP & Level Curve").
@@ -61,3 +62,21 @@ export function levelUpReward(): LevelUpReward {
 
 /** Convenience: which stat keys a level-up point may be spent on. */
 export const ALLOCATABLE_STATS: readonly (keyof EntityStats)[] = ['str', 'res', 'agi', 'int'];
+
+/**
+ * XP awarded per kill by enemy tier. **Authored** — the Economy.xlsx tabs give
+ * the *curve* (T-105) but not a per-enemy XP yield, so these are tuned to the
+ * GDD §4.3 intent of roughly one level per floor: a representative floor of ~8
+ * grunts + ~1.5 elites yields ~156 XP, enough to clear level 1→2 (100) early and
+ * keep pace with the accelerating curve. Flagged for designer review.
+ */
+export const XP_PER_KILL: Readonly<Record<EnemyTier, number>> = {
+  grunt: 12,
+  elite: 40,
+  boss: 200,
+};
+
+/** XP awarded for a single kill of `tier`. */
+export function xpForKill(tier: EnemyTier): number {
+  return XP_PER_KILL[tier];
+}

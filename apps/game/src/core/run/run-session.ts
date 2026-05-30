@@ -1,6 +1,6 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedFloor, PopulatedRoom } from '@shared-types/floor-plan';
-import type { EnemyState, PlayerState, RunState } from '@shared-types/run-state';
+import type { EnemyState, EntityStats, PlayerState, RunState } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
 import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { buildAdjacency, generateFloor } from '../floor-gen';
@@ -16,7 +16,14 @@ import {
 } from '../mutation';
 import { buildEncounterState, type EnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
-import { veinForKill, FLOOR_VEIN_CONSTANT } from '../economy';
+import {
+  veinForKill,
+  FLOOR_VEIN_CONSTANT,
+  xpForKill,
+  levelForTotalXp,
+  levelUpReward,
+  ALLOCATABLE_STATS,
+} from '../economy';
 
 /**
  * Run session — the run-loop state machine that strings generated rooms into a
@@ -53,11 +60,18 @@ export interface RunSnapshot {
   readonly sig: number;
   /** VEIN Crystals banked this run (e.g. from VEIN Intermissions). */
   readonly veinCrystals: number;
+  /** Cumulative XP earned this run (GDD §4.3). */
+  readonly xp: number;
+  /** Current in-run level, derived from {@link xp} (1–20). */
+  readonly level: number;
+  /** Unspent level-up stat points awaiting allocation (GDD §4.3). */
+  readonly pendingStatPoints: number;
 }
 
 /** Schema version for the persisted run-session shape.
- *  v2 added `sig` + `veinCrystals`; v1 saves load fine (missing fields → 0). */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 2;
+ *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`.
+ *  Older saves load fine — missing fields default to 0. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 3;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -76,6 +90,10 @@ export interface RunSessionSave {
   readonly sig?: number;
   /** VEIN Crystals (added in save v2; absent in v1 saves → treated as 0). */
   readonly veinCrystals?: number;
+  /** Cumulative run XP (added in save v3; absent in older saves → 0). */
+  readonly xp?: number;
+  /** Unspent level-up stat points (added in save v3; absent → 0). */
+  readonly pendingStatPoints?: number;
 }
 
 export interface RunSessionOptions {
@@ -106,6 +124,17 @@ function veinFromKills(enemies: readonly EnemyState[], registry: EnemyRegistry):
   return total;
 }
 
+/** Sums the XP granted by the fallen enemies of a cleared encounter (T-111). */
+function xpFromKills(enemies: readonly EnemyState[], registry: EnemyRegistry): number {
+  let total = 0;
+  for (const e of enemies) {
+    if (e.hp > 0) continue; // only the fallen grant XP
+    const tier = registry.get(e.enemyDefId)?.tier;
+    if (tier !== undefined) total += xpForKill(tier);
+  }
+  return total;
+}
+
 function hashString(s: string): number {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) >>> 0;
@@ -128,9 +157,11 @@ export class RunSession {
   private status: RunStatus = 'exploring';
   private player: PlayerState;
 
-  // Run-scoped mutation state (carries across floors, never resets mid-run).
+  // Run-scoped progression state (carries across floors, never resets mid-run).
   private sig = 0;
   private veinCrystals = 0;
+  private xp = 0;
+  private pendingStatPoints = 0;
   // Transient per-Strand-Event state (regenerated deterministically on resume).
   private strandRng: Mulberry32 | null = null;
   private strandOutcome: StrandOutcome | null = null;
@@ -158,6 +189,9 @@ export class RunSession {
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
+      xp: this.xp,
+      level: levelForTotalXp(this.xp),
+      pendingStatPoints: this.pendingStatPoints,
     };
   }
 
@@ -180,6 +214,8 @@ export class RunSession {
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
+      xp: this.xp,
+      pendingStatPoints: this.pendingStatPoints,
     };
   }
 
@@ -193,6 +229,8 @@ export class RunSession {
     this.status = save.status === 'in_combat' ? 'exploring' : save.status;
     this.sig = save.sig ?? 0; // absent in v1 saves
     this.veinCrystals = save.veinCrystals ?? 0;
+    this.xp = save.xp ?? 0; // absent in pre-v3 saves
+    this.pendingStatPoints = save.pendingStatPoints ?? 0;
   }
 
   currentRoom(): PopulatedRoom {
@@ -264,8 +302,10 @@ export class RunSession {
     this.player = { ...finalState.player, statuses: [] };
     this.cleared.add(this.current);
 
-    // Kill rewards (T-110, Economy.xlsx): every defeated enemy drops VEIN by tier.
+    // Kill rewards (Economy.xlsx): every defeated enemy drops VEIN (T-110) and
+    // grants XP (T-111) by tier.
     this.veinCrystals += veinFromKills(finalState.enemies, this.registry);
+    this.grantXp(xpFromKills(finalState.enemies, this.registry));
 
     if (this.current === this.floorData.bossRoomId) {
       // Floor loot: the ambient per-floor VEIN constant (loot rooms, GDD §9) banks
@@ -277,6 +317,46 @@ export class RunSession {
     } else {
       this.status = 'exploring';
     }
+  }
+
+  /**
+   * Adds run XP and applies any resulting level-ups (GDD §4.3): each level grants
+   * +10 HP (raising max and current) and banks +1 stat point for the player to
+   * allocate via {@link allocateStatPoint}. Level is clamped to the run cap by
+   * {@link levelForTotalXp}, so XP past level 20 accrues without further rewards.
+   */
+  private grantXp(amount: number): void {
+    if (amount <= 0) return;
+    const before = levelForTotalXp(this.xp);
+    this.xp += amount;
+    const gained = levelForTotalXp(this.xp) - before;
+    if (gained <= 0) return;
+    const reward = levelUpReward();
+    const hpGain = gained * reward.hp;
+    this.player = {
+      ...this.player,
+      maxHp: this.player.maxHp + hpGain,
+      hp: this.player.hp + hpGain,
+    };
+    this.pendingStatPoints += gained * reward.statPoints;
+  }
+
+  /**
+   * Spends one pending level-up point on a stat (GDD §4.3 stat-allocation UI).
+   * Throws if there are no pending points or the stat isn't allocatable.
+   */
+  allocateStatPoint(stat: keyof EntityStats): void {
+    if (this.pendingStatPoints <= 0) {
+      throw new Error('allocateStatPoint: no pending stat points');
+    }
+    if (!ALLOCATABLE_STATS.includes(stat)) {
+      throw new Error(`allocateStatPoint: "${String(stat)}" is not an allocatable stat`);
+    }
+    this.pendingStatPoints -= 1;
+    this.player = {
+      ...this.player,
+      stats: { ...this.player.stats, [stat]: this.player.stats[stat] + 1 },
+    };
   }
 
   /** Advances to the next floor after a boss clear (and any Strand Event). */
