@@ -19,3 +19,13 @@ export {
   type DropRates,
   type KillDrops,
 } from './drops';
+export {
+  shardsFromRunVein,
+  shardsForRun,
+  floorShards,
+  SHARD_PER_VEIN,
+  SHARD_DAILY_RUN,
+  SHARD_ACHIEVEMENT,
+  SHARD_REVIVE_COST,
+  type RunShardSources,
+} from './shards';
