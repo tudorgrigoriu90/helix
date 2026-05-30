@@ -23,6 +23,7 @@ export function newMetaState(): MetaState {
     sigmaStrainIds: [],
     achievementIds: [],
     cosmeticIds: [],
+    shardCrystals: 0,
     lifetime: { runs: 0, wins: 0, deepestFloor: 0, enemiesKilled: 0, totalPlaytimeMs: 0 },
   };
 }

@@ -60,8 +60,10 @@ export interface RunSnapshot {
   readonly player: PlayerState;
   /** Sigma Resonance accrued this run (GDD §4.2; capped at 40). */
   readonly sig: number;
-  /** VEIN Crystals banked this run (e.g. from VEIN Intermissions). */
+  /** VEIN Crystals currently spendable this run (drained by Dispenser buys). */
   readonly veinCrystals: number;
+  /** Total VEIN *earned* this run (income, never spent) — drives Shard conversion. */
+  readonly veinEarned: number;
   /** Cumulative XP earned this run (GDD §4.3). */
   readonly xp: number;
   /** Current in-run level, derived from {@link xp} (1–20). */
@@ -71,9 +73,9 @@ export interface RunSnapshot {
 }
 
 /** Schema version for the persisted run-session shape.
- *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`.
- *  Older saves load fine — missing fields default to 0. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 3;
+ *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
+ *  v4 added `veinEarned`. Older saves load fine — missing fields default to 0. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 4;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -96,6 +98,8 @@ export interface RunSessionSave {
   readonly xp?: number;
   /** Unspent level-up stat points (added in save v3; absent → 0). */
   readonly pendingStatPoints?: number;
+  /** Lifetime VEIN earned this run (added in save v4; absent → 0). */
+  readonly veinEarned?: number;
 }
 
 export interface RunSessionOptions {
@@ -164,6 +168,9 @@ export class RunSession {
   private veinCrystals = 0;
   private xp = 0;
   private pendingStatPoints = 0;
+  // Lifetime VEIN income this run (never decremented by purchases) — drives the
+  // run-end Shard conversion (T-113), which is based on income, not held balance.
+  private veinEarned = 0;
   // Transient per-Strand-Event state (regenerated deterministically on resume).
   private strandRng: Mulberry32 | null = null;
   private strandOutcome: StrandOutcome | null = null;
@@ -191,6 +198,7 @@ export class RunSession {
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
+      veinEarned: this.veinEarned,
       xp: this.xp,
       level: levelForTotalXp(this.xp),
       pendingStatPoints: this.pendingStatPoints,
@@ -216,6 +224,7 @@ export class RunSession {
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
+      veinEarned: this.veinEarned,
       xp: this.xp,
       pendingStatPoints: this.pendingStatPoints,
     };
@@ -233,6 +242,9 @@ export class RunSession {
     this.veinCrystals = save.veinCrystals ?? 0;
     this.xp = save.xp ?? 0; // absent in pre-v3 saves
     this.pendingStatPoints = save.pendingStatPoints ?? 0;
+    // Pre-v4 saves lack veinEarned; fall back to the spendable balance as a
+    // lower-bound estimate of income so resumed runs still convert some Shards.
+    this.veinEarned = save.veinEarned ?? this.veinCrystals;
   }
 
   currentRoom(): PopulatedRoom {
@@ -306,13 +318,13 @@ export class RunSession {
 
     // Kill rewards (Economy.xlsx): every defeated enemy drops VEIN (T-110) and
     // grants XP (T-111) by tier.
-    this.veinCrystals += veinFromKills(finalState.enemies, this.registry);
+    this.bankVein(veinFromKills(finalState.enemies, this.registry));
     this.grantXp(xpFromKills(finalState.enemies, this.registry));
 
     if (this.current === this.floorData.bossRoomId) {
       // Floor loot: the ambient per-floor VEIN constant (loot rooms, GDD §9) banks
       // once the floor's boss falls.
-      this.veinCrystals += FLOOR_VEIN_CONSTANT;
+      this.bankVein(FLOOR_VEIN_CONSTANT);
       if (this.floorNumber >= this.finalFloor) this.status = 'victory';
       else if (this.strandEventDue()) this.status = 'strand_event';
       else this.status = 'floor_complete';
@@ -396,6 +408,14 @@ export class RunSession {
     }
     this.veinCrystals -= price;
     this.player = { ...this.player, items: [...this.player.items, item] };
+  }
+
+  /** Banks VEIN income: raises both the spendable balance and the lifetime
+   *  earned total (the latter drives the run-end Shard conversion, T-113). */
+  private bankVein(amount: number): void {
+    if (amount <= 0) return;
+    this.veinCrystals += amount;
+    this.veinEarned += amount;
   }
 
   /** Advances to the next floor after a boss clear (and any Strand Event). */
@@ -489,7 +509,7 @@ export class RunSession {
       throw new Error(`acceptIntermission: not at a Strand Event (status: ${this.status})`);
     }
     const outcome = this.beginStrandEvent();
-    if (outcome.kind === 'intermission') this.veinCrystals += outcome.veinCrystals;
+    if (outcome.kind === 'intermission') this.bankVein(outcome.veinCrystals);
     this.endStrandEvent();
   }
 
