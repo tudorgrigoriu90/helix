@@ -13,6 +13,7 @@ import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
 import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { parseEnemyDef } from '../core/content/enemy-loader';
+import { parseItemDef } from '../core/content/item-loader';
 import { parseMutationDef } from '../core/content/mutation-loader';
 import { parseLaceLines } from '../core/lace/lace-loader';
 import { parseFloorTemplate } from '../core/floor-gen';
@@ -44,6 +45,12 @@ import laceCore from '@content/lace-lines/core.json';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const mutationModules = import.meta.glob('../../../../packages/content/mutations/*.json', { eager: true });
 const mutationFiles = mutationModules as Record<string, { readonly default: unknown }>;
+
+// Every item file, loaded eagerly — the Dispenser's floor pool grows with content
+// automatically (same pattern as mutations above).
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const itemModules = import.meta.glob('../../../../packages/content/items/*.json', { eager: true });
+const itemFiles = itemModules as Record<string, { readonly default: unknown }>;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 const W = 390;
@@ -159,7 +166,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.seed = save.seed;
     this.session = restoreRunSession(save, {
       template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR,
-      mutations: this.mutationPool, strandEventEveryNFloors: STRAND_INTERVAL,
+      mutations: this.mutationPool, strandEventEveryNFloors: STRAND_INTERVAL, itemPool: this.itemPool,
     });
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
     this.combat = null;
@@ -202,13 +209,21 @@ export class RunSandboxScene extends Phaser.Scene {
       pool.push(res.mutation);
     }
     this.mutationPool = pool;
+
+    const items: ItemDef[] = [];
+    for (const mod of Object.values(itemFiles)) {
+      const res = parseItemDef(mod.default);
+      if (!res.ok) throw new Error(`RunSandbox: bad item content — ${res.error.message}`);
+      items.push(res.item);
+    }
+    this.itemPool = items;
   }
 
   /** (Re)starts the run on the current seed — everything is derived from it. */
   private startRun(): void {
     this.session = new RunSession({
       seed: this.seed, template: this.template, registry: this.enemyRegistry, finalFloor: FINAL_FLOOR,
-      mutations: this.mutationPool, strandEventEveryNFloors: STRAND_INTERVAL,
+      mutations: this.mutationPool, strandEventEveryNFloors: STRAND_INTERVAL, itemPool: this.itemPool,
     });
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
     this.view = 'map';
@@ -261,6 +276,7 @@ export class RunSandboxScene extends Phaser.Scene {
       // Non-combat rooms auto-clear. lace_event rooms are narrative beats — let
       // the companion speak. (loot/merchant/trap rooms are content stubs for now.)
       if (room.type === 'lace_event') this.say('generic');
+      else if (room.type === 'merchant') this.showDispenser();
       this.persist();
       this.renderAll();
       return;
@@ -272,6 +288,24 @@ export class RunSandboxScene extends Phaser.Scene {
     this.targeting = null;
     this.view = 'combat';
     this.renderAll();
+  }
+
+  /** Surfaces the VEIN Dispenser's current stock + prices for the tester. The
+   *  interactive buy panel is the next step; this confirms the pool→stock→pricing
+   *  pipeline (T-115b/T-116b/T-108) is live and shows what a merchant offers. */
+  private showDispenser(): void {
+    const stock = this.session.dispenserStock();
+    if (stock.length === 0) {
+      this.laceText.setText('LACE: The Dispenser is dark. Nothing on offer here.');
+      return;
+    }
+    const vein = this.session.snapshot.veinCrystals;
+    const lines = stock.map((it) => {
+      const price = this.session.dispenserPriceOf(it);
+      const afford = vein >= price ? '' : ' (need more VEIN)';
+      return `  ${it.name} [${it.rarity}] — ${price} VEIN${afford}`;
+    });
+    this.laceText.setText([`DISPENSER (you hold ${vein} VEIN):`, ...lines].join('\n'));
   }
 
   /** Advance to the next floor after a boss clear. */
