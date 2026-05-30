@@ -1,6 +1,6 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedFloor, PopulatedRoom } from '@shared-types/floor-plan';
-import type { PlayerState, RunState } from '@shared-types/run-state';
+import type { EnemyState, PlayerState, RunState } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
 import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { buildAdjacency, generateFloor } from '../floor-gen';
@@ -16,6 +16,7 @@ import {
 } from '../mutation';
 import { buildEncounterState, type EnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
+import { veinForKill, FLOOR_VEIN_CONSTANT } from '../economy';
 
 /**
  * Run session — the run-loop state machine that strings generated rooms into a
@@ -92,6 +93,17 @@ export interface RunSessionOptions {
   readonly mutations?: readonly MutationDef[];
   /** Strand Event cadence — fires every Nth floor's boss clear (default 5). */
   readonly strandEventEveryNFloors?: number;
+}
+
+/** Sums the VEIN dropped by the fallen enemies of a cleared encounter (T-106). */
+function veinFromKills(enemies: readonly EnemyState[], registry: EnemyRegistry): number {
+  let total = 0;
+  for (const e of enemies) {
+    if (e.hp > 0) continue; // only the fallen pay out
+    const tier = registry.get(e.enemyDefId)?.tier;
+    if (tier !== undefined) total += veinForKill(tier);
+  }
+  return total;
 }
 
 function hashString(s: string): number {
@@ -252,7 +264,13 @@ export class RunSession {
     this.player = { ...finalState.player, statuses: [] };
     this.cleared.add(this.current);
 
+    // Kill rewards (T-110, Economy.xlsx): every defeated enemy drops VEIN by tier.
+    this.veinCrystals += veinFromKills(finalState.enemies, this.registry);
+
     if (this.current === this.floorData.bossRoomId) {
+      // Floor loot: the ambient per-floor VEIN constant (loot rooms, GDD §9) banks
+      // once the floor's boss falls.
+      this.veinCrystals += FLOOR_VEIN_CONSTANT;
       if (this.floorNumber >= this.finalFloor) this.status = 'victory';
       else if (this.strandEventDue()) this.status = 'strand_event';
       else this.status = 'floor_complete';

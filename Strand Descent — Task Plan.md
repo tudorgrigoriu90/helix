@@ -292,6 +292,17 @@ Status markers in the tables below were reconciled against git history on 2026-0
 | T-108 | ~~Item pricing function per zone (Dispenser costs)~~ — **DONE 2026-05-30.** `core/economy/pricing.ts` — `dispenserPrice(rarity, zone)` = `BASE(40) × rarityMult × zoneMult`. Rarity multipliers reuse the workbook "Mutation Costs" scale (common 1 / uncommon 2.5 / rare 6 / legendary 15) so item + upgrade economies stay coherent; base + per-zone growth (`1+(zone−1)·0.5`) authored vs ~150-VEIN/floor income (no item-price tab in the sheet — flagged). `zoneForFloor` (6 floors/zone from Drop Rates) + `dispenserPriceForFloor`. Monotonic in rarity & zone. 6 tests. | Game Engineer | P1       | GDD §9, Econ E   | DONE |
 | T-109 | ~~Vitest: drop-rate distribution test (chi-squared on 100K samples)~~ — **DONE 2026-05-30.** `core/economy/drops.dist.test.ts` samples 100K kills per tier off the deterministic `loot` sub-generator and asserts each bonus drop's empirical frequency fits its `DROP_RATES` probability via a chi-squared goodness-of-fit (1 d.o.f., α=0.001, crit 10.828); p=0/p=1 drops asserted exactly; VEIN-always invariant checked. A no-vacuous-pass guard confirms a wrong expected probability blows past the critical value. Deterministic (seeded) so it never flakes; ~100ms. 4 tests. | QA  | P1       | TDD §16.1        | DONE |
 
+### S-3.6b — Economy integration (run-loop wiring)
+
+Plugs the S-3.6 economy core into the live run loop (`core/run/run-session.ts`).
+
+| ID    | Title                                                  | Role          | Priority | Refs             | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
+| T-110 | ~~VEIN banked on combat clear~~ — **DONE 2026-05-30.** `RunSession.endEncounter` now banks VEIN on every win: each fallen enemy pays out `veinForKill(tier)` (tier resolved via the `EnemyRegistry`), and the ambient per-floor loot constant (`FLOOR_VEIN_CONSTANT=50`) banks once the floor's boss falls. Defeats bank nothing; balance persists through save/restore (uses the existing v2 `veinCrystals` field, no schema change). 5 tests. | Game Engineer | P0 | GDD §9, Econ E | DONE |
+| T-111 | In-run XP & leveling wired into the run loop           | Game Engineer | P0       | GDD §4.3, Econ E | |
+| T-112 | VEIN Dispenser purchase API (merchant rooms)           | Game Engineer | P1       | GDD §10.3, Econ E | |
+| T-113 | Run-end Shard banking into MetaState                    | Game Engineer | P1       | GDD §15.5, Econ E | |
+
 ### S-3.7 — Save Layer (RunState + MetaState)
 
 | ID    | Title                                                                       | Role          | Priority | Refs             | Notes |
