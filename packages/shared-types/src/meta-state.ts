@@ -24,7 +24,14 @@ export interface MetaState {
   readonly achievementIds: readonly string[];
   /** Unlocked cosmetic ids. */
   readonly cosmeticIds: readonly string[];
+  /**
+   * Shard Crystal balance — the persistent hard currency (GDD §15.5). Earned
+   * slowly across runs (T-107/T-113) and spent on revives + cosmetics. Stored
+   * fractionally (runs accrue `vein × 0.005`); floor it when displaying/spending.
+   */
+  readonly shardCrystals: number;
   readonly lifetime: LifetimeStats;
 }
 
-export const CURRENT_META_SCHEMA_VERSION = 1;
+/** v2 added `shardCrystals` (the hard-currency balance). */
+export const CURRENT_META_SCHEMA_VERSION = 2;

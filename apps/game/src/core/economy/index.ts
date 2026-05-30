@@ -7,6 +7,8 @@ export {
   XP_GROWTH,
   RUN_LEVEL_CAP,
   ALLOCATABLE_STATS,
+  XP_PER_KILL,
+  xpForKill,
   type LevelUpReward,
 } from './xp';
 export {
@@ -39,3 +41,9 @@ export {
   FLOORS_PER_ZONE,
   ZONE_PRICE_GROWTH,
 } from './pricing';
+export {
+  rollDispenserStock,
+  DISPENSER_MIN_STOCK,
+  DISPENSER_MAX_STOCK,
+  type DispenserStockParams,
+} from './dispenser-stock';

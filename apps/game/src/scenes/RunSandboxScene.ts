@@ -107,6 +107,9 @@ export class RunSandboxScene extends Phaser.Scene {
   private topGfx!: Phaser.GameObjects.Graphics;
   private hudText!: Phaser.GameObjects.Text;
   private laceText!: Phaser.GameObjects.Text;
+  /** Rolling, plain-English combat event log (for testers). */
+  private combatLog!: Phaser.GameObjects.Text;
+  private logLines: string[] = [];
   private transient: Phaser.GameObjects.GameObject[] = [];
   private buttonZones: Phaser.GameObjects.Zone[] = [];
 
@@ -132,6 +135,11 @@ export class RunSandboxScene extends Phaser.Scene {
     this.laceText = this.add.text(16, LACE_Y, '', {
       fontFamily: 'monospace', fontSize: '11px', color: C.green, fontStyle: 'italic', wordWrap: { width: W - 32 },
     });
+    // Combat event log: sits just below the action buttons, hidden outside combat.
+    this.combatLog = this.add.text(16, BTN_Y + 44, '', {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim, lineSpacing: 2, wordWrap: { width: W - 32 },
+    }).setDepth(2);
+    this.combatLog.setVisible(false);
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p.x, p.y));
     drawTabBar(this, this.scene.key);
@@ -445,8 +453,68 @@ export class RunSandboxScene extends Phaser.Scene {
         playSfx(this, 'sfx_enemy_death');
       }
       if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
+      const line = this.describeEffect(fx);
+      if (line !== null) this.pushLog(line);
     }
     if (playerHurt) playSfx(this, 'sfx_player_hurt'); // once per resolution, not per hit
+  }
+
+  /** Readable label for an entity id (`player` or `enemyDefId#n`): names the
+   *  organism and its tier so a tester can tell who is who. */
+  private entityLabel(id: string): string {
+    if (id === 'player') return 'YOU';
+    const defId = id.split('#')[0] ?? id;
+    const def = this.enemyRegistry.get(defId);
+    return def ? `${def.name} [${def.tier}]` : id;
+  }
+
+  /** One plain-English log line for a combat effect, or null to skip noise. */
+  private describeEffect(fx: Effect): string | null {
+    switch (fx.type) {
+      case 'damageDealt':
+        return `${this.entityLabel(fx.targetId)} takes ${fx.amount} ${fx.damageType}${fx.isCrit ? ' (CRIT)' : ''}`;
+      case 'healingApplied':
+        return `${this.entityLabel(fx.targetId)} heals ${fx.amount}`;
+      case 'entityDied':
+        return `${this.entityLabel(fx.entityId)} is destroyed`;
+      case 'statusApplied':
+        return `${this.entityLabel(fx.targetId)} gains ${fx.status} (${fx.turns}t)`;
+      case 'statusExpired':
+        return `${this.entityLabel(fx.targetId)}'s ${fx.status} fades`;
+      case 'abilityUsed':
+        return `${this.entityLabel(fx.entityId)} uses ${fx.abilityId}`;
+      case 'itemUsed':
+        return `YOU use ${fx.itemId}`;
+      case 'entityMoved':
+        return fx.entityId === 'player' ? `YOU move → (${fx.to.x},${fx.to.y})` : null;
+      case 'phaseChanged':
+        return `— ${fx.to} phase —`;
+      default:
+        return null; // apSpent, telegraph, floorComplete/victory/defeat: not log noise
+    }
+  }
+
+  /** Appends an event to the rolling combat log (keeps the last 6). */
+  private pushLog(line: string): void {
+    this.logLines.push(line);
+    while (this.logLines.length > 6) this.logLines.shift();
+  }
+
+  /** Rebuilds the combat-log text: a live enemy roster + recent events, so a
+   *  tester always sees what's on the board and what just happened. */
+  private refreshCombatLog(state: RunState): void {
+    const counts = new Map<string, number>();
+    for (const e of state.enemies) {
+      if (e.hp <= 0) continue;
+      const def = this.enemyRegistry.get(e.enemyDefId);
+      const key = def ? `${def.name} [${def.tier}]` : e.enemyDefId;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const roster = counts.size === 0
+      ? 'enemies: none'
+      : 'enemies: ' + [...counts].map(([k, n]) => (n > 1 ? `${n}× ${k}` : k)).join(', ');
+    const lines = [`— turn ${state.turn} · ${state.phase} —`, roster, ...this.logLines.map((l) => `• ${l}`)];
+    this.combatLog.setText(lines.join('\n'));
   }
 
   private maybeEndCombat(): void {
@@ -516,6 +584,7 @@ export class RunSandboxScene extends Phaser.Scene {
   }
 
   private renderMap(): void {
+    this.combatLog.setVisible(false); // combat-only overlay
     const floor = this.session.floor;
     const { bounds, transform } = this.mapTransform();
     const snap = this.session.snapshot;
@@ -596,12 +665,24 @@ export class RunSandboxScene extends Phaser.Scene {
       if (frac > 0) this.topGfx.fillStyle(color).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, Math.round((tile - 4) * frac), 3);
     };
 
+    // Small name/HP label above an entity; pushed to `transient` (cleared each render).
+    const addLabel = (cx: number, topY: number, text: string, color: string): void => {
+      const t = this.add.text(cx, topY - 2, text, {
+        fontFamily: 'monospace', fontSize: '9px', align: 'center', color,
+      }).setOrigin(0.5, 1).setDepth(2);
+      this.transient.push(t);
+    };
+
     for (const e of state.enemies) {
       const cx = gx + e.pos.x * tile + tile / 2;
       const cy = STAGE_Y + e.pos.y * tile + tile / 2;
       if (e.hp <= 0) { this.sprite(e.enemyDefId, cx, cy, tile * 0.9, H.dead); continue; }
       this.sprite(e.enemyDefId, cx, cy, tile * 0.92);
       drawHp(cx, cy, e.hp / e.maxHp, H.hpRed);
+      // Tester label: which organism is this, what tier, and its current HP.
+      const def = this.enemyRegistry.get(e.enemyDefId);
+      const name = def ? `${def.name} [${def.tier}]` : e.enemyDefId;
+      addLabel(cx, STAGE_Y + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def?.tier === 'boss' ? C.red : C.yellow);
     }
 
     // Targeting overlay: tint valid target tiles. Abilities are range-limited;
@@ -623,6 +704,10 @@ export class RunSandboxScene extends Phaser.Scene {
     const pcy = STAGE_Y + pp.pos.y * tile + tile / 2;
     this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, H.hpGreen);
+    addLabel(pcx, STAGE_Y + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
+
+    this.combatLog.setVisible(true);
+    this.refreshCombatLog(state);
   }
 
   /** Ability buttons below the grid; tap to target (or self-cast). */

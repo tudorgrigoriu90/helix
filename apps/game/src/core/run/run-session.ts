@@ -1,7 +1,8 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedFloor, PopulatedRoom } from '@shared-types/floor-plan';
-import type { PlayerState, RunState } from '@shared-types/run-state';
+import type { EnemyState, EntityStats, PlayerState, RunState } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
+import type { ItemDef } from '@shared-types/item';
 import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { buildAdjacency, generateFloor } from '../floor-gen';
 import {
@@ -16,6 +17,16 @@ import {
 } from '../mutation';
 import { buildEncounterState, type EnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
+import {
+  veinForKill,
+  FLOOR_VEIN_CONSTANT,
+  xpForKill,
+  levelForTotalXp,
+  levelUpReward,
+  ALLOCATABLE_STATS,
+  dispenserPriceForFloor,
+  rollDispenserStock,
+} from '../economy';
 
 /**
  * Run session — the run-loop state machine that strings generated rooms into a
@@ -50,13 +61,22 @@ export interface RunSnapshot {
   readonly player: PlayerState;
   /** Sigma Resonance accrued this run (GDD §4.2; capped at 40). */
   readonly sig: number;
-  /** VEIN Crystals banked this run (e.g. from VEIN Intermissions). */
+  /** VEIN Crystals currently spendable this run (drained by Dispenser buys). */
   readonly veinCrystals: number;
+  /** Total VEIN *earned* this run (income, never spent) — drives Shard conversion. */
+  readonly veinEarned: number;
+  /** Cumulative XP earned this run (GDD §4.3). */
+  readonly xp: number;
+  /** Current in-run level, derived from {@link xp} (1–20). */
+  readonly level: number;
+  /** Unspent level-up stat points awaiting allocation (GDD §4.3). */
+  readonly pendingStatPoints: number;
 }
 
 /** Schema version for the persisted run-session shape.
- *  v2 added `sig` + `veinCrystals`; v1 saves load fine (missing fields → 0). */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 2;
+ *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
+ *  v4 added `veinEarned`. Older saves load fine — missing fields default to 0. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 4;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -75,6 +95,12 @@ export interface RunSessionSave {
   readonly sig?: number;
   /** VEIN Crystals (added in save v2; absent in v1 saves → treated as 0). */
   readonly veinCrystals?: number;
+  /** Cumulative run XP (added in save v3; absent in older saves → 0). */
+  readonly xp?: number;
+  /** Unspent level-up stat points (added in save v3; absent → 0). */
+  readonly pendingStatPoints?: number;
+  /** Lifetime VEIN earned this run (added in save v4; absent → 0). */
+  readonly veinEarned?: number;
 }
 
 export interface RunSessionOptions {
@@ -92,6 +118,34 @@ export interface RunSessionOptions {
   readonly mutations?: readonly MutationDef[];
   /** Strand Event cadence — fires every Nth floor's boss clear (default 5). */
   readonly strandEventEveryNFloors?: number;
+  /**
+   * The item pool a floor's VEIN Dispensers stock from (GDD §10.3). When empty
+   * (the default), merchant rooms offer nothing and {@link RunSession.dispenserStock}
+   * returns `[]` — the run loop is otherwise unchanged.
+   */
+  readonly itemPool?: readonly ItemDef[];
+}
+
+/** Sums the VEIN dropped by the fallen enemies of a cleared encounter (T-106). */
+function veinFromKills(enemies: readonly EnemyState[], registry: EnemyRegistry): number {
+  let total = 0;
+  for (const e of enemies) {
+    if (e.hp > 0) continue; // only the fallen pay out
+    const tier = registry.get(e.enemyDefId)?.tier;
+    if (tier !== undefined) total += veinForKill(tier);
+  }
+  return total;
+}
+
+/** Sums the XP granted by the fallen enemies of a cleared encounter (T-111). */
+function xpFromKills(enemies: readonly EnemyState[], registry: EnemyRegistry): number {
+  let total = 0;
+  for (const e of enemies) {
+    if (e.hp > 0) continue; // only the fallen grant XP
+    const tier = registry.get(e.enemyDefId)?.tier;
+    if (tier !== undefined) total += xpForKill(tier);
+  }
+  return total;
 }
 
 function hashString(s: string): number {
@@ -107,6 +161,11 @@ export class RunSession {
   private readonly finalFloor: number;
   private readonly mutationPool: readonly MutationDef[];
   private readonly strandInterval: number;
+  private readonly itemPool: readonly ItemDef[];
+
+  // Dispenser stock per merchant room, keyed by room id. Computed once per room
+  // (deterministically) and reset each floor — GDD §10.3 "refresh once per floor".
+  private dispenserStockByRoom = new Map<string, ItemDef[]>();
 
   private floorNumber = 1;
   private floorData!: PopulatedFloor;
@@ -116,9 +175,14 @@ export class RunSession {
   private status: RunStatus = 'exploring';
   private player: PlayerState;
 
-  // Run-scoped mutation state (carries across floors, never resets mid-run).
+  // Run-scoped progression state (carries across floors, never resets mid-run).
   private sig = 0;
   private veinCrystals = 0;
+  private xp = 0;
+  private pendingStatPoints = 0;
+  // Lifetime VEIN income this run (never decremented by purchases) — drives the
+  // run-end Shard conversion (T-113), which is based on income, not held balance.
+  private veinEarned = 0;
   // Transient per-Strand-Event state (regenerated deterministically on resume).
   private strandRng: Mulberry32 | null = null;
   private strandOutcome: StrandOutcome | null = null;
@@ -131,6 +195,7 @@ export class RunSession {
     this.finalFloor = options.finalFloor ?? FINAL_FLOOR_DEFAULT;
     this.mutationPool = options.mutations ?? [];
     this.strandInterval = options.strandEventEveryNFloors ?? STRAND_INTERVAL_DEFAULT;
+    this.itemPool = options.itemPool ?? [];
     this.player = options.player ?? newRunPlayer();
     this.loadFloor(1);
   }
@@ -146,6 +211,10 @@ export class RunSession {
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
+      veinEarned: this.veinEarned,
+      xp: this.xp,
+      level: levelForTotalXp(this.xp),
+      pendingStatPoints: this.pendingStatPoints,
     };
   }
 
@@ -168,6 +237,9 @@ export class RunSession {
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
+      veinEarned: this.veinEarned,
+      xp: this.xp,
+      pendingStatPoints: this.pendingStatPoints,
     };
   }
 
@@ -181,6 +253,11 @@ export class RunSession {
     this.status = save.status === 'in_combat' ? 'exploring' : save.status;
     this.sig = save.sig ?? 0; // absent in v1 saves
     this.veinCrystals = save.veinCrystals ?? 0;
+    this.xp = save.xp ?? 0; // absent in pre-v3 saves
+    this.pendingStatPoints = save.pendingStatPoints ?? 0;
+    // Pre-v4 saves lack veinEarned; fall back to the spendable balance as a
+    // lower-bound estimate of income so resumed runs still convert some Shards.
+    this.veinEarned = save.veinEarned ?? this.veinCrystals;
   }
 
   currentRoom(): PopulatedRoom {
@@ -252,13 +329,129 @@ export class RunSession {
     this.player = { ...finalState.player, statuses: [] };
     this.cleared.add(this.current);
 
+    // Kill rewards (Economy.xlsx): every defeated enemy drops VEIN (T-110) and
+    // grants XP (T-111) by tier.
+    this.bankVein(veinFromKills(finalState.enemies, this.registry));
+    this.grantXp(xpFromKills(finalState.enemies, this.registry));
+
     if (this.current === this.floorData.bossRoomId) {
+      // Floor loot: the ambient per-floor VEIN constant (loot rooms, GDD §9) banks
+      // once the floor's boss falls.
+      this.bankVein(FLOOR_VEIN_CONSTANT);
       if (this.floorNumber >= this.finalFloor) this.status = 'victory';
       else if (this.strandEventDue()) this.status = 'strand_event';
       else this.status = 'floor_complete';
     } else {
       this.status = 'exploring';
     }
+  }
+
+  /**
+   * Adds run XP and applies any resulting level-ups (GDD §4.3): each level grants
+   * +10 HP (raising max and current) and banks +1 stat point for the player to
+   * allocate via {@link allocateStatPoint}. Level is clamped to the run cap by
+   * {@link levelForTotalXp}, so XP past level 20 accrues without further rewards.
+   */
+  private grantXp(amount: number): void {
+    if (amount <= 0) return;
+    const before = levelForTotalXp(this.xp);
+    this.xp += amount;
+    const gained = levelForTotalXp(this.xp) - before;
+    if (gained <= 0) return;
+    const reward = levelUpReward();
+    const hpGain = gained * reward.hp;
+    this.player = {
+      ...this.player,
+      maxHp: this.player.maxHp + hpGain,
+      hp: this.player.hp + hpGain,
+    };
+    this.pendingStatPoints += gained * reward.statPoints;
+  }
+
+  /**
+   * Spends one pending level-up point on a stat (GDD §4.3 stat-allocation UI).
+   * Throws if there are no pending points or the stat isn't allocatable.
+   */
+  allocateStatPoint(stat: keyof EntityStats): void {
+    if (this.pendingStatPoints <= 0) {
+      throw new Error('allocateStatPoint: no pending stat points');
+    }
+    if (!ALLOCATABLE_STATS.includes(stat)) {
+      throw new Error(`allocateStatPoint: "${String(stat)}" is not an allocatable stat`);
+    }
+    this.pendingStatPoints -= 1;
+    this.player = {
+      ...this.player,
+      stats: { ...this.player.stats, [stat]: this.player.stats[stat] + 1 },
+    };
+  }
+
+  // ── VEIN Dispenser (GDD §10.3) ────────────────────────────────────────────
+
+  /** True when the player stands at a VEIN Dispenser (a merchant room). The
+   *  scene gates the Dispenser UI on this; the economic rules below don't. */
+  isAtDispenser(): boolean {
+    return this.currentRoom().type === 'merchant';
+  }
+
+  /** VEIN price of `item` at the current floor's Dispenser (T-108 zoned pricing). */
+  dispenserPriceOf(item: ItemDef): number {
+    return dispenserPriceForFloor(item.rarity, this.floorNumber);
+  }
+
+  /**
+   * The current merchant room's stock (GDD §10.3: 4–6 items from the floor's
+   * item pool, T-115b). Empty unless the player is at a Dispenser and an item
+   * pool was supplied. Computed once per room (deterministic from seed + floor +
+   * room) and cached, so it's stable across reads and refreshes once per floor.
+   */
+  dispenserStock(): readonly ItemDef[] {
+    if (!this.isAtDispenser() || this.itemPool.length === 0) return [];
+    const cached = this.dispenserStockByRoom.get(this.current);
+    if (cached !== undefined) return cached;
+    const seed =
+      (this.masterSeed ^ Math.imul(this.floorNumber, 0xc2b2ae35) ^ hashString(this.current)) >>> 0;
+    const stock = rollDispenserStock({ pool: this.itemPool, rng: makeRng(seed, 'loot') });
+    this.dispenserStockByRoom.set(this.current, stock);
+    return stock;
+  }
+
+  /** True when the run's VEIN balance covers `item` at the current Dispenser. */
+  canAfford(item: ItemDef): boolean {
+    return this.veinCrystals >= this.dispenserPriceOf(item);
+  }
+
+  /**
+   * Buys `item` from the VEIN Dispenser (GDD §10.3): deducts the floor-zoned
+   * price from the run's VEIN and adds it to the player's inventory. Throws if
+   * VEIN is insufficient, or if called mid-combat. The scene gates presentation
+   * on {@link isAtDispenser}; slot-limit enforcement (GDD §7) is the inventory
+   * layer's concern, not handled here.
+   */
+  purchaseItem(item: ItemDef): void {
+    if (this.status === 'in_combat') {
+      throw new Error('purchaseItem: cannot trade during combat');
+    }
+    const price = this.dispenserPriceOf(item);
+    if (this.veinCrystals < price) {
+      throw new Error(`purchaseItem: insufficient VEIN (need ${price}, have ${this.veinCrystals})`);
+    }
+    this.veinCrystals -= price;
+    this.player = { ...this.player, items: [...this.player.items, item] };
+    // Sold items leave the shelf so they can't be bought twice (GDD §10.3).
+    const stock = this.dispenserStockByRoom.get(this.current);
+    if (stock !== undefined) {
+      const idx = stock.findIndex((s) => s.id === item.id);
+      if (idx !== -1) this.dispenserStockByRoom.set(this.current, stock.filter((_, i) => i !== idx));
+    }
+  }
+
+  /** Banks VEIN income: raises both the spendable balance and the lifetime
+   *  earned total (the latter drives the run-end Shard conversion, T-113). */
+  private bankVein(amount: number): void {
+    if (amount <= 0) return;
+    this.veinCrystals += amount;
+    this.veinEarned += amount;
   }
 
   /** Advances to the next floor after a boss clear (and any Strand Event). */
@@ -352,7 +545,7 @@ export class RunSession {
       throw new Error(`acceptIntermission: not at a Strand Event (status: ${this.status})`);
     }
     const outcome = this.beginStrandEvent();
-    if (outcome.kind === 'intermission') this.veinCrystals += outcome.veinCrystals;
+    if (outcome.kind === 'intermission') this.bankVein(outcome.veinCrystals);
     this.endStrandEvent();
   }
 
@@ -378,6 +571,7 @@ export class RunSession {
     this.adjacency = buildAdjacency(this.floorData.rooms, this.floorData.edges);
     this.current = this.floorData.startRoomId;
     this.cleared = new Set<string>();
+    this.dispenserStockByRoom = new Map(); // fresh shelves each floor (GDD §10.3)
     this.autoClearIfTrivial(this.current);
     this.restIfSafe(this.current);
     this.status = 'exploring';

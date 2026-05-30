@@ -4,6 +4,7 @@ import {
   cumulativeXpForLevel,
   levelForTotalXp,
   levelUpReward,
+  xpForKill,
   XP_BASE,
   XP_GROWTH,
   RUN_LEVEL_CAP,
@@ -56,5 +57,14 @@ describe('XP & level curve — T-105 (GDD §4.3, Economy.xlsx)', () => {
   it('rejects levels below 1', () => {
     expect(() => xpToNext(0)).toThrow(RangeError);
     expect(() => cumulativeXpForLevel(0)).toThrow(RangeError);
+  });
+
+  it('per-kill XP rises with tier and yields ~1 level on a representative floor', () => {
+    expect(xpForKill('grunt')).toBe(12);
+    expect(xpForKill('elite')).toBe(40);
+    expect(xpForKill('boss')).toBe(200);
+    // ~8 grunts + ~1.5 elites ≈ 156 XP → clears level 1→2 (needs 100).
+    const floorXp = 8 * xpForKill('grunt') + 1.5 * xpForKill('elite');
+    expect(levelForTotalXp(floorXp)).toBeGreaterThanOrEqual(2);
   });
 });
