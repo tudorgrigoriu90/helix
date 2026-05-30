@@ -369,8 +369,8 @@ Status markers in the tables below were reconciled against git history on 2026-0
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-150 | S023 FloorScene shell (tile-based exploration)         | Frontend | P0       | UFD 02     | |
 | T-151 | Tile renderer via Phaser Graphics primitives — **PARTIAL 2026-05-28.** Tiles render via the sprite registry (`scenes/sprites/`): a `<key>.png` if present, else the geometry fallback (the original coloured rects). `tile_open/wall/hazard/cover/elevated/corruption` keys defined. | Frontend | P0       | TDD §21 Q2 | PARTIAL — NFR perf |
-| T-152 | Player entity (runtime-generated geometry) — **PARTIAL 2026-05-28.** Player renders via sprite registry (`player.png` or the teal-circle fallback). | Frontend | P0       | TDD §13.5  | PARTIAL |
-| T-153 | Enemy entities (shape encodes behavior) — **PARTIAL 2026-05-28.** Enemies render by `enemyDefId` through the sprite registry (per-enemy PNG or coloured-circle fallback, grey-tinted when dead). **Sprite pipeline added:** pure `sprite-manifest.ts` (single source of truth, CI-tested to cover every enemy/tile/room/item id) + `sprite-registry.ts` (Phaser loader with graceful per-file fallback — a missing PNG never errors, just draws the primitive) + `public/sprites/` drop-folder + artist spec `docs/SPRITES.md`. Drop `<key>.png` → it appears live, zero code change. 7 manifest tests; 402 total green. | Frontend | P0       | GDD §13.3  | PARTIAL |
+| T-152 | Player entity (runtime-generated geometry) — **PARTIAL 2026-05-30.** Player renders via sprite registry; **real art now ships** — `player.png` sliced from the Kenney Roguelike sheet (was the teal-circle/test fallback). Phaser `pixelArt: true` set so 16px art scales crisply. | Frontend | P0       | TDD §13.5  | PARTIAL — art landed |
+| T-153 | Enemy entities (shape encodes behavior) — **PARTIAL 2026-05-30.** Enemies render by `enemyDefId` through the sprite registry (per-enemy PNG or coloured-circle fallback, grey-tinted when dead). **Sprite pipeline** (2026-05-28): pure `sprite-manifest.ts` (single source of truth, CI-tested to cover every enemy/tile/room/item id) + `sprite-registry.ts` (Phaser loader with graceful per-file fallback) + `public/sprites/` drop-folder + artist spec `docs/SPRITES.md`. **Real art landing** (2026-05-30): all 6 Zone-1 enemies sliced from the Kenney sheet via `tools/tilesheet.cjs` (source + `apps/game/art/sprite-map.json` kept for reproducibility). Per-key delivery tracked below. | Frontend | P0       | GDD §13.3  | PARTIAL — art landing |
 | T-154 | Fog of war                                             | Frontend | P0       | GDD §7.2   | |
 | T-155 | Minimap (compact + tap-to-expand)                      | Frontend | P0       | GDD §12.6  | |
 | T-156 | Color-blind friendly minimap (shape glyphs)            | Frontend | P1       | GDD §17    | NFR a11y |
@@ -378,6 +378,23 @@ Status markers in the tables below were reconciled against git history on 2026-0
 | T-158 | Camera tracking                                        | Frontend | P0       | —          | |
 | T-159 | Enemy threat indicators above heads (in-reach marker + reach overlay; scripted-wind-up icon only for bosses) | Frontend | P0 | GDD §6.2, §6.2.1 | Replaces baseline telegraph icons (cut — see T-64/T-67) |
 | T-160 | Particle effects (ambient per family)                  | Frontend | P1       | GDD §13.3  | |
+
+#### Sprite-asset delivery tracker (T-151/152/153)
+
+Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
+`tools/tilesheet.cjs` from `apps/game/art/tilesheet-source.png` per
+`apps/game/art/sprite-map.json`. ✅ = real PNG shipped; ⬜ = geometry fallback
+(still renders, just placeholder). Full spec per key in `docs/SPRITES.md`.
+
+| Group | Keys | Status |
+| --- | --- | --- |
+| **Entities** (7) | `player`, `filterer`, `cave_crawler`, `acid_spitter`, `scavenger`, `shell_brute`, `pressure_warden` | ✅ **7/7** (2026-05-30) — `shell_brute`/`pressure_warden` are weak placeholders, flagged for a swap |
+| **Tiles** (6) | `tile_open/wall/hazard/cover/elevated/corruption` | ⬜ 0/6 — pending (sheet terrain is light-themed; may keep dark geometric tiles) |
+| **Room icons** (7) | `room_combat/loot/safe/merchant/trap/lace_event/boss` | ⬜ 0/7 — pending |
+| **Ability icons** (2) | `pressure_lance`, `rupture` | ⬜ 0/2 — pending |
+| **Item icons** (15) | heals/grenades/status/passives (see `docs/SPRITES.md`) | ⬜ 0/15 — pending (text labels work meanwhile) |
+
+**Delivered: 7 / 37.** Next batch (by payoff): tiles → room icons → ability/item icons.
 
 ### S-4.5 — Combat scenes (UFD Scope 3)
 
