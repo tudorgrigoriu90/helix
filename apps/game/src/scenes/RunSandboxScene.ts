@@ -6,6 +6,7 @@ import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { AbilitySlot } from '@shared-types/ability';
 import type { ItemDef } from '@shared-types/item';
+import type { EntityStats } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
@@ -18,6 +19,7 @@ import { parseMutationDef } from '../core/content/mutation-loader';
 import { parseLaceLines } from '../core/lace/lace-loader';
 import { parseFloorTemplate } from '../core/floor-gen';
 import { RunSession, buildEnemyRegistry } from '../core/run';
+import { ALLOCATABLE_STATS } from '../core/economy';
 import { restoreRunSession, runSessionCodec } from '../core/run/run-session-save';
 import type { RunSessionSave } from '../core/run/run-session';
 import { SaveManager } from '../core/save/save-manager';
@@ -81,7 +83,7 @@ const FINAL_FLOOR = 2; // short, winnable demo descent (beat the Floor 2 boss to
 // so the short 2-floor demo still shows the mutation pick.
 const STRAND_INTERVAL = 1;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'over';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'over';
 
 export class RunSandboxScene extends Phaser.Scene {
   private session!: RunSession;
@@ -174,10 +176,15 @@ export class RunSandboxScene extends Phaser.Scene {
     this.targeting = null;
     this.laceText.setText('LACE: ...you came back. The VEIN remembers where it left you.');
     playMusic(this, 'music_run');
-    // A run saved mid-Strand-Event resumes straight into the pick.
-    this.view = save.status === 'strand_event' ? 'strand' : 'map';
-    if (this.view === 'strand') this.openStrandEvent();
-    else this.renderAll();
+    // A run saved mid-Strand-Event resumes straight into the pick; one with
+    // unspent level-up points resumes into the allocation screen.
+    if (save.status === 'strand_event') {
+      this.view = 'strand';
+      this.openStrandEvent();
+    } else {
+      this.view = this.session.snapshot.pendingStatPoints > 0 ? 'levelup' : 'map';
+      this.renderAll();
+    }
   }
 
   /** Persist the run at a room boundary (combat itself is not persisted). */
@@ -322,6 +329,17 @@ export class RunSandboxScene extends Phaser.Scene {
   /** Leaves the Dispenser, returning to the floor map. */
   private leaveDispenser(): void {
     this.view = 'map';
+    this.renderAll();
+  }
+
+  /** Spends one pending level-up point on `stat` (GDD §4.3). When the last point
+   *  is spent, returns to the map; persists so the allocation survives a reload. */
+  private allocateStat(stat: keyof EntityStats): void {
+    if (this.session.snapshot.pendingStatPoints <= 0) return;
+    this.session.allocateStatPoint(stat);
+    playSfx(this, 'ui_click');
+    this.persist();
+    if (this.session.snapshot.pendingStatPoints === 0) this.view = 'map';
     this.renderAll();
   }
 
@@ -618,6 +636,12 @@ export class RunSandboxScene extends Phaser.Scene {
       this.view = 'map';
       this.persist();
     }
+
+    // A kill may have granted level-up points (GDD §4.3). Surface the allocation
+    // screen now, unless the run already ended (victory/defeat keep their view).
+    if (this.view === 'map' && this.session.snapshot.pendingStatPoints > 0) {
+      this.view = 'levelup';
+    }
   }
 
   // ── Rendering ─────────────────────────────────────────────────────────────
@@ -635,6 +659,7 @@ export class RunSandboxScene extends Phaser.Scene {
     else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); this.renderItemBar(); }
     else if (this.view === 'strand') this.renderStrand();
     else if (this.view === 'shop') this.renderShop();
+    else if (this.view === 'levelup') this.renderLevelUp();
     else this.renderOver();
 
     this.renderButtons();
@@ -838,6 +863,62 @@ export class RunSandboxScene extends Phaser.Scene {
     }
   }
 
+  // ── Level-up stat allocation (GDD §4.3) rendering ───────────────────────────
+
+  /** Short description of what each allocatable stat does (GDD §4.1). */
+  private static statBlurb(stat: keyof EntityStats): string {
+    switch (stat) {
+      case 'str': return 'melee damage';
+      case 'res': return 'damage reduction';
+      case 'agi': return 'move range + dodge';
+      case 'int': return 'ability damage';
+    }
+  }
+
+  /** Draws the level-up screen: the player's current stats as tappable rows.
+   *  Tapping spends one pending point (+1 to that stat). Auto-closes to the map
+   *  when no points remain (handled in {@link allocateStat}). */
+  private renderLevelUp(): void {
+    const snap = this.session.snapshot;
+    const stats = snap.player.stats;
+
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 12, 'LEVEL UP', {
+        fontFamily: 'monospace', fontSize: '16px', color: C.yellow,
+      }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 36, `${snap.pendingStatPoints} point(s) to spend  ·  tap a stat`, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+      }).setOrigin(0.5, 0),
+    );
+
+    const rowH = 56;
+    const top = STAGE_Y + 64;
+    ALLOCATABLE_STATS.forEach((stat, i) => {
+      const x = 16;
+      const y = top + i * (rowH + 8);
+      const w = W - 32;
+
+      this.stage.fillStyle(0x12243a).fillRoundedRect(x, y, w, rowH, 8);
+      this.stage.lineStyle(1, H.btnBrd).strokeRoundedRect(x, y, w, rowH, 8);
+
+      this.transient.push(
+        this.add.text(x + 14, y + 12, stat.toUpperCase(), {
+          fontFamily: 'monospace', fontSize: '14px', color: C.text,
+        }),
+        this.add.text(x + 14, y + 34, RunSandboxScene.statBlurb(stat), {
+          fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+        }),
+        this.add.text(x + w - 14, y + rowH / 2, `${stats[stat]}  +1`, {
+          fontFamily: 'monospace', fontSize: '14px', color: C.green,
+        }).setOrigin(1, 0.5),
+      );
+
+      const z = this.add.zone(x, y, w, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.allocateStat(stat));
+      this.buttonZones.push(z);
+    });
+  }
+
   // ── VEIN Dispenser (merchant) rendering ─────────────────────────────────────
 
   /** Draws the interactive shop: a header with the VEIN balance, then one
@@ -1029,6 +1110,9 @@ export class RunSandboxScene extends Phaser.Scene {
       this.button(20, 'LEAVE', C.green, () => this.leaveDispenser());
       return;
     }
+    // Level-up: no bottom buttons — you must spend every pending point (tap a
+    // stat row); the screen auto-closes to the map when the last point is spent.
+    if (this.view === 'levelup') return;
     // Boss cleared → offer the descent to the next floor.
     if (this.view === 'map' && this.session.snapshot.status === 'floor_complete') {
       this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
