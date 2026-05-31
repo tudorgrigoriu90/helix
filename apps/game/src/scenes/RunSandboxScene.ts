@@ -81,7 +81,7 @@ const FINAL_FLOOR = 2; // short, winnable demo descent (beat the Floor 2 boss to
 // so the short 2-floor demo still shows the mutation pick.
 const STRAND_INTERVAL = 1;
 
-type View = 'map' | 'combat' | 'strand' | 'over';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'over';
 
 export class RunSandboxScene extends Phaser.Scene {
   private session!: RunSession;
@@ -255,6 +255,8 @@ export class RunSandboxScene extends Phaser.Scene {
     if (this.view === 'map') this.onMapPointer(x, y);
     else if (this.view === 'combat') this.onCombatPointer(x, y);
     else if (this.view === 'strand') this.onStrandPointer(x, y);
+    // The shop's stock rows + LEAVE button are interactive zones (their own
+    // pointerdown handlers), so no positional dispatch is needed here.
   }
 
   private onMapPointer(x: number, y: number): void {
@@ -277,7 +279,7 @@ export class RunSandboxScene extends Phaser.Scene {
       // Non-combat rooms auto-clear. lace_event rooms are narrative beats — let
       // the companion speak. (loot/merchant/trap rooms are content stubs for now.)
       if (room.type === 'lace_event') this.say('generic');
-      else if (room.type === 'merchant') this.showDispenser();
+      else if (room.type === 'merchant') this.openDispenser();
       this.persist();
       this.renderAll();
       return;
@@ -291,22 +293,36 @@ export class RunSandboxScene extends Phaser.Scene {
     this.renderAll();
   }
 
-  /** Surfaces the VEIN Dispenser's current stock + prices for the tester. The
-   *  interactive buy panel is the next step; this confirms the pool→stock→pricing
-   *  pipeline (T-115b/T-116b/T-108) is live and shows what a merchant offers. */
-  private showDispenser(): void {
-    const stock = this.session.dispenserStock();
-    if (stock.length === 0) {
+  /** Opens the interactive VEIN Dispenser (merchant room): a tappable shelf of
+   *  4–6 items at floor-zoned prices (T-108/T-115b/T-116b). An empty shelf (no
+   *  item pool / non-merchant) keeps the map view and just narrates. */
+  private openDispenser(): void {
+    if (this.session.dispenserStock().length === 0) {
       this.laceText.setText('LACE: The Dispenser is dark. Nothing on offer here.');
       return;
     }
-    const vein = this.session.snapshot.veinCrystals;
-    const lines = stock.map((it) => {
-      const price = this.session.dispenserPriceOf(it);
-      const afford = vein >= price ? '' : ' (need more VEIN)';
-      return `  ${it.name} [${it.rarity}] — ${price} VEIN${afford}`;
-    });
-    this.laceText.setText([`DISPENSER (you hold ${vein} VEIN):`, ...lines].join('\n'));
+    this.say('generic');
+    this.view = 'shop';
+  }
+
+  /** Buys `item` from the Dispenser, then re-renders so the shelf + VEIN update. */
+  private buyItem(item: ItemDef): void {
+    if (!this.session.canAfford(item)) {
+      this.laceText.setText(`LACE: ${item.name} costs ${this.session.dispenserPriceOf(item)} VEIN — you can't afford it.`);
+      this.renderAll();
+      return;
+    }
+    this.session.purchaseItem(item);
+    playSfx(this, 'ui_click');
+    this.laceText.setText(`LACE: Acquired ${item.name}. The Dispenser hums, satisfied.`);
+    this.persist();
+    this.renderAll();
+  }
+
+  /** Leaves the Dispenser, returning to the floor map. */
+  private leaveDispenser(): void {
+    this.view = 'map';
+    this.renderAll();
   }
 
   /** Advance to the next floor after a boss clear. */
@@ -605,6 +621,7 @@ export class RunSandboxScene extends Phaser.Scene {
     if (this.view === 'map') this.renderMap();
     else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); this.renderItemBar(); }
     else if (this.view === 'strand') this.renderStrand();
+    else if (this.view === 'shop') this.renderShop();
     else this.renderOver();
 
     this.renderButtons();
@@ -806,6 +823,66 @@ export class RunSandboxScene extends Phaser.Scene {
     }
   }
 
+  // ── VEIN Dispenser (merchant) rendering ─────────────────────────────────────
+
+  /** Draws the interactive shop: a header with the VEIN balance, then one
+   *  tappable row per stocked item (name · rarity · price). Affordable rows are
+   *  green and buyable; unaffordable rows are dimmed and inert. Sold items leave
+   *  the shelf (RunSession.purchaseItem), so a re-render shrinks the list. */
+  private renderShop(): void {
+    const stock = this.session.dispenserStock();
+    const vein = this.session.snapshot.veinCrystals;
+
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 12, 'VEIN DISPENSER', {
+        fontFamily: 'monospace', fontSize: '14px', color: C.yellow,
+      }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 34, `you hold ${vein} VEIN  ·  tap to buy`, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+      }).setOrigin(0.5, 0),
+    );
+
+    if (stock.length === 0) {
+      this.transient.push(
+        this.add.text(W / 2, STAGE_Y + 120, 'sold out', {
+          fontFamily: 'monospace', fontSize: '12px', color: C.dim,
+        }).setOrigin(0.5),
+      );
+      return;
+    }
+
+    const rowH = 52;
+    const top = STAGE_Y + 60;
+    stock.forEach((item, i) => {
+      const price = this.session.dispenserPriceOf(item);
+      const afford = vein >= price;
+      const x = 16;
+      const y = top + i * (rowH + 8);
+      const w = W - 32;
+
+      this.stage.fillStyle(afford ? 0x12243a : 0x0e1626).fillRoundedRect(x, y, w, rowH, 8);
+      this.stage.lineStyle(1, afford ? H.btnBrd : H.edge).strokeRoundedRect(x, y, w, rowH, 8);
+
+      this.transient.push(
+        this.add.text(x + 12, y + 10, `${item.name}`, {
+          fontFamily: 'monospace', fontSize: '12px', color: afford ? C.text : C.dim,
+        }),
+        this.add.text(x + 12, y + 30, `${item.category} · ${item.rarity}`, {
+          fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+        }),
+        this.add.text(x + w - 12, y + rowH / 2, `${price} VEIN`, {
+          fontFamily: 'monospace', fontSize: '12px', color: afford ? C.green : C.red,
+        }).setOrigin(1, 0.5),
+      );
+
+      if (afford) {
+        const z = this.add.zone(x, y, w, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        z.on('pointerdown', () => this.buyItem(item));
+        this.buttonZones.push(z);
+      }
+    });
+  }
+
   // ── Strand Event rendering ──────────────────────────────────────────────────
 
   private strandCardRect(i: number): { x: number; y: number; w: number; h: number } {
@@ -915,6 +992,10 @@ export class RunSandboxScene extends Phaser.Scene {
       if (this.combat?.phase === 'player') {
         this.button(20, 'END TURN', C.green, () => this.combatAction({ type: 'endTurn' }));
       }
+      return;
+    }
+    if (this.view === 'shop') {
+      this.button(20, 'LEAVE', C.green, () => this.leaveDispenser());
       return;
     }
     // Boss cleared → offer the descent to the next floor.
