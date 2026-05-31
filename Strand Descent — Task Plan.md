@@ -327,7 +327,7 @@ Plugs the S-3.6 economy core into the live run loop (`core/run/run-session.ts`).
 
 | ID    | Title                                                                 | Role          | Priority | Refs           | Notes |
 | ----- | --------------------------------------------------------------------- | ------------- | -------- | -------------- | ----- |
-| T-118 | `prefix_table` JSON (~20 entries)                                     | Director      | P1       | UFD §3         | Director-authored content |
+| T-118 | ~~`prefix_table` JSON (~20 entries)~~ — **DONE 2026-05-31.** `packages/content/organism-names/prefixes.json` ships 20 unique prefixes ("The", "Pale", "Deep", …) at schema v1. New `core/name-gen/name-tables.ts` parses it the same never-throw, discriminated-union way as the other content loaders (`parsePrefixTable` → `{ok,prefixes}` | `{ok:false,error}`): validates schemaVersion, requires a non-empty array of unique non-empty strings (rejects missing/empty/blank/duplicate/bad-version/non-object). Exports `CURRENT_NAME_TABLE_SCHEMA_VERSION` + `NAME_TABLE_FAMILIES` (canonical 5-family order). 10 tests (loader cases + shipped-content pool ≥20 unique); name-tables.ts at 100% coverage. Verified: typecheck + lint + vite build + 629 tests green. | Game Engineer | P1 | UFD §3 | DONE |
 | T-119 | `trait_table` JSON per family (~20 × 5 families)                      | Director      | P1       | UFD §3         | |
 | T-120 | `suffix_table` JSON (~10 entries)                                     | Director      | P1       | UFD §3         | |
 | T-121 | Special-condition suffixes: "of the Third Descent", "Untouched", "Bloodless" | Game Engineer | P1 | UFD §3 | |
