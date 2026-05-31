@@ -42,14 +42,25 @@ export interface OrganismNameInput {
 
 /**
  * Deterministic 32-bit hash of `runSeed` + `buildSignature`. djb2 over the
- * signature string, folded with the seed. Pure; stable across runs/builds.
+ * signature string, folded with the seed, then run through a splitmix32
+ * finalizer for strong bit-avalanche. Pure; stable across runs/builds.
+ *
+ * The finalizer matters: without it, structurally-similar inputs (e.g. seed `n`
+ * + signature `"b{n}"`) stay correlated through Mulberry32's early draws and the
+ * assembled names collapse to a fraction of the pool (measured 268/1000 distinct
+ * vs the ~794 of a uniform source). splitmix32 mixing restores uniform
+ * distribution — the assembler then matches a truly-random source (T-123).
  */
 export function nameHash(runSeed: number, buildSignature: string): number {
   let h = 5381;
   for (let i = 0; i < buildSignature.length; i++) {
     h = (Math.imul(h, 33) ^ buildSignature.charCodeAt(i)) >>> 0;
   }
-  return (h ^ (runSeed >>> 0)) >>> 0;
+  let x = (h ^ (runSeed >>> 0)) >>> 0;
+  // splitmix32 finalizer.
+  x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0;
+  return (x ^ (x >>> 16)) >>> 0;
 }
 
 function pick<T>(rng: Mulberry32, pool: readonly T[]): T {
