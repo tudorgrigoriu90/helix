@@ -70,6 +70,25 @@ export function parsePrefixTable(input: unknown): PrefixTableResult {
   return { ok: true, prefixes };
 }
 
+export type SuffixTableResult =
+  | { readonly ok: true; readonly suffixes: readonly string[] }
+  | { readonly ok: false; readonly error: ContentError };
+
+/** Parses the suffix table (T-120): `{ schemaVersion, suffixes: string[] }` —
+ *  the title noun ("Sovereign", "Warden", …) that closes a name. */
+export function parseSuffixTable(input: unknown): SuffixTableResult {
+  const payload = asObject(input);
+  if (isContentError(payload)) return { ok: false, error: payload };
+
+  const version = readSchemaVersion(payload, CURRENT_NAME_TABLE_SCHEMA_VERSION);
+  if (isContentError(version)) return { ok: false, error: version };
+
+  const suffixes = readStringPool(payload, 'suffixes');
+  if (isContentError(suffixes)) return { ok: false, error: suffixes };
+
+  return { ok: true, suffixes };
+}
+
 /** Per-family trait pools (the family-flavoured adjective in a name). */
 export type TraitTable = Readonly<Record<MutationFamily, readonly string[]>>;
 

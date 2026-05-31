@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   parsePrefixTable,
+  parseSuffixTable,
   parseTraitTable,
   NAME_TABLE_FAMILIES,
   CURRENT_NAME_TABLE_SCHEMA_VERSION,
@@ -83,6 +84,37 @@ describe('shipped prefix content — T-118', () => {
 
   it('schema version constant is 1', () => {
     expect(CURRENT_NAME_TABLE_SCHEMA_VERSION).toBe(1);
+  });
+});
+
+describe('suffix table loader — T-120', () => {
+  it('parses a valid suffix table', () => {
+    const res = parseSuffixTable({ schemaVersion: 1, suffixes: ['Sovereign', 'Warden'] });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.suffixes).toEqual(['Sovereign', 'Warden']);
+  });
+
+  it('rejects a missing suffixes field', () => {
+    const res = parseSuffixTable({ schemaVersion: 1 });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error.code).toBe('MISSING_FIELD');
+  });
+
+  it('rejects duplicate suffixes', () => {
+    const res = parseSuffixTable({ schemaVersion: 1, suffixes: ['Saint', 'Saint'] });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error.message).toMatch(/duplicate/);
+  });
+});
+
+describe('shipped suffix content — T-120', () => {
+  it('suffixes.json loads and ships ≥10 unique titles (T-123 pool sizing)', () => {
+    const res = parseSuffixTable(loadJson('suffixes.json'));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.suffixes.length).toBeGreaterThanOrEqual(10);
+      expect(new Set(res.suffixes).size).toBe(res.suffixes.length);
+    }
   });
 });
 
