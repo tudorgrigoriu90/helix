@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "traits": {
+    "abyssal": [
+      "Abyssal", "Pelagic", "Benthic", "Hadal", "Tidal",
+      "Saline", "Fathomless", "Sunless", "Trenchborn", "Leviathan",
+      "Stygian", "Briny", "Marine", "Undertow", "Glaucous",
+      "Nautiloid", "Bathyal", "Cephalic", "Inkdark", "Pressurefed"
+    ],
+    "mycelial": [
+      "Mycelial", "Fungal", "Sporebound", "Hyphal", "Moldborn",
+      "Lichen", "Rotcrowned", "Sporadic", "Truffled", "Capped",
+      "Mushroomed", "Blighted", "Saprophytic", "Verminous", "Mossbacked",
+      "Wiltgrown", "Putrid", "Sporulent", "Mycotic", "Thalloid"
+    ],
+    "lithic": [
+      "Lithic", "Crystal", "Granite", "Basalt", "Calcified",
+      "Petrified", "Obsidian", "Quartzine", "Pressure", "Tectonic",
+      "Sedimentary", "Marbled", "Adamant", "Geodic", "Slatebound",
+      "Igneous", "Flinthard", "Mineral", "Carbonate", "Stoneveined"
+    ],
+    "voidborn": [
+      "Voidborn", "Voidlit", "Null", "Entropic", "Starless",
+      "Nullbound", "Riftborn", "Vacant", "Umbral", "Eclipsed",
+      "Anti-Lit", "Devoid", "Singular", "Negative", "Wraithlike",
+      "Unmade", "Phantasmal", "Lacunal", "Absent", "Foldspace"
+    ],
+    "thermal": [
+      "Thermal", "Searing", "Molten", "Cindered", "Pyric",
+      "Emberbound", "Scorched", "Volcanic", "Incandescent", "Smouldering",
+      "Blazing", "Charred", "Magmatic", "Combustive", "Sweltering",
+      "Brimstone", "Furnaced", "Heatsink", "Caustic", "Pyroclastic"
+    ]
+  }
+}
