@@ -534,12 +534,16 @@ export class RunSandboxScene extends Phaser.Scene {
         return `${this.entityLabel(fx.targetId)}'s ${fx.status} fades`;
       case 'abilityUsed':
         return `${this.entityLabel(fx.entityId)} uses ${fx.abilityId}`;
-      case 'itemUsed':
-        return `YOU use ${fx.itemId}`;
+      case 'itemUsed': {
+        const used = this.combat?.player.items.find((it) => it.id === fx.itemId);
+        const name = used?.name ?? fx.itemId;
+        return used ? `YOU use ${name} — ${RunSandboxScene.itemSummary(used)}` : `YOU use ${name}`;
+      }
       case 'entityMoved':
-        return fx.entityId === 'player' ? `YOU move → (${fx.to.x},${fx.to.y})` : null;
+        // Label every actor's movement (incl. enemy-phase), with from→to tiles.
+        return `${this.entityLabel(fx.entityId)} moves (${fx.from.x},${fx.from.y})→(${fx.to.x},${fx.to.y})`;
       case 'phaseChanged':
-        return `— ${fx.to} phase —`;
+        return fx.to === 'enemy' ? '— enemy phase —' : '— your turn —';
       default:
         return null; // apSpent, telegraph, floorComplete/victory/defeat: not log noise
     }
@@ -564,7 +568,16 @@ export class RunSandboxScene extends Phaser.Scene {
     const roster = counts.size === 0
       ? 'enemies: none'
       : 'enemies: ' + [...counts].map(([k, n]) => (n > 1 ? `${n}× ${k}` : k)).join(', ');
-    const lines = [`— turn ${state.turn} · ${state.phase} —`, roster, ...this.logLines.map((l) => `• ${l}`)];
+    // Legend of the tile types actually present on this board, so a tester can
+    // decode what they're looking at (sprites/colours alone aren't self-evident).
+    const tileKinds = [...new Set(state.grid.tiles)].filter((t) => t !== 'open');
+    const legend = tileKinds.length === 0 ? '' : `tiles: ${tileKinds.join(', ')}`;
+    const lines = [
+      `— turn ${state.turn} · ${state.phase} —`,
+      roster,
+      ...(legend ? [legend] : []),
+      ...this.logLines.map((l) => `• ${l}`),
+    ];
     this.combatLog.setText(lines.join('\n'));
   }
 
@@ -815,8 +828,10 @@ export class RunSandboxScene extends Phaser.Scene {
     });
 
     if (this.targeting !== null) {
-      const name = this.targeting.kind === 'ability' ? this.targeting.slot.def.id : this.targeting.item.name;
-      const hint = this.add.text(W / 2, ITEM_Y + 38, `targeting ${name} — tap a target tile (tap again to cancel)`, {
+      const what = this.targeting.kind === 'ability'
+        ? this.targeting.slot.def.id
+        : `${this.targeting.item.name} (${RunSandboxScene.itemSummary(this.targeting.item)})`;
+      const hint = this.add.text(W / 2, ITEM_Y + 38, `targeting ${what} — tap a target tile (tap again to cancel)`, {
         fontFamily: 'monospace', fontSize: '10px', color: C.yellow,
       }).setOrigin(0.5);
       this.transient.push(hint);
@@ -902,6 +917,22 @@ export class RunSandboxScene extends Phaser.Scene {
 
   private static abilitySummary(m: MutationDef): string {
     return m.grantsAbility === null ? 'passive only' : `grants ${m.grantsAbility.id} (${m.grantsAbility.apCost} AP)`;
+  }
+
+  /** One-line effect summary for an item, so a tester knows what it does. */
+  private static itemSummary(item: ItemDef): string {
+    const e = item.effect;
+    if (e === null) return item.category === 'consumable' ? 'no effect' : item.category;
+    switch (e.kind) {
+      case 'heal':
+        return `heal ${e.amount}`;
+      case 'damage':
+        return `${e.amount} ${e.damageType} dmg${e.aoeRadius > 0 ? ` · AoE ${e.aoeRadius}` : ''}`;
+      case 'applyStatus':
+        return `${e.status} ${e.duration}t${e.aoeRadius > 0 ? ` · AoE ${e.aoeRadius}` : ''}`;
+      default:
+        return 'effect';
+    }
   }
 
   private renderStrand(): void {
