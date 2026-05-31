@@ -7,6 +7,7 @@ import type { Action } from '@shared-types/action';
 import type { AbilitySlot } from '@shared-types/ability';
 import type { ItemDef } from '@shared-types/item';
 import type { EntityStats } from '@shared-types/run-state';
+import type { MetaState } from '@shared-types/meta-state';
 import type { MutationDef } from '@shared-types/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
@@ -23,6 +24,7 @@ import { ALLOCATABLE_STATS } from '../core/economy';
 import { restoreRunSession, runSessionCodec } from '../core/run/run-session-save';
 import type { RunSessionSave } from '../core/run/run-session';
 import { SaveManager } from '../core/save/save-manager';
+import { metaCodec, newMetaState, recordRunOutcome } from '../core/save';
 import { createWebStorageAdapter } from '../platform/storage-web';
 import { LaceNarrator } from '../core/lace';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
@@ -101,6 +103,16 @@ export class RunSandboxScene extends Phaser.Scene {
   /** Run seed — same seed always replays the identical run (determinism, NFR P2). */
   private seed = MASTER_SEED;
   private saves!: SaveManager<RunSessionSave>;
+  /** Persistent profile (hard currency, lifetime stats) — survives across runs. */
+  private metaSaves!: SaveManager<MetaState>;
+  private meta: MetaState = newMetaState();
+  /** Per-run trackers folded into MetaState at run-end (T-113/T-114b). */
+  private enemiesKilled = 0;
+  private runStartMs = 0;
+  /** Whether the current run's outcome has already been banked (guards double-count). */
+  private runRecorded = false;
+  /** Shards earned by the just-finished run, for the game-over readout (0 = none). */
+  private lastRunShards = 0;
 
   private view: View = 'map';
   private combat: RunState | null = null;
@@ -154,12 +166,18 @@ export class RunSandboxScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p.x, p.y));
     drawTabBar(this, this.scene.key);
 
-    this.saves = new SaveManager(createWebStorageAdapter(), runSessionCodec);
+    const adapter = createWebStorageAdapter();
+    this.saves = new SaveManager(adapter, runSessionCodec);
+    // Separate namespace so the persistent profile survives the run save being
+    // cleared at run-end.
+    this.metaSaves = new SaveManager(adapter, metaCodec, 'helix.meta');
     void this.boot();
   }
 
-  /** Resume a saved run if one exists, otherwise start fresh. */
+  /** Loads the persistent profile, then resumes a saved run or starts fresh. */
   private async boot(): Promise<void> {
+    const metaRes = await this.metaSaves.load();
+    if (metaRes !== null && metaRes.ok) this.meta = metaRes.value;
     const res = await this.saves.load();
     if (res !== null && res.ok) this.resumeFrom(res.value);
     else this.startRun();
@@ -237,6 +255,10 @@ export class RunSandboxScene extends Phaser.Scene {
     this.view = 'map';
     this.combat = null;
     this.targeting = null;
+    this.enemiesKilled = 0;
+    this.runStartMs = Date.now();
+    this.runRecorded = false;
+    this.lastRunShards = 0;
     this.say('run_start');
     playMusic(this, 'music_run');
     this.persist();
@@ -518,6 +540,7 @@ export class RunSandboxScene extends Phaser.Scene {
     let playerHurt = false;
     for (const fx of effects) {
       if (fx.type === 'entityDied' && fx.entityId !== 'player') {
+        this.enemiesKilled += 1; // lifetime-stat tracking for the run-end profile
         this.say('enemy_killed');
         playSfx(this, 'sfx_enemy_death');
       }
@@ -615,12 +638,14 @@ export class RunSandboxScene extends Phaser.Scene {
       playSfx(this, 'sfx_defeat');
       stopMusic();
       this.view = 'over';
+      this.recordRun(false);
       void this.saves.clear(); // run over — discard the save
     } else if (status === 'victory') {
       this.say('boss_killed');
       playSfx(this, 'sfx_victory');
       stopMusic();
       this.view = 'over';
+      this.recordRun(true);
       void this.saves.clear();
     } else if (status === 'strand_event') {
       this.say('boss_killed');
@@ -642,6 +667,25 @@ export class RunSandboxScene extends Phaser.Scene {
     if (this.view === 'map' && this.session.snapshot.pendingStatPoints > 0) {
       this.view = 'levelup';
     }
+  }
+
+  /** Folds the finished run into the persistent profile (T-113/T-114b): banks
+   *  Shard Crystals from the run's VEIN income at the T-107 rate, plus lifetime
+   *  stats, and persists the profile. Idempotent per run via {@link runRecorded}. */
+  private recordRun(won: boolean): void {
+    if (this.runRecorded) return;
+    this.runRecorded = true;
+    const snap = this.session.snapshot;
+    const before = this.meta.shardCrystals;
+    this.meta = recordRunOutcome(this.meta, {
+      won,
+      floorReached: snap.floorNumber,
+      enemiesKilled: this.enemiesKilled,
+      playtimeMs: Date.now() - this.runStartMs,
+      veinEarned: snap.veinEarned,
+    });
+    this.lastRunShards = this.meta.shardCrystals - before;
+    void this.metaSaves.save(this.meta);
   }
 
   // ── Rendering ─────────────────────────────────────────────────────────────
@@ -1079,11 +1123,20 @@ export class RunSandboxScene extends Phaser.Scene {
     const status = this.session.snapshot.status;
     this.overlay.fillStyle(0x000000, 0.6).fillRect(0, STAGE_Y, W, STAGE_H);
     const label = status === 'victory' ? 'VICTORY' : 'DEFEAT';
-    const t = this.add.text(W / 2, STAGE_Y + STAGE_H / 2, label, {
-      fontFamily: 'monospace', fontSize: '30px', color: status === 'victory' ? C.yellow : C.red,
-      stroke: '#000000', strokeThickness: 4,
-    }).setOrigin(0.5);
-    this.transient.push(t);
+    const cy = STAGE_Y + STAGE_H / 2;
+    this.transient.push(
+      this.add.text(W / 2, cy - 40, label, {
+        fontFamily: 'monospace', fontSize: '30px', color: status === 'victory' ? C.yellow : C.red,
+        stroke: '#000000', strokeThickness: 4,
+      }).setOrigin(0.5),
+      // Run-end Shard payout (T-114b) + the persistent balance it banked into.
+      this.add.text(W / 2, cy + 8, `+${this.lastRunShards.toFixed(2)} Shards earned`, {
+        fontFamily: 'monospace', fontSize: '13px', color: C.green,
+      }).setOrigin(0.5),
+      this.add.text(W / 2, cy + 30, `Shard balance: ${this.meta.shardCrystals.toFixed(2)}`, {
+        fontFamily: 'monospace', fontSize: '11px', color: C.dim,
+      }).setOrigin(0.5),
+    );
   }
 
   // ── Buttons ─────────────────────────────────────────────────────────────────
