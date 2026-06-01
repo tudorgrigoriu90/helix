@@ -14,4 +14,8 @@ export {
 } from './lace-mood';
 export type { BehaviourMood, MoodPressure, MoodSignal } from './lace-mood';
 
+export { assembleLine } from './lace-grammar';
+export type { GrammarRequest, LaceGrammar } from './lace-grammar';
+
 export { LaceNarrator } from './narrator';
+export type { NarrateContextDetail } from './narrator';

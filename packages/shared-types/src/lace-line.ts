@@ -12,6 +12,8 @@
  * as the other content contracts.
  */
 
+import type { MutationFamily } from './mutation';
+
 /**
  * LACE's moods (GDD §10.1, TDD §9.4). Five behaviour-driven moods plus the
  * resting `neutral` baseline the mood machine drifts back toward (T-99/T-100):
@@ -62,3 +64,45 @@ export interface LaceLineBundle {
 }
 
 export const CURRENT_LACE_SCHEMA_VERSION = 1;
+
+// ── Templated grammar assembly (DR-004 Layer 1, TDD §9.5) ────────────────────
+// When no hand-authored line (Layer 2) matches an event, LACE assembles one at
+// runtime by filling a grammar template's `{slot}` tokens with short authored
+// fragments tagged by [event_type, mutation_family, mood, player_state]. Same
+// output as an authored line — the narrator doesn't care which layer produced it.
+
+/**
+ * The player's health/standing bucket — one grammar tag dimension (TDD §9.5,
+ * GDD §10 safe-room "4 states"). The exact buckets are an authored
+ * interpretation (the docs name the dimension, not the values).
+ */
+export type LacePlayerState = 'healthy' | 'wounded' | 'critical' | 'triumphant';
+
+/**
+ * A short authored fragment that fills one named template slot. A tag left
+ * `undefined` is a wildcard (matches any value of that dimension); a defined tag
+ * must equal the request's value for the fragment to apply.
+ */
+export interface LaceFragment {
+  readonly id: string;
+  /** Which template `{slot}` this fragment can fill. */
+  readonly slot: string;
+  readonly text: string;
+  readonly context?: LaceContext;
+  readonly family?: MutationFamily;
+  readonly mood?: LaceMood;
+  readonly state?: LacePlayerState;
+  /** Relative sampling weight; must be > 0. */
+  readonly weight: number;
+}
+
+/** A grammar template whose `{slot}` tokens are filled from {@link LaceFragment}s. */
+export interface LaceTemplate {
+  readonly id: string;
+  /** Pattern with `{slot}` tokens, e.g. `"{opener} {observation}"`. */
+  readonly pattern: string;
+  readonly context?: LaceContext;
+  readonly mood?: LaceMood;
+  /** Relative sampling weight; must be > 0. */
+  readonly weight: number;
+}

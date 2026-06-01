@@ -6,6 +6,7 @@ import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { parseLaceLines } from './lace-loader';
 import { selectLine } from './lace-select';
 import { LaceMoodMachine, MOOD_THRESHOLD, driftPressure } from './lace-mood';
+import { assembleLine, type LaceGrammar } from './lace-grammar';
 import { LaceNarrator } from './narrator';
 
 function bundle(lines: Partial<LaceLine>[], schemaVersion = 1): unknown {
@@ -216,6 +217,102 @@ describe('LaceNarrator — T-99 mood integration', () => {
     expect(n.mood).toBe('reverent');
     n.reset();
     expect(n.mood).toBe('reverent'); // mood persists; drift toward neutral is T-100
+  });
+});
+
+describe('assembleLine — T-101 templated grammar assembly', () => {
+  const grammar = {
+    templates: [
+      { id: 't_combat', pattern: '{opener} {observation}', context: 'combat_start', weight: 1 },
+    ],
+    fragments: [
+      { id: 'op_n', slot: 'opener', text: 'They approach.', context: 'combat_start', mood: 'neutral', weight: 1 },
+      { id: 'op_a', slot: 'opener', text: 'Oh, this should be fun.', context: 'combat_start', mood: 'amused', weight: 1 },
+      { id: 'ob_myc', slot: 'observation', text: 'Your roots remember.', family: 'mycelial', weight: 1 },
+      { id: 'ob_any', slot: 'observation', text: 'The data accrues.', weight: 1 },
+    ],
+  } as const satisfies LaceGrammar;
+
+  it('fills every template slot from matching fragments', () => {
+    const line = assembleLine(grammar, { context: 'combat_start', mood: 'neutral', rng: new Mulberry32(1) });
+    expect(line).not.toBeNull();
+    expect(line).not.toContain('{'); // no unfilled slots
+    expect(line!.split(' ').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('prefers exact-mood fragments, else the whole matching pool', () => {
+    // amused mood → the amused opener is the only mood-match, so it must be chosen.
+    const line = assembleLine(grammar, { context: 'combat_start', mood: 'amused', rng: new Mulberry32(7) });
+    expect(line?.startsWith('Oh, this should be fun.')).toBe(true);
+  });
+
+  it('respects family tags: the mycelial fragment only applies to that family', () => {
+    // No family in the request → the family-tagged fragment is excluded; only the
+    // wildcard observation can fill the slot, so it always wins.
+    for (let seed = 0; seed < 20; seed++) {
+      const line = assembleLine(grammar, { context: 'combat_start', mood: 'neutral', rng: new Mulberry32(seed) });
+      expect(line?.endsWith('The data accrues.')).toBe(true);
+    }
+    // With the family present, the family-flavoured fragment becomes eligible.
+    const seen = new Set<string>();
+    for (let seed = 0; seed < 40; seed++) {
+      const line = assembleLine(grammar, { context: 'combat_start', mood: 'neutral', family: 'mycelial', rng: new Mulberry32(seed) });
+      if (line?.endsWith('Your roots remember.')) seen.add('myc');
+    }
+    expect(seen.has('myc')).toBe(true);
+  });
+
+  it('returns null when no template matches or a slot cannot be filled', () => {
+    expect(assembleLine(grammar, { context: 'player_death', mood: 'neutral', rng: new Mulberry32(1) })).toBeNull();
+    const noFill: LaceGrammar = {
+      templates: [{ id: 't', pattern: '{missing}', context: 'combat_start', weight: 1 }],
+      fragments: [],
+    };
+    expect(assembleLine(noFill, { context: 'combat_start', mood: 'neutral', rng: new Mulberry32(1) })).toBeNull();
+  });
+
+  it('is deterministic for a given RNG state', () => {
+    const a = assembleLine(grammar, { context: 'combat_start', mood: 'neutral', rng: new Mulberry32(99) });
+    const b = assembleLine(grammar, { context: 'combat_start', mood: 'neutral', rng: new Mulberry32(99) });
+    expect(b).toBe(a);
+  });
+
+  it('reuses one fill when a slot token repeats', () => {
+    const echo: LaceGrammar = {
+      templates: [{ id: 't', pattern: '{x}... {x}.', context: 'generic', weight: 1 }],
+      fragments: [{ id: 'f', slot: 'x', text: 'listen', context: 'generic', weight: 1 }],
+    };
+    expect(assembleLine(echo, { context: 'generic', mood: 'neutral', rng: new Mulberry32(1) })).toBe('listen... listen.');
+  });
+});
+
+describe('LaceNarrator — T-101 grammar fallback', () => {
+  const lines = [{ id: 'a', text: 'authored', context: 'combat_start', mood: 'neutral', weight: 1 }] as const satisfies readonly LaceLine[];
+  const grammar: LaceGrammar = {
+    templates: [{ id: 't', pattern: '{f}', context: 'combat_start', weight: 1 }],
+    fragments: [{ id: 'f', slot: 'f', text: 'assembled', context: 'combat_start', weight: 1 }],
+  };
+
+  it('prefers authored lines, then assembles from grammar when they run dry', () => {
+    const n = new LaceNarrator(lines, makeRng(1, 'events'), new LaceMoodMachine(), grammar);
+    expect(n.narrate('combat_start')?.text).toBe('authored'); // authored first
+    const fallback = n.narrate('combat_start'); // authored pool now exhausted
+    expect(fallback?.text).toBe('assembled');
+    expect(fallback?.id).toBe('grammar:combat_start');
+  });
+
+  it('returns null when neither an authored line nor grammar can produce one', () => {
+    const n = new LaceNarrator(lines, makeRng(1, 'events'), new LaceMoodMachine(), grammar);
+    n.narrate('combat_start'); // consume authored
+    n.narrate('combat_start'); // grammar still produces
+    // A context with no authored line and no template → null.
+    expect(n.narrate('boss_killed')).toBeNull();
+  });
+
+  it('without a grammar corpus, behaves exactly as before (authored-only)', () => {
+    const n = new LaceNarrator(lines, makeRng(1, 'events'));
+    expect(n.narrate('combat_start')?.text).toBe('authored');
+    expect(n.narrate('combat_start')).toBeNull(); // no grammar fallback
   });
 });
 
