@@ -42,22 +42,32 @@ export interface OrganismNameInput {
 
 /**
  * Deterministic 32-bit hash of `runSeed` + `buildSignature`. djb2 over the
- * signature string, folded with the seed, then run through a splitmix32
- * finalizer for strong bit-avalanche. Pure; stable across runs/builds.
+ * signature string, then over the four bytes of the seed, then run through a
+ * splitmix32 finalizer for strong bit-avalanche. Pure; stable across runs/builds.
  *
- * The finalizer matters: without it, structurally-similar inputs (e.g. seed `n`
- * + signature `"b{n}"`) stay correlated through Mulberry32's early draws and the
- * assembled names collapse to a fraction of the pool (measured 268/1000 distinct
- * vs the ~794 of a uniform source). splitmix32 mixing restores uniform
- * distribution — the assembler then matches a truly-random source (T-123).
+ * Folding the seed through the *same* multiplicative djb2 step is what matters:
+ * a plain `h ^ runSeed` collapses structurally-similar inputs (e.g. seed `n` +
+ * signature `"b{n}"`) to a fraction of the value space — `djb2("b{n}")` is
+ * itself fully distinct, but XOR-ing the correlated seed back in cancels most of
+ * it (measured 275/1000 distinct hashes → 270/1000 distinct names vs the ~903 of
+ * a uniform source). A splitmix32 finalizer cannot repair that — it is a
+ * bijection, so it preserves the collision count. Mixing the seed bytes into the
+ * djb2 chain keeps all 1000 hashes distinct, and the assembler then matches a
+ * truly-random source (T-123).
  */
 export function nameHash(runSeed: number, buildSignature: string): number {
   let h = 5381;
   for (let i = 0; i < buildSignature.length; i++) {
     h = (Math.imul(h, 33) ^ buildSignature.charCodeAt(i)) >>> 0;
   }
-  let x = (h ^ (runSeed >>> 0)) >>> 0;
+  // Fold the seed's bytes through the same djb2 mixing (not a plain XOR).
+  let s = runSeed >>> 0;
+  for (let i = 0; i < 4; i++) {
+    h = (Math.imul(h, 33) ^ (s & 0xff)) >>> 0;
+    s >>>= 8;
+  }
   // splitmix32 finalizer.
+  let x = h >>> 0;
   x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0;
   x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0;
   return (x ^ (x >>> 16)) >>> 0;
