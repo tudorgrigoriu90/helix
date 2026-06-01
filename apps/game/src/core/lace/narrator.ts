@@ -1,30 +1,45 @@
 import type { LaceContext, LaceLine, LaceMood } from '@shared-types/lace-line';
 import type { Mulberry32 } from '../rng/mulberry32';
+import { LaceMoodMachine, type MoodPressure, type MoodSignal } from './lace-mood';
 import { selectLine } from './lace-select';
 
 /**
  * LACE narrator — the stateful run-scoped wrapper around {@link selectLine},
- * carrying the "spoken-this-run" tracker (T-103). The scene calls
- * {@link narrate} on run events; the narrator selects a line, records it so it
- * won't repeat this run, and returns it (or null when the pools are dry).
+ * carrying the "spoken-this-run" tracker (T-103) and the mood state machine
+ * (T-99). The scene calls {@link narrate} on run events; the narrator selects a
+ * line for the *current mood*, records it so it won't repeat this run, and
+ * returns it (or null when the pools are dry). Player behaviour feeds the mood
+ * via {@link signalMood}.
  *
- * {@link reset} clears the spoken set — call it on death / new run (TDD §9.3).
- * Mood is held here (default neutral); the full mood state machine is T-99.
+ * {@link reset} clears the spoken set on death / new run (TDD §9.3) — but *not*
+ * the mood, which persists across runs and only drifts toward neutral over time
+ * (TDD §9.4; persistence + drift land in T-100).
  */
 export class LaceNarrator {
   private readonly lines: readonly LaceLine[];
   private readonly rng: Mulberry32;
-  private mood: LaceMood;
+  private readonly moodMachine: LaceMoodMachine;
   private spoken = new Set<string>();
 
-  constructor(lines: readonly LaceLine[], rng: Mulberry32, mood: LaceMood = 'neutral') {
+  constructor(lines: readonly LaceLine[], rng: Mulberry32, moodMachine: LaceMoodMachine = new LaceMoodMachine()) {
     this.lines = lines;
     this.rng = rng;
-    this.mood = mood;
+    this.moodMachine = moodMachine;
   }
 
-  setMood(mood: LaceMood): void {
-    this.mood = mood;
+  /** Feed a player-behaviour signal to the mood machine; returns the new mood. */
+  signalMood(signal: MoodSignal): LaceMood {
+    return this.moodMachine.signal(signal);
+  }
+
+  /** LACE's current mood (drives which lines {@link narrate} prefers). */
+  get mood(): LaceMood {
+    return this.moodMachine.mood;
+  }
+
+  /** Accumulated mood pressures — the unit T-100 persists across runs. */
+  get moodPressures(): MoodPressure {
+    return this.moodMachine.pressures;
   }
 
   /** Selects + records a line for the given event, or null if none remain. */
@@ -34,7 +49,7 @@ export class LaceNarrator {
     return line;
   }
 
-  /** Clears the spoken-this-run tracker (death / new run). */
+  /** Clears the spoken-this-run tracker (death / new run). Mood is unaffected. */
   reset(): void {
     this.spoken = new Set<string>();
   }

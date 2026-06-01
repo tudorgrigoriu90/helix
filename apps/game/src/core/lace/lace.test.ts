@@ -5,6 +5,7 @@ import type { LaceLine } from '@shared-types/lace-line';
 import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { parseLaceLines } from './lace-loader';
 import { selectLine } from './lace-select';
+import { LaceMoodMachine, MOOD_THRESHOLD } from './lace-mood';
 import { LaceNarrator } from './narrator';
 
 function bundle(lines: Partial<LaceLine>[], schemaVersion = 1): unknown {
@@ -42,7 +43,7 @@ describe('parseLaceLines — T-97', () => {
 describe('selectLine — T-98 / T-102', () => {
   const lines = [
     { id: 'c_neu', text: '', context: 'combat_start', mood: 'neutral', weight: 1 },
-    { id: 'c_hos', text: '', context: 'combat_start', mood: 'hostile', weight: 1 },
+    { id: 'c_amu', text: '', context: 'combat_start', mood: 'amused', weight: 1 },
     { id: 'g1', text: '', context: 'generic', mood: 'neutral', weight: 1 },
   ] as const satisfies readonly LaceLine[];
 
@@ -52,16 +53,16 @@ describe('selectLine — T-98 / T-102', () => {
   });
 
   it('prefers the current mood when a match exists', () => {
-    const line = selectLine(lines, { context: 'combat_start', mood: 'hostile', spoken: new Set(), rng: new Mulberry32(1) });
-    expect(line?.id).toBe('c_hos');
+    const line = selectLine(lines, { context: 'combat_start', mood: 'amused', spoken: new Set(), rng: new Mulberry32(1) });
+    expect(line?.id).toBe('c_amu');
   });
 
   it('excludes already-spoken lines', () => {
     const line = selectLine(lines, {
       context: 'combat_start', mood: 'neutral', spoken: new Set(['c_neu']), rng: new Mulberry32(1),
     });
-    // Only c_hos remains in the combat pool (mood preference yields nothing → whole pool).
-    expect(line?.id).toBe('c_hos');
+    // Only c_amu remains in the combat pool (mood preference yields nothing → whole pool).
+    expect(line?.id).toBe('c_amu');
   });
 
   it('falls back to the generic pool when no context line is available', () => {
@@ -102,6 +103,97 @@ describe('LaceNarrator — T-103 spoken tracker', () => {
     expect(n.narrate('combat_start')).toBeNull();
     n.reset();
     expect(n.narrate('combat_start')).not.toBeNull();
+  });
+});
+
+describe('LaceMoodMachine — T-99 mood state machine', () => {
+  it('rests at neutral until a mood clears the threshold', () => {
+    const m = new LaceMoodMachine();
+    expect(m.mood).toBe('neutral');
+    // new_floor pushes curious by 1 — below MOOD_THRESHOLD (3), so still neutral.
+    m.signal('new_floor');
+    m.signal('new_floor');
+    expect(m.mood).toBe('neutral');
+    expect(m.signal('new_floor')).toBe('curious'); // 3rd → reaches threshold
+  });
+
+  it('lands strong, rare signals (Floor 16+, Hybrid Synergy) in a single hit', () => {
+    expect(new LaceMoodMachine().signal('deep_floor')).toBe('reverent');
+    expect(new LaceMoodMachine().signal('hybrid_synergy')).toBe('reverent');
+  });
+
+  it('requires a sustained pattern for the "many"/"loops" triggers', () => {
+    const defensive = new LaceMoodMachine();
+    defensive.signal('defensive_play');
+    defensive.signal('defensive_play');
+    expect(defensive.mood).toBe('neutral'); // two isn't "many"
+    expect(defensive.signal('defensive_play')).toBe('clinical');
+
+    const deaths = new LaceMoodMachine();
+    expect(deaths.signal('death_loop')).toBe('neutral'); // one death isn't a loop (weight 2)
+    expect(deaths.signal('death_loop')).toBe('contemptuous');
+  });
+
+  it('maps each GDD §10.1 trigger to its mood', () => {
+    // Drive each mood past the threshold from a fresh machine.
+    const drive = (...signals: Parameters<LaceMoodMachine['signal']>[0][]) => {
+      const m = new LaceMoodMachine();
+      let mood = m.mood;
+      for (const s of signals) mood = m.signal(s);
+      return mood;
+    };
+    expect(drive('unexpected_build', 'new_floor')).toBe('curious'); // 2 + 1 = 3
+    expect(drive('risky_play', 'risky_play', 'risky_play')).toBe('amused');
+    expect(drive('defensive_play', 'defensive_play', 'defensive_play')).toBe('clinical');
+    expect(drive('death_loop', 'death_loop')).toBe('contemptuous');
+    expect(drive('deep_floor')).toBe('reverent');
+  });
+
+  it('breaks ties toward the more intense mood', () => {
+    const m = new LaceMoodMachine({ curious: MOOD_THRESHOLD, reverent: MOOD_THRESHOLD });
+    expect(m.mood).toBe('reverent');
+  });
+
+  it('is deterministic given the same signal history (no RNG)', () => {
+    const history: Parameters<LaceMoodMachine['signal']>[0][] = ['risky_play', 'deep_floor', 'defensive_play'];
+    const a = new LaceMoodMachine();
+    const b = new LaceMoodMachine();
+    for (const s of history) {
+      a.signal(s);
+      b.signal(s);
+    }
+    expect(a.mood).toBe(b.mood);
+    expect(a.pressures).toEqual(b.pressures);
+  });
+
+  it('seeds from a persisted pressure snapshot (the T-100 seam)', () => {
+    const seeded = new LaceMoodMachine({ reverent: MOOD_THRESHOLD });
+    expect(seeded.mood).toBe('reverent');
+    expect(new LaceMoodMachine(seeded.pressures).mood).toBe('reverent');
+  });
+});
+
+describe('LaceNarrator — T-99 mood integration', () => {
+  const lines = [
+    { id: 'n', text: '', context: 'combat_start', mood: 'neutral', weight: 1 },
+    { id: 'r', text: '', context: 'combat_start', mood: 'reverent', weight: 1 },
+  ] as const satisfies readonly LaceLine[];
+
+  it('narrates in the mood driven by player-behaviour signals', () => {
+    const n = new LaceNarrator(lines, makeRng(1, 'events'));
+    expect(n.mood).toBe('neutral');
+    expect(n.narrate('combat_start')?.id).toBe('n'); // neutral preferred
+    n.signalMood('hybrid_synergy'); // → reverent in one hit
+    expect(n.mood).toBe('reverent');
+    expect(n.narrate('combat_start')?.id).toBe('r'); // now the reverent line
+  });
+
+  it('keeps mood across reset() — only the spoken tracker clears', () => {
+    const n = new LaceNarrator(lines, makeRng(1, 'events'));
+    n.signalMood('deep_floor');
+    expect(n.mood).toBe('reverent');
+    n.reset();
+    expect(n.mood).toBe('reverent'); // mood persists; drift toward neutral is T-100
   });
 });
 

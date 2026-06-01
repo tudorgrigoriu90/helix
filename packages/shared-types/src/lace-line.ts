@@ -12,8 +12,17 @@
  * as the other content contracts.
  */
 
-/** The five companion moods (TDD §9.4). */
-export type LaceMood = 'neutral' | 'curious' | 'hostile' | 'affectionate' | 'unstable';
+/**
+ * LACE's moods (GDD §10.1, TDD §9.4). Five behaviour-driven moods plus the
+ * resting `neutral` baseline the mood machine drifts back toward (T-99/T-100):
+ *
+ *   - `curious`      — unexpected build choices; first reaching a new floor
+ *   - `clinical`     — optimal / safe / defensive play
+ *   - `amused`       — risky / creative play
+ *   - `contemptuous` — death loops (repeated death to the same thing)
+ *   - `reverent`     — Floor 16+ reached; Hybrid Synergy unlocked
+ */
+export type LaceMood = 'neutral' | 'curious' | 'clinical' | 'amused' | 'contemptuous' | 'reverent';
 
 /** Run events a line can be tagged to. `generic` is the catch-all fallback pool. */
 export type LaceContext =

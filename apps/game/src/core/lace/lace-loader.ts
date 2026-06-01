@@ -22,7 +22,7 @@ export type LaceLoaderResult =
   | { readonly ok: true; readonly lines: readonly LaceLine[] }
   | { readonly ok: false; readonly error: ContentError };
 
-const VALID_MOODS = new Set<LaceMood>(['neutral', 'curious', 'hostile', 'affectionate', 'unstable']);
+const VALID_MOODS = new Set<LaceMood>(['neutral', 'curious', 'clinical', 'amused', 'contemptuous', 'reverent']);
 const VALID_CONTEXTS = new Set<LaceContext>([
   'run_start', 'floor_enter', 'combat_start', 'enemy_killed', 'player_hurt',
   'room_cleared', 'boss_start', 'boss_killed', 'floor_complete', 'player_death', 'generic',
