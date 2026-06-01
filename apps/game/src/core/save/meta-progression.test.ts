@@ -58,4 +58,21 @@ describe('recordRunOutcome — T-111 meta-progression', () => {
     recordRunOutcome(before, { won: true, floorReached: 5, enemiesKilled: 9, playtimeMs: 5 });
     expect(before.lifetime.runs).toBe(0);
   });
+
+  it("persists this run's LACE mood, drifted one step toward neutral (T-100)", () => {
+    const after = recordRunOutcome(newMetaState(), {
+      won: false, floorReached: 1, enemiesKilled: 0, playtimeMs: 0,
+      laceMoodPressure: { curious: 0, clinical: 0, amused: 0, contemptuous: 0, reverent: 4 },
+    });
+    expect(after.laceMood.reverent).toBe(2); // floor(4 × 0.5)
+  });
+
+  it('drifts the carried-over mood even when the run reports none', () => {
+    const seeded = {
+      ...newMetaState(),
+      laceMood: { curious: 0, clinical: 0, amused: 0, contemptuous: 0, reverent: 3 },
+    };
+    const after = recordRunOutcome(seeded, { won: false, floorReached: 1, enemiesKilled: 0, playtimeMs: 0 });
+    expect(after.laceMood.reverent).toBe(1); // floor(3 × 0.5) — fades on a quiet run too
+  });
 });

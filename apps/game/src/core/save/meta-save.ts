@@ -1,5 +1,6 @@
 import type { MetaState } from '@shared-types/meta-state';
 import { CURRENT_META_SCHEMA_VERSION } from '@shared-types/meta-state';
+import { ZERO_MOOD_PRESSURE } from '../lace';
 import { migrate, type Migration, type SaveError } from './run-save';
 import type { LoadResult, SaveCodec } from './save-manager';
 
@@ -12,8 +13,13 @@ export type MetaLoadResult =
   | { readonly ok: true; readonly meta: MetaState }
   | { readonly ok: false; readonly error: SaveError };
 
-/** Registered MetaState migrations (empty today — v1 is current). */
-export const META_MIGRATIONS: Readonly<Record<number, Migration>> = {};
+/** Registered MetaState migrations. Each step bumps `schemaVersion` and back-fills its new field. */
+export const META_MIGRATIONS: Readonly<Record<number, Migration>> = {
+  // v1 → v2: the Shard Crystal balance was added (T-113). Default to 0.
+  1: (d) => ({ ...d, schemaVersion: 2, shardCrystals: typeof d['shardCrystals'] === 'number' ? d['shardCrystals'] : 0 }),
+  // v2 → v3: LACE mood now persists across runs (T-100). Default to no accumulated pressure.
+  2: (d) => ({ ...d, schemaVersion: 3, laceMood: { ...ZERO_MOOD_PRESSURE } }),
+};
 
 /** A fresh profile for a first-time player. */
 export function newMetaState(): MetaState {
@@ -24,6 +30,7 @@ export function newMetaState(): MetaState {
     achievementIds: [],
     cosmeticIds: [],
     shardCrystals: 0,
+    laceMood: { ...ZERO_MOOD_PRESSURE },
     lifetime: { runs: 0, wins: 0, deepestFloor: 0, enemiesKilled: 0, totalPlaytimeMs: 0 },
   };
 }
@@ -48,6 +55,7 @@ function isMetaShape(d: Record<string, unknown>): boolean {
     isStringArray(d['sigmaStrainIds']) &&
     isStringArray(d['achievementIds']) &&
     isStringArray(d['cosmeticIds']) &&
+    isObject(d['laceMood']) &&
     isObject(d['lifetime']) &&
     typeof d['lifetime']['runs'] === 'number'
   );

@@ -24,6 +24,14 @@
  */
 export type LaceMood = 'neutral' | 'curious' | 'clinical' | 'amused' | 'contemptuous' | 'reverent';
 
+/**
+ * Accumulated mood pressure per behaviour-driven mood (everything except the
+ * resting `neutral`). This is the unit the mood state machine accumulates
+ * (T-99), MetaState persists across runs, and the drift step decays toward
+ * neutral over time (T-100).
+ */
+export type LaceMoodPressure = Readonly<Record<Exclude<LaceMood, 'neutral'>, number>>;
+
 /** Run events a line can be tagged to. `generic` is the catch-all fallback pool. */
 export type LaceContext =
   | 'run_start'

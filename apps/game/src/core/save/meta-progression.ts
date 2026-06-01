@@ -1,5 +1,7 @@
 import type { MetaState } from '@shared-types/meta-state';
+import type { LaceMoodPressure } from '@shared-types/lace-line';
 import { shardsForRun } from '../economy';
+import { driftPressure } from '../lace';
 
 /**
  * Meta-progression — folds a finished run into the persistent profile (T-111).
@@ -22,6 +24,12 @@ export interface RunOutcome {
   readonly firstRunToday?: boolean;
   /** Number of milestones that grant a flat Shard bonus this run. */
   readonly shardAchievements?: number;
+  /**
+   * LACE's accumulated mood pressure at the end of this run (T-99). Persisted
+   * one drift-step toward neutral (T-100). Omit it and the carried-over mood
+   * still drifts — mood fades on quiet runs too, not only active ones.
+   */
+  readonly laceMoodPressure?: LaceMoodPressure;
 }
 
 function union(a: readonly string[], b: readonly string[]): string[] {
@@ -40,6 +48,8 @@ export function recordRunOutcome(meta: MetaState, outcome: RunOutcome): MetaStat
     codexEntryIds: union(meta.codexEntryIds, outcome.codexFound ?? []),
     achievementIds: union(meta.achievementIds, outcome.achievementsEarned ?? []),
     shardCrystals: meta.shardCrystals + shardsEarned,
+    // Persist this run's mood (or the carried-over one), drifted a step toward neutral.
+    laceMood: driftPressure(outcome.laceMoodPressure ?? meta.laceMood),
     lifetime: {
       runs: l.runs + 1,
       wins: l.wins + (outcome.won ? 1 : 0),

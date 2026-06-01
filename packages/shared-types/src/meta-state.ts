@@ -5,6 +5,8 @@
  * only ids and counters.
  */
 
+import type { LaceMoodPressure } from './lace-line';
+
 export interface LifetimeStats {
   readonly runs: number;
   readonly wins: number;
@@ -30,8 +32,14 @@ export interface MetaState {
    * fractionally (runs accrue `vein × 0.005`); floor it when displaying/spending.
    */
   readonly shardCrystals: number;
+  /**
+   * LACE's accumulated mood pressure, carried across runs (GDD §10.1, T-99/T-100).
+   * Persisting it is what makes the companion's disposition *stick* between runs;
+   * each recorded run drifts it one step back toward neutral (T-100).
+   */
+  readonly laceMood: LaceMoodPressure;
   readonly lifetime: LifetimeStats;
 }
 
-/** v2 added `shardCrystals` (the hard-currency balance). */
-export const CURRENT_META_SCHEMA_VERSION = 2;
+/** v2 added `shardCrystals`; v3 added `laceMood` (cross-run LACE mood). */
+export const CURRENT_META_SCHEMA_VERSION = 3;

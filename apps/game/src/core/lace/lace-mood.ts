@@ -1,4 +1,4 @@
-import type { LaceMood } from '@shared-types/lace-line';
+import type { LaceMood, LaceMoodPressure } from '@shared-types/lace-line';
 
 /**
  * LACE mood state machine — T-99 (GDD §10.1, TDD §9.4).
@@ -56,10 +56,37 @@ export const MOOD_THRESHOLD = 3;
  */
 const MOOD_PRIORITY: readonly BehaviourMood[] = ['reverent', 'contemptuous', 'amused', 'clinical', 'curious'];
 
-/** Accumulated pressure per behaviour-driven mood. Serialisable (T-100). */
-export type MoodPressure = Readonly<Record<BehaviourMood, number>>;
+/**
+ * Accumulated pressure per behaviour-driven mood. Alias of the persisted
+ * {@link LaceMoodPressure} contract (shared-types owns the serialised shape).
+ */
+export type MoodPressure = LaceMoodPressure;
 
-const ZERO_PRESSURE: MoodPressure = { curious: 0, clinical: 0, amused: 0, contemptuous: 0, reverent: 0 };
+/** A mood machine with no accumulated pressure — the resting state. */
+export const ZERO_MOOD_PRESSURE: MoodPressure = { curious: 0, clinical: 0, amused: 0, contemptuous: 0, reverent: 0 };
+
+/**
+ * Fraction of each mood's pressure retained per drift step; the remainder
+ * decays toward neutral (GDD §10.1: "drifts toward neutral over time"). Authored
+ * tuning. At 0.5 a mood resting at the threshold falls below it after one quiet
+ * run and reaches zero after two — intense moods fade proportionally slower.
+ */
+export const MOOD_DRIFT_RETENTION = 0.5;
+
+/**
+ * Drift mood pressures `steps` runs toward neutral (T-100). Deterministic: each
+ * step multiplies by {@link MOOD_DRIFT_RETENTION} and floors, so pressure decays
+ * to exactly zero rather than lingering asymptotically. Pure.
+ */
+export function driftPressure(pressure: MoodPressure, steps = 1): MoodPressure {
+  const out = { ...ZERO_MOOD_PRESSURE } as Record<BehaviourMood, number>;
+  for (const mood of Object.keys(out) as BehaviourMood[]) {
+    let p = Math.max(0, pressure[mood]);
+    for (let i = 0; i < steps; i++) p = Math.floor(p * MOOD_DRIFT_RETENTION);
+    out[mood] = p;
+  }
+  return out;
+}
 
 /**
  * Stateful mood machine. Pure aside from its own accumulator — no RNG, no clock.
@@ -69,7 +96,7 @@ export class LaceMoodMachine {
   private readonly pressure: Record<BehaviourMood, number>;
 
   constructor(initial: Partial<MoodPressure> = {}) {
-    this.pressure = { ...ZERO_PRESSURE, ...initial };
+    this.pressure = { ...ZERO_MOOD_PRESSURE, ...initial };
   }
 
   /** Apply a behaviour signal and return the (possibly unchanged) current mood. */

@@ -5,7 +5,7 @@ import type { LaceLine } from '@shared-types/lace-line';
 import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { parseLaceLines } from './lace-loader';
 import { selectLine } from './lace-select';
-import { LaceMoodMachine, MOOD_THRESHOLD } from './lace-mood';
+import { LaceMoodMachine, MOOD_THRESHOLD, driftPressure } from './lace-mood';
 import { LaceNarrator } from './narrator';
 
 function bundle(lines: Partial<LaceLine>[], schemaVersion = 1): unknown {
@@ -170,6 +170,28 @@ describe('LaceMoodMachine — T-99 mood state machine', () => {
     const seeded = new LaceMoodMachine({ reverent: MOOD_THRESHOLD });
     expect(seeded.mood).toBe('reverent');
     expect(new LaceMoodMachine(seeded.pressures).mood).toBe('reverent');
+  });
+});
+
+describe('driftPressure — T-100 drift toward neutral', () => {
+  it('halves each mood toward zero, flooring (deterministic, pure)', () => {
+    const before = { curious: 5, clinical: 0, amused: 2, contemptuous: 1, reverent: 9 };
+    expect(driftPressure(before)).toEqual({ curious: 2, clinical: 0, amused: 1, contemptuous: 0, reverent: 4 });
+    expect(before.reverent).toBe(9); // input untouched
+  });
+
+  it('drifts a sustained mood back to neutral over successive quiet runs', () => {
+    let p = { curious: 0, clinical: 0, amused: 0, contemptuous: 0, reverent: MOOD_THRESHOLD };
+    expect(new LaceMoodMachine(p).mood).toBe('reverent');
+    p = driftPressure(p); // 3 → 1, now below threshold
+    expect(new LaceMoodMachine(p).mood).toBe('neutral');
+    p = driftPressure(p); // 1 → 0
+    expect(p.reverent).toBe(0);
+  });
+
+  it('applies multiple steps at once', () => {
+    const p = { curious: 8, clinical: 0, amused: 0, contemptuous: 0, reverent: 0 };
+    expect(driftPressure(p, 3).curious).toBe(1); // 8 → 4 → 2 → 1
   });
 });
 
