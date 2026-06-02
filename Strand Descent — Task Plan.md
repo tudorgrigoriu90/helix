@@ -334,6 +334,26 @@ Plugs the S-3.6 economy core into the live run loop (`core/run/run-session.ts`).
 | T-122 | ~~`nameHash = hash(run_seed + final_build_signature)` deterministic~~ — **DONE 2026-05-31.** `core/name-gen/name-gen.ts` — `nameHash(runSeed, buildSignature)` is a djb2-over-signature u32 folded with the seed (depends on both; pure; NFR P2). `generateOrganismName(input)` seeds a Mulberry32 from the hash and draws `{prefix} {trait} {suffix}` (trait pool = dominant family), then appends T-121 special suffixes — descent phrase (space) then condition tags (comma). Deterministic per (seed + build + family + facts); guards empty pools. 14 tests; 100% coverage. Note: prefix is always included (GDD's occasional prefix-less examples treated as stylistic) for a clean per-family space. Verified: typecheck + lint + vite build + 681 tests green. | Game Engineer | P1 | UFD §3 | DONE |
 | T-123 | ~~Vitest: 1000 random seeds produce 1000 names; no collisions in a family pool of 4,000~~ — **DONE 2026-05-31.** `name-gen.distribution.test.ts` loads the shipped tables and verifies the defensible guarantees: each family's distinct-name space ≥4,000 (shipped 20×20×12 = 4,800 — the literal "pool of 4,000"), determinism, 1000 random seeds all produce valid well-formed names, strong uniqueness vs the birthday-paradox bound (≥85% of expected-unique — a real distribution check, not the statistically-impossible literal "1000 unique from 4,000"), and full vocabulary coverage of every pool entry. 5 tests. **Note:** a literal "1000 distinct from a 4,000 pool" is impossible (birthday paradox → ~100 collisions); the gate asserts the meaningful version, documented in-file. Verified: typecheck + lint + vite build + 686 tests green. **S-3.8 COMPLETE (T-118→123).** | QA | P1 | TDD §16.1 | DONE |
 
+### S-3.9 — Loot & Inventory System (GDD §9)
+
+Items exist as content (`ItemDef`: consumable / passive / equipment, 4 tiers) and
+are **buyable at merchants** today, but the rest of the loot loop is unbuilt:
+enemies drop only VEIN + abstract cores (T-106), loot rooms are stubs, there's no
+ground pickup, **no inventory slot enforcement** (purchases just append), and
+passive/equipment effects aren't applied in combat. Slots are *capacity* counts
+(6 consumable / 3 passive / 2 equipment, GDD §9.5), **not** Heroes-3 body-part
+slots — over the cap you drop-to-swap by count. This story closes that loop.
+
+| ID    | Title                                                  | Role          | Priority | Refs            | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | --------------- | ----- |
+| T-443 | Inventory model + slot limits (6 consumable / 3 passive / 2 equipment) — equip / unequip / drop-to-swap on RunSession, enforce caps (GDD §9.5) | Game Engineer | P0 | GDD §9.5 | Foundation; purchase + pickups route through it |
+| T-444 | Passive + equipment effect application in combat (passive stat / regen buffs; equipment on-hit/active effects, e.g. Spore Lance → Infected) | Game Engineer | P0 | GDD §9.2 | `ItemDef.effect` is the *use*-effect; equipped effects are "handled elsewhere" = here |
+| T-445 | Enemy item drops on death (per-tier chance/tier from GDD §9.4; boss = 2 guaranteed incl. 1 Rare+) — roll real `ItemDef`s from the floor pool | Game Engineer | P0 | GDD §9.4 | Extends T-106 (which drops VEIN/cores only) |
+| T-446 | Loot room: 1 guaranteed floor-tier item (+ optional Codex Fragment / VEIN) | Game Engineer | P0 | GDD §7.3, §9.4 | `loot` room type exists but is a stub |
+| T-447 | Ground item pickups — items occupy a tile (`entity: 'item'`, TDD §7.2); walk onto / tap to pick up; respects slot caps | Frontend / Game Engineer | P1 | TDD §7.2 | Where dropped/loot-room items land in a room |
+| T-448 | Inventory & equip UI — view items, equip/unequip, drop-to-swap when full; opened in Safe Rooms / on pause (GDD §9.5) | Frontend | P0 | GDD §9.5 | The player-facing half of T-443 |
+| T-449 | Cursed items — powerful positive + always-on negative; red border; cannot unequip until run end or Purge Serum (GDD §9.3) | Game Engineer | P1 | GDD §9.3 | Needs content + the lock rule in T-443 |
+
 ---
 
 ## E-4 — Phaser Scene Layer
