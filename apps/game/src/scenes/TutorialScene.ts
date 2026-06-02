@@ -2,9 +2,14 @@ import Phaser from 'phaser';
 import type { EnemyDef } from '@shared-types/enemy';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedRoom } from '@shared-types/floor-plan';
+import type { RunState } from '@shared-types/run-state';
+import type { Action } from '@shared-types/action';
 import { buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../core/floor-gen/floor-zero';
 import { parseEnemyDef } from '../core/content/enemy-loader';
 import { RunSession, buildEnemyRegistry, type EnemyRegistry } from '../core/run';
+import { TurnEngine } from '../core/turn-engine/turn-engine';
+import { chebyshev } from '../core/turn-engine/grid';
+import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { computeBounds, computeLayout, project, type Bounds, type LayoutTransform } from './floor-graph-layout';
 import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
 
@@ -50,6 +55,10 @@ const H = {
 };
 const C = { lace: '#a0ffdc', dim: '#7a8fad', label: '#0a0e1a', primary: '#e8edf5' };
 
+/** Rooms whose mechanic isn't wired yet — onward progress stops here until the
+ *  owning task lands. T-140 removes `strand`; T-141 removes `boss`. */
+const PENDING_ROOMS = new Set<string>([FLOOR_ZERO_ROOM_IDS.strand, FLOOR_ZERO_ROOM_IDS.boss]);
+
 /** Scripted LACE guidance shown on entering each room (the tutorial's voice). */
 const GUIDANCE: Record<string, string> = {
   [FLOOR_ZERO_ROOM_IDS.entry]:
@@ -65,6 +74,10 @@ const GUIDANCE: Record<string, string> = {
 export class TutorialScene extends Phaser.Scene {
   private enemyRegistry!: EnemyRegistry;
   private session!: RunSession;
+
+  private view: 'map' | 'combat' = 'map';
+  private combat: RunState | null = null;
+  private combatRng!: Mulberry32;
 
   private guideText!: Phaser.GameObjects.Text;
   private hudText!: Phaser.GameObjects.Text;
@@ -102,6 +115,11 @@ export class TutorialScene extends Phaser.Scene {
     this.add.text(16, LOG_Y, '— LOG —', { fontFamily: 'monospace', fontSize: '9px', color: C.dim });
     this.logText = this.add.text(16, LOG_Y + 14, '', { fontFamily: 'monospace', fontSize: '9px', color: C.dim, lineSpacing: 2 });
 
+    // Combat-grid taps go through one handler (map taps use per-room zones).
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (this.view === 'combat') this.onCombatTap(p.x, p.y);
+    });
+
     this.pushLog('Tutorial descent begins.');
     this.render();
   }
@@ -117,17 +135,101 @@ export class TutorialScene extends Phaser.Scene {
 
   // ── Exploration ──────────────────────────────────────────────────────────
 
-  /** Exits the player may take. Gated: an unfought combat/boss room blocks
-   *  progress until its mechanic (a later task) clears it. */
+  /** Exits the player may take. Gated two ways: an unfought combat room blocks
+   *  until cleared, and rooms whose mechanic isn't built yet block onward progress
+   *  (each later task removes its room from {@link PENDING_ROOMS}). */
   private exits(): string[] {
     if (this.session.needsCombat()) return []; // must resolve this room first
+    if (PENDING_ROOMS.has(this.session.snapshot.currentRoomId)) return [];
     return this.session.adjacentRooms();
   }
 
   private moveTo(id: string): void {
     this.session.moveTo(id);
     this.pushLog(`→ ${id}`);
+    if (this.session.needsCombat()) this.startCombat();
+    else this.render();
+  }
+
+  // ── Combat (T-139) ─────────────────────────────────────────────────────────
+
+  private startCombat(): void {
+    const encounter = this.session.beginEncounter();
+    if (encounter === null) {
+      this.render();
+      return;
+    }
+    this.combat = encounter;
+    this.combatRng = makeRng(encounter.seed, 'combat');
+    this.session.syncCombat(encounter, this.combatRng.state); // T-114 hook
+    this.view = 'combat';
+    this.pushLog('Combat! Tap to move; tap the foe when adjacent.');
     this.render();
+  }
+
+  /** Maps a screen tap to a grid action: attack an adjacent foe, else step one tile. */
+  private onCombatTap(x: number, y: number): void {
+    const state = this.combat;
+    if (state === null) return;
+    const tile = this.combatTile(state);
+    const col = Math.floor((x - this.combatGridX(state)) / tile);
+    const row = Math.floor((y - VIEWPORT_Y) / tile);
+    if (col < 0 || row < 0 || col >= state.grid.width || row >= state.grid.height) return;
+
+    const foe = state.enemies.find((e) => e.hp > 0 && e.pos.x === col && e.pos.y === row);
+    if (foe !== undefined) {
+      if (chebyshev(state.player.pos, { x: col, y: row }) <= 1) this.combatAction({ type: 'attack', targetId: foe.id });
+      return;
+    }
+    if (col === state.player.pos.x && row === state.player.pos.y) return;
+    if (chebyshev(state.player.pos, { x: col, y: row }) === 1) this.combatAction({ type: 'move', targetPos: { x: col, y: row } });
+  }
+
+  private combatAction(action: Action): void {
+    const state = this.combat;
+    if (state === null) return;
+    const result = TurnEngine.apply(state, action, this.combatRng);
+    if (result.errors.length === 0) {
+      this.combat = result.state;
+      this.session.syncCombat(result.state, this.combatRng.state);
+      if (result.state.phase !== 'player' && result.state.phase !== 'enemy') {
+        this.endCombat(result.state);
+        return;
+      }
+    }
+    this.render();
+  }
+
+  private endCombat(finalState: RunState): void {
+    this.session.endEncounter(finalState);
+    this.combat = null;
+    this.view = 'map';
+    if (this.session.snapshot.status === 'defeat') {
+      this.pushLog('You fell. The VEIN is patient — try again.');
+      this.restart();
+      return;
+    }
+    this.pushLog('Cleared. The way ahead opens.');
+    this.render();
+  }
+
+  /** Tutorial deaths aren't punishing — rewind to a fresh Floor 0. */
+  private restart(): void {
+    this.session = new RunSession({
+      seed: 0,
+      template: TUTORIAL_TEMPLATE,
+      registry: this.enemyRegistry,
+      floorZero: buildFloorZero({ combatEnemyId: 'filterer', bossId: 'pressure_warden' }),
+    });
+    this.render();
+  }
+
+  private combatTile(state: RunState): number {
+    return Math.floor(Math.min(this.scale.width - 16, VIEWPORT_H) / Math.max(state.grid.width, state.grid.height));
+  }
+
+  private combatGridX(state: RunState): number {
+    return Math.floor((this.scale.width - this.combatTile(state) * state.grid.width) / 2);
   }
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -136,7 +238,14 @@ export class TutorialScene extends Phaser.Scene {
     for (const obj of this.dynamic) obj.destroy();
     this.dynamic = [];
     this.graphGfx.clear();
+    if (this.view === 'combat') {
+      this.renderCombat();
+      return;
+    }
+    this.renderMap();
+  }
 
+  private renderMap(): void {
     const floor = this.session.floor;
     const current = this.session.snapshot.currentRoomId;
     const bossId = floor.bossRoomId;
@@ -192,6 +301,51 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     this.hudText.setText(`here: ${current}   cleared: ${cleared.size}/${floor.rooms.length}`);
+  }
+
+  private renderCombat(): void {
+    const state = this.combat;
+    if (state === null) return;
+    this.guideText.setText('LACE: Close the distance, then strike when you stand beside it.\nEND TURN when your AP is spent.');
+
+    const tile = this.combatTile(state);
+    const gx = this.combatGridX(state);
+    const gy = VIEWPORT_Y;
+
+    for (let y = 0; y < state.grid.height; y++) {
+      for (let x = 0; x < state.grid.width; x++) {
+        const open = state.grid.tiles[y * state.grid.width + x] === 'open';
+        this.graphGfx.fillStyle(open ? 0x111a2e : 0x0a0e1a, 1).fillRect(gx + x * tile, gy + y * tile, tile - 1, tile - 1);
+      }
+    }
+
+    for (const e of state.enemies) {
+      if (e.hp <= 0) continue;
+      const ex = gx + e.pos.x * tile;
+      const ey = gy + e.pos.y * tile;
+      this.graphGfx.fillStyle(H.nodeBoss, 1).fillRect(ex + 4, ey + 4, tile - 9, tile - 9);
+      this.dynamic.push(this.add.text(ex + tile / 2, ey + tile / 2, `${e.hp}`, { fontFamily: 'monospace', fontSize: '9px', color: C.label }).setOrigin(0.5));
+    }
+
+    const pp = state.player;
+    const px = gx + pp.pos.x * tile;
+    const py = gy + pp.pos.y * tile;
+    this.graphGfx.fillStyle(0x66ff99, 1).fillRect(px + 4, py + 4, tile - 9, tile - 9);
+    this.dynamic.push(this.add.text(px + tile / 2, py + tile / 2, 'YOU', { fontFamily: 'monospace', fontSize: '8px', color: C.label }).setOrigin(0.5));
+
+    this.hudText.setText(`HP ${pp.hp}/${pp.maxHp}   AP ${pp.ap}/${pp.maxAp}   turn ${state.turn}`);
+
+    // END TURN button.
+    const bw = 140;
+    const bh = 36;
+    const bx = (this.scale.width - bw) / 2;
+    const by = LOG_Y - 48;
+    this.graphGfx.fillStyle(0x12121e, 1).fillRect(bx, by, bw, bh);
+    this.graphGfx.lineStyle(1, 0x2a3050, 1).strokeRect(bx, by, bw, bh);
+    this.dynamic.push(this.add.text(bx + bw / 2, by + bh / 2, 'END TURN', { fontFamily: 'monospace', fontSize: '12px', color: C.lace }).setOrigin(0.5));
+    const z = this.add.zone(bx, by, bw, bh).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    z.on('pointerdown', () => this.combatAction({ type: 'endTurn' }));
+    this.dynamic.push(z);
   }
 
   private pushLog(line: string): void {
