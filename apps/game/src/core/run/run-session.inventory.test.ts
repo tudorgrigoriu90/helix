@@ -70,4 +70,25 @@ describe('RunSession — inventory slots (T-443, GDD §9.5)', () => {
     expect(s.snapshot.player.maxHp).toBe(baseHp);
     expect(s.snapshot.player.stats.res).toBe(baseRes + 6);
   });
+
+  it('cursed items apply but cannot be dropped or swapped out until purged (T-449)', () => {
+    const s = session();
+    const baseStr = s.snapshot.player.stats.str;
+    const curse: ItemDef = {
+      id: 'hungry', name: 'Hungry Blade', rarity: 'rare', category: 'equipment', effect: null,
+      cursed: true, modifiers: [{ kind: 'stat', stat: 'str', delta: 6 }, { kind: 'maxHp', delta: -8 }],
+    };
+    s.addItem(curse);
+    expect(s.snapshot.player.stats.str).toBe(baseStr + 6); // positive applied
+    expect(s.canDrop('hungry')).toBe(false);
+
+    s.dropItem('hungry'); // no-op for a cursed item
+    expect(s.snapshot.player.items.some((i) => i.id === 'hungry')).toBe(true);
+    s.swapItem('hungry', mk('equipment', 'other')); // can't swap out a cursed item
+    expect(s.snapshot.player.items.some((i) => i.id === 'other')).toBe(false);
+
+    s.purgeCursed(); // the Purge Serum
+    expect(s.snapshot.player.items.some((i) => i.id === 'hungry')).toBe(false);
+    expect(s.snapshot.player.stats.str).toBe(baseStr); // modifiers reversed on purge
+  });
 });

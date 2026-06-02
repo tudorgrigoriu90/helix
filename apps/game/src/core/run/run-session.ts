@@ -567,20 +567,40 @@ export class RunSession {
     return res.added;
   }
 
-  /** Drops the first item with `itemId` (no-op if absent), reversing its modifiers. */
+  /** True unless the item is cursed — a cursed item can't be dropped (GDD §9.3). */
+  canDrop(itemId: string): boolean {
+    const item = this.player.items.find((i) => i.id === itemId);
+    return item !== undefined && item.cursed !== true;
+  }
+
+  /** Drops the first item with `itemId` (no-op if absent or cursed), reversing
+   *  its modifiers. Cursed items stay put until run end / Purge Serum (T-449). */
   dropItem(itemId: string): void {
     const dropped = this.player.items.find((i) => i.id === itemId);
-    const player = dropped !== undefined ? unequipItem(this.player, dropped) : this.player;
+    if (dropped === undefined || dropped.cursed === true) return;
+    const player = unequipItem(this.player, dropped);
     this.player = { ...player, items: dropFromInventory(player.items, itemId) };
   }
 
   /** Drops `dropId` and adds `incoming` in one step — the make-room swap (model b),
-   *  reversing the dropped item's modifiers and folding in the incoming one's. */
+   *  reversing the dropped item's modifiers and folding in the incoming one's. A
+   *  no-op if `dropId` is cursed (it can't be swapped out). */
   swapItem(dropId: string, incoming: ItemDef): void {
     const dropped = this.player.items.find((i) => i.id === dropId);
+    if (dropped !== undefined && dropped.cursed === true) return;
     let player = dropped !== undefined ? unequipItem(this.player, dropped) : this.player;
     player = equipItem(player, incoming);
     this.player = { ...player, items: swapInInventory(player.items, dropId, incoming) };
+  }
+
+  /** Removes all cursed items (the Purge Serum effect, GDD §9.3), reversing their
+   *  modifiers. The only way to shed a curse mid-run. */
+  purgeCursed(): void {
+    let player = this.player;
+    for (const item of player.items.filter((i) => i.cursed === true)) {
+      player = { ...unequipItem(player, item), items: dropFromInventory(player.items, item.id) };
+    }
+    this.player = player;
   }
 
   // ── Loot pickup (T-445/T-446) ──────────────────────────────────────────────

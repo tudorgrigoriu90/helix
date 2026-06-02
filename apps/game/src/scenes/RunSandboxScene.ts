@@ -1117,20 +1117,25 @@ export class RunSandboxScene extends Phaser.Scene {
       .join(', ');
   }
 
-  private itemRow(item: ItemDef, i: number, top: number, onTap: () => void): void {
+  /** One item row. Cursed items (T-449) get a red border + tag; pass `onTap`
+   *  undefined to render display-only (e.g. a cursed item you can't drop). */
+  private itemRow(item: ItemDef, i: number, top: number, onTap?: () => void): void {
     const x = 16;
     const y = top + i * 60;
     const w = W - 32;
-    this.stage.fillStyle(0x12243a).fillRoundedRect(x, y, w, 52, 8);
-    this.stage.lineStyle(1, H.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
+    const cursed = item.cursed === true;
+    this.stage.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(x, y, w, 52, 8);
+    this.stage.lineStyle(1, cursed ? H.boss : H.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
     this.transient.push(
-      this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: C.text }),
-      this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}`, { fontFamily: 'monospace', fontSize: '9px', color: C.dim }),
+      this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }),
+      this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}${cursed ? ' · CURSED (can\'t drop)' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }),
       this.add.text(x + w - 12, y + 26, RunSandboxScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5),
     );
-    const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    z.on('pointerdown', onTap);
-    this.buttonZones.push(z);
+    if (onTap !== undefined) {
+      const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', onTap);
+      this.buttonZones.push(z);
+    }
   }
 
   private renderLoot(): void {
@@ -1165,7 +1170,8 @@ export class RunSandboxScene extends Phaser.Scene {
       this.add.text(W / 2, STAGE_Y + 50, `take ${incoming.name} — tap an item below to drop for it`, { fontFamily: 'monospace', fontSize: '10px', color: C.yellow }).setOrigin(0.5, 0),
     );
     const carried = this.session.snapshot.player.items.filter((i) => i.category === incoming.category);
-    carried.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 78, () => this.onSwapPick(item.id)));
+    // Cursed items can't be swapped out — show them, but only non-cursed are tappable.
+    carried.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 78, item.cursed === true ? undefined : () => this.onSwapPick(item.id)));
   }
 
   private onSwapPick(dropId: string): void {
@@ -1213,7 +1219,8 @@ export class RunSandboxScene extends Phaser.Scene {
       this.transient.push(this.add.text(W / 2, STAGE_Y + 120, 'empty', { fontFamily: 'monospace', fontSize: '12px', color: C.dim }).setOrigin(0.5));
       return;
     }
-    items.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 72, () => this.onDropFromInventory(item.id)));
+    // Cursed items render display-only (no drop tap) — they can't be dropped (T-449).
+    items.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 72, item.cursed === true ? undefined : () => this.onDropFromInventory(item.id)));
   }
 
   private onDropFromInventory(itemId: string): void {

@@ -49,7 +49,9 @@ describe('Common-tier item content — T-292', () => {
     for (const kind of ['heal', 'damage', 'applyStatus', 'none']) {
       expect(kinds.has(kind), kind).toBe(true);
     }
-    // Every shipped item is Common tier (Gate-1 scope).
-    for (const i of items) expect(i.rarity, i.id).toBe('common');
+    // The Gate-1 catalog is Common tier; cursed items (T-449) may be rarer.
+    for (const i of items) if (i.cursed !== true) expect(i.rarity, i.id).toBe('common');
+    // At least one cursed item ships (the curse mechanic, GDD §9.3).
+    expect(items.some((i) => i.cursed === true)).toBe(true);
   });
 });

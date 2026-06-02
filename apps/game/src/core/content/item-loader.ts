@@ -158,9 +158,14 @@ export function parseItemDef(input: unknown): ItemLoaderResult {
   const modifiers = readModifiers(payload['modifiers']);
   if (isContentError(modifiers)) return { ok: false, error: modifiers };
 
-  // Omit `modifiers` when empty so plain consumables keep their lean shape (NFR P8).
-  return {
-    ok: true,
-    item: modifiers.length > 0 ? { id, name, rarity, category, effect, modifiers } : { id, name, rarity, category, effect },
-  };
+  const rawCursed = payload['cursed'];
+  if (rawCursed !== undefined && typeof rawCursed !== 'boolean') {
+    return { ok: false, error: contentError('WRONG_TYPE', 'cursed must be a boolean', 'cursed') };
+  }
+  const cursed = rawCursed === true;
+
+  // Omit empty/false fields so plain consumables keep their lean shape (NFR P8).
+  const base = { id, name, rarity, category, effect };
+  const withMods = modifiers.length > 0 ? { ...base, modifiers } : base;
+  return { ok: true, item: cursed ? { ...withMods, cursed: true } : withMods };
 }

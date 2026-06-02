@@ -48,6 +48,12 @@ export interface ItemDef {
    * equipment, T-444). Absent/empty for plain consumables. Reversed on drop.
    */
   readonly modifiers?: readonly ItemModifier[];
+  /**
+   * Cursed (GDD §9.3): a powerful positive paired with an always-on negative (its
+   * `modifiers` carry both). Once carried it **cannot be dropped** until the run
+   * ends or a Purge Serum is used. Absent = not cursed. The UI marks it red.
+   */
+  readonly cursed?: boolean;
 }
 
 /** Current item-content schema version. Increment when the on-disk shape changes. */

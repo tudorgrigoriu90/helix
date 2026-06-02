@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "hungry_blade",
+  "name": "Hungry Blade",
+  "rarity": "rare",
+  "category": "equipment",
+  "effect": null,
+  "cursed": true,
+  "modifiers": [
+    { "kind": "stat", "stat": "str", "delta": 6 },
+    { "kind": "maxHp", "delta": -8 }
+  ]
+}

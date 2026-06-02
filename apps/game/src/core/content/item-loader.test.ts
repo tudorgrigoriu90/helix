@@ -65,6 +65,22 @@ describe('parseItemDef — T-284', () => {
     if (res.ok) expect(res.item.modifiers).toEqual([{ kind: 'maxHp', delta: 10 }, { kind: 'stat', stat: 'res', delta: 6 }]);
   });
 
+  it('parses a cursed item (T-449)', () => {
+    const res = parseItemDef({
+      schemaVersion: 1, id: 'hungry_blade', name: 'Hungry Blade', rarity: 'rare', category: 'equipment', effect: null,
+      cursed: true, modifiers: [{ kind: 'stat', stat: 'str', delta: 6 }, { kind: 'maxHp', delta: -8 }],
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.item.cursed).toBe(true);
+  });
+
+  it('omits cursed when false/absent, and rejects a non-boolean cursed flag', () => {
+    const res = parseItemDef({ schemaVersion: 1, id: 'p', name: 'P', rarity: 'common', category: 'passive', effect: null });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect('cursed' in res.item).toBe(false);
+    expect(parseItemDef({ schemaVersion: 1, id: 'x', name: 'X', rarity: 'common', category: 'equipment', effect: null, cursed: 'yes' }).ok).toBe(false);
+  });
+
   it('rejects malformed modifiers (bad stat, non-integer delta, bad kind)', () => {
     const base = { schemaVersion: 1, id: 'x', name: 'X', rarity: 'common', category: 'passive', effect: null };
     expect(parseItemDef({ ...base, modifiers: [{ kind: 'stat', stat: 'luck', delta: 1 }] }).ok).toBe(false);

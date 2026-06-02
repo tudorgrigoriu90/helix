@@ -100,6 +100,7 @@ const ITEMS: readonly SpriteSpec[] = [
   { key: 'depth_gauge', category: 'item', fallbackColor: 0x7a8fad, fallbackShape: 'rect', description: 'Item icon: passive depth-gauge instrument.' },
   { key: 'chitin_plate', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Item icon: passive armour plate.' },
   { key: 'reflex_booster', category: 'item', fallbackColor: 0x44ccff, fallbackShape: 'rect', description: 'Item icon: passive reflex stim.' },
+  { key: 'hungry_blade', category: 'item', fallbackColor: 0xff4444, fallbackShape: 'rect', description: 'Item icon: cursed Hungry Blade — a jagged red blade that feeds on its wielder (+STR, drains max HP).' },
 ];
 
 // ── Ability icons (ability bar) — lower priority ─────────────────────────────
