@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newMetaState } from './meta-save';
-import { recordRunOutcome } from './meta-progression';
+import { recordRunOutcome, shouldShowTutorial, markTutorialComplete } from './meta-progression';
 
 describe('recordRunOutcome — T-111 meta-progression', () => {
   it('increments runs and (on a win) wins', () => {
@@ -74,5 +74,25 @@ describe('recordRunOutcome — T-111 meta-progression', () => {
     };
     const after = recordRunOutcome(seeded, { won: false, floorReached: 1, enemiesKilled: 0, playtimeMs: 0 });
     expect(after.laceMood.reverent).toBe(1); // floor(3 × 0.5) — fades on a quiet run too
+  });
+});
+
+describe('tutorial skip flag — T-143', () => {
+  it('a fresh profile should see the tutorial', () => {
+    expect(shouldShowTutorial(newMetaState())).toBe(true);
+  });
+
+  it('markTutorialComplete flips the flag so returning players skip it', () => {
+    const done = markTutorialComplete(newMetaState());
+    expect(done.tutorialComplete).toBe(true);
+    expect(shouldShowTutorial(done)).toBe(false);
+  });
+
+  it('is pure and idempotent', () => {
+    const fresh = newMetaState();
+    markTutorialComplete(fresh);
+    expect(fresh.tutorialComplete).toBe(false); // input untouched
+    const done = markTutorialComplete(fresh);
+    expect(markTutorialComplete(done)).toBe(done); // already complete → same object
   });
 });

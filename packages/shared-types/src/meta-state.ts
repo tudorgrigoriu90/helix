@@ -38,8 +38,14 @@ export interface MetaState {
    * each recorded run drifts it one step back toward neutral (T-100).
    */
   readonly laceMood: LaceMoodPressure;
+  /**
+   * Whether the player has finished the Floor 0 tutorial (TDD §21 Q4). Set on the
+   * Floor 0 boss kill (T-142/T-143); once true, returning players skip the
+   * tutorial and start runs straight from the Hub.
+   */
+  readonly tutorialComplete: boolean;
   readonly lifetime: LifetimeStats;
 }
 
-/** v2 added `shardCrystals`; v3 added `laceMood` (cross-run LACE mood). */
-export const CURRENT_META_SCHEMA_VERSION = 3;
+/** v2 added `shardCrystals`; v3 added `laceMood`; v4 added `tutorialComplete`. */
+export const CURRENT_META_SCHEMA_VERSION = 4;

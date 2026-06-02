@@ -19,6 +19,10 @@ export const META_MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: (d) => ({ ...d, schemaVersion: 2, shardCrystals: typeof d['shardCrystals'] === 'number' ? d['shardCrystals'] : 0 }),
   // v2 → v3: LACE mood now persists across runs (T-100). Default to no accumulated pressure.
   2: (d) => ({ ...d, schemaVersion: 3, laceMood: { ...ZERO_MOOD_PRESSURE } }),
+  // v3 → v4: the Floor 0 tutorial-complete flag (T-143). Existing profiles have
+  // already played, so default them to "tutorial done" — they shouldn't be sent
+  // back through it on update.
+  3: (d) => ({ ...d, schemaVersion: 4, tutorialComplete: typeof d['tutorialComplete'] === 'boolean' ? d['tutorialComplete'] : true }),
 };
 
 /** A fresh profile for a first-time player. */
@@ -31,6 +35,7 @@ export function newMetaState(): MetaState {
     cosmeticIds: [],
     shardCrystals: 0,
     laceMood: { ...ZERO_MOOD_PRESSURE },
+    tutorialComplete: false, // a first-time player plays Floor 0
     lifetime: { runs: 0, wins: 0, deepestFloor: 0, enemiesKilled: 0, totalPlaytimeMs: 0 },
   };
 }
@@ -56,6 +61,7 @@ function isMetaShape(d: Record<string, unknown>): boolean {
     isStringArray(d['achievementIds']) &&
     isStringArray(d['cosmeticIds']) &&
     isObject(d['laceMood']) &&
+    typeof d['tutorialComplete'] === 'boolean' &&
     isObject(d['lifetime']) &&
     typeof d['lifetime']['runs'] === 'number'
   );

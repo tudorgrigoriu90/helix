@@ -19,5 +19,5 @@ export type { MetaLoadResult } from './meta-save';
 export { SaveManager } from './save-manager';
 export type { SaveCodec, LoadResult } from './save-manager';
 
-export { recordRunOutcome } from './meta-progression';
+export { recordRunOutcome, shouldShowTutorial, markTutorialComplete } from './meta-progression';
 export type { RunOutcome } from './meta-progression';

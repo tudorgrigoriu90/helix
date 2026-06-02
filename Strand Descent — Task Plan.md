@@ -368,7 +368,7 @@ Plugs the S-3.6 economy core into the live run loop (`core/run/run-session.ts`).
 | T-140 | S014 Room 3 — micro Strand Event (2 safe cards)        | Frontend      | P0       | TDD §21 Q4     | analytics `is_tutorial: true` |
 | T-141 | S015 Room 4 — Floor 0 boss (teaches item use)          | Frontend      | P0       | TDD §21 Q4     | |
 | T-142 | S016 First Convergence achievement granted             | Frontend      | P0       | TDD §21 Q4     | |
-| T-143 | Tutorial skip flag in MetaState (returning player Hub skip) | Game Engineer | P0  | TDD §21 Q4     | |
+| T-143 | ~~Tutorial skip flag in MetaState (returning player Hub skip)~~ — **DONE 2026-06-02.** Added `tutorialComplete: boolean` to `MetaState` (schema **v4** + a v3→v4 migration). New profiles start `false` (they play Floor 0); existing/migrated profiles default `true` (already played — never sent back through the tutorial on update). Helpers in `meta-progression.ts`: `shouldShowTutorial(meta)` (the Hub reads this to branch tutorial-vs-run) and `markTutorialComplete(meta)` (pure + idempotent; called on the Floor 0 boss kill, T-142). `isMetaShape` now checks the flag. 7 tests (fresh sees tutorial, mark flips + idempotent + pure, v1/v2/v3 migrations default it correctly). The boss-kill that *sets* it is wired by the tutorial scene (T-142). Verified: typecheck + lint + validate + 716 tests + web build green. | Game Engineer | P0  | TDD §21 Q4     | DONE |
 
 ### S-4.3 — Hub & Run Preview (UFD Scope 2 entry)
 

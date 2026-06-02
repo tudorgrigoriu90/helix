@@ -36,30 +36,44 @@ describe('MetaState save — T-111', () => {
   });
 });
 
-describe('MetaState migration — T-100 (laceMood) / T-113 (shardCrystals)', () => {
+describe('MetaState migration — T-143 (tutorial) / T-100 (laceMood) / T-113 (shardCrystals)', () => {
   const baseFields = {
     codexEntryIds: [], sigmaStrainIds: [], achievementIds: [], cosmeticIds: [],
     lifetime: { runs: 2, wins: 1, deepestFloor: 3, enemiesKilled: 5, totalPlaytimeMs: 10 },
   };
 
-  it('migrates a v1 save forward (back-fills shardCrystals then laceMood)', () => {
+  it('migrates a v1 save forward (back-fills shardCrystals, laceMood, tutorialComplete)', () => {
     const res = deserializeMetaState(JSON.stringify({ schemaVersion: 1, ...baseFields }));
     expect(res.ok, res.ok ? '' : res.error.message).toBe(true);
     if (res.ok) {
       expect(res.meta.schemaVersion).toBe(CURRENT_META_SCHEMA_VERSION);
       expect(res.meta.shardCrystals).toBe(0);
       expect(res.meta.laceMood).toEqual(ZERO_MOOD);
+      // An existing profile has already played — don't replay the tutorial.
+      expect(res.meta.tutorialComplete).toBe(true);
       expect(res.meta.lifetime.runs).toBe(2); // pre-existing data preserved
     }
   });
 
-  it('migrates a v2 save forward (keeps shardCrystals, back-fills laceMood)', () => {
+  it('migrates a v2 save forward (keeps shardCrystals, back-fills laceMood + tutorial)', () => {
     const res = deserializeMetaState(JSON.stringify({ schemaVersion: 2, shardCrystals: 12.5, ...baseFields }));
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.meta.schemaVersion).toBe(CURRENT_META_SCHEMA_VERSION);
       expect(res.meta.shardCrystals).toBe(12.5); // not clobbered
       expect(res.meta.laceMood).toEqual(ZERO_MOOD);
+      expect(res.meta.tutorialComplete).toBe(true);
+    }
+  });
+
+  it('migrates a v3 save forward (back-fills tutorialComplete, keeps laceMood)', () => {
+    const laceMood = { curious: 2, clinical: 0, amused: 0, contemptuous: 0, reverent: 0 };
+    const res = deserializeMetaState(JSON.stringify({ schemaVersion: 3, shardCrystals: 1, laceMood, ...baseFields }));
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.meta.schemaVersion).toBe(CURRENT_META_SCHEMA_VERSION);
+      expect(res.meta.laceMood).toEqual(laceMood); // not clobbered
+      expect(res.meta.tutorialComplete).toBe(true);
     }
   });
 });

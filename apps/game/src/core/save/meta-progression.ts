@@ -36,6 +36,22 @@ function union(a: readonly string[], b: readonly string[]): string[] {
   return [...new Set([...a, ...b])];
 }
 
+/**
+ * Whether the Floor 0 tutorial should run for this profile (TDD §21 Q4). The
+ * Hub reads this to decide between starting the tutorial and a normal run.
+ */
+export function shouldShowTutorial(meta: MetaState): boolean {
+  return !meta.tutorialComplete;
+}
+
+/**
+ * Marks the Floor 0 tutorial finished — called on the tutorial boss kill
+ * (T-142). Pure and idempotent; returns the same shape when already complete.
+ */
+export function markTutorialComplete(meta: MetaState): MetaState {
+  return meta.tutorialComplete ? meta : { ...meta, tutorialComplete: true };
+}
+
 export function recordRunOutcome(meta: MetaState, outcome: RunOutcome): MetaState {
   const l = meta.lifetime;
   const shardsEarned = shardsForRun({
