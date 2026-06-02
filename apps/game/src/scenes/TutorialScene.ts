@@ -5,6 +5,7 @@ import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { MutationDef } from '@shared-types/mutation';
+import type { ItemDef } from '@shared-types/item';
 import { buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../core/floor-gen/floor-zero';
 import { parseEnemyDef } from '../core/content/enemy-loader';
 import { parseMutationDef } from '../core/content/mutation-loader';
@@ -61,8 +62,8 @@ const H = {
 const C = { lace: '#a0ffdc', dim: '#7a8fad', label: '#0a0e1a', primary: '#e8edf5' };
 
 /** Rooms whose mechanic isn't wired yet — onward progress stops here until the
- *  owning task lands. T-141 removes `boss`. */
-const PENDING_ROOMS = new Set<string>([FLOOR_ZERO_ROOM_IDS.boss]);
+ *  owning task lands. All four rooms are now playable (T-138→T-141). */
+const PENDING_ROOMS = new Set<string>();
 
 /** Scripted LACE guidance shown on entering each room (the tutorial's voice). */
 const GUIDANCE: Record<string, string> = {
@@ -73,7 +74,7 @@ const GUIDANCE: Record<string, string> = {
   [FLOOR_ZERO_ROOM_IDS.strand]:
     'LACE: The VEIN is offering to change you. This is a Strand Event — pick one.',
   [FLOOR_ZERO_ROOM_IDS.boss]:
-    'LACE: This one has a name. Names mean trouble.\n[tutorial boss — T-141]',
+    'LACE: This one has a name. Names mean trouble.\nLow on health? Tap an item to use it, then finish this.',
 };
 
 export class TutorialScene extends Phaser.Scene {
@@ -236,13 +237,40 @@ export class TutorialScene extends Phaser.Scene {
     this.session.endEncounter(finalState);
     this.combat = null;
     this.view = 'map';
-    if (this.session.snapshot.status === 'defeat') {
+    const status = this.session.snapshot.status;
+    if (status === 'defeat') {
       this.pushLog('You fell. The VEIN is patient — try again.');
       this.restart();
       return;
     }
+    if (status === 'floor_complete' || status === 'victory') {
+      // The Floor 0 boss is down — the tutorial is complete (T-141).
+      this.onTutorialComplete();
+      return;
+    }
     this.pushLog('Cleared. The way ahead opens.');
     this.render();
+  }
+
+  /** Floor 0 boss down. T-142 grants the First Convergence achievement + marks
+   *  the tutorial complete in MetaState; here we close out the descent. */
+  private onTutorialComplete(): void {
+    this.pushLog('The tutorial boss falls. You survived Floor 0.');
+    this.guideText.setText('LACE: You made it through the shallows. This was only the beginning.');
+    this.render();
+  }
+
+  /** Uses a consumable: heals fire on self; offensive items auto-aim the foe
+   *  (no targeting step — the tutorial keeps item use to a single tap). */
+  private useItem(item: ItemDef): void {
+    const state = this.combat;
+    if (state === null) return;
+    if (item.effect?.kind === 'heal') {
+      this.combatAction({ type: 'useItem', itemId: item.id });
+      return;
+    }
+    const foe = state.enemies.find((e) => e.hp > 0);
+    if (foe !== undefined) this.combatAction({ type: 'useItem', itemId: item.id, targetPos: foe.pos });
   }
 
   /** Tutorial deaths aren't punishing — rewind to a fresh Floor 0. */
@@ -382,6 +410,28 @@ export class TutorialScene extends Phaser.Scene {
     const z = this.add.zone(bx, by, bw, bh).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     z.on('pointerdown', () => this.combatAction({ type: 'endTurn' }));
     this.dynamic.push(z);
+
+    // Item bar (T-141 — teaches item use): one tap to use a consumable.
+    const consumables = state.player.items.filter((it) => it.category === 'consumable').slice(0, 3);
+    const iw = 116;
+    const ih = 28;
+    const totalW = consumables.length * iw + (consumables.length - 1) * 8;
+    let ix = (this.scale.width - totalW) / 2;
+    const iy = by - ih - 10;
+    for (const item of consumables) {
+      const ready = state.player.ap >= 1;
+      this.graphGfx.fillStyle(0x12121e, 1).fillRect(ix, iy, iw, ih);
+      this.graphGfx.lineStyle(1, ready ? 0x2a3050 : 0x1a1a28, 1).strokeRect(ix, iy, iw, ih);
+      this.dynamic.push(this.add.text(ix + iw / 2, iy + ih / 2, item.name, {
+        fontFamily: 'monospace', fontSize: '9px', color: ready ? '#66ff99' : C.dim,
+      }).setOrigin(0.5));
+      if (ready) {
+        const iz = this.add.zone(ix, iy, iw, ih).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        iz.on('pointerdown', () => this.useItem(item));
+        this.dynamic.push(iz);
+      }
+      ix += iw + 8;
+    }
   }
 
   private renderStrand(): void {
