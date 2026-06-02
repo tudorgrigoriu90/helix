@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { RunSandboxScene } from '@scenes/RunSandboxScene';
 import { CombatSandboxScene } from '@scenes/CombatSandboxScene';
 import { FloorGraphSandboxScene } from '@scenes/FloorGraphSandboxScene';
+import { FloorScene } from '@scenes/FloorScene';
 
 // Compile-time constant replaced by Vite define. Import this wherever DEMO_MODE
 // branching is needed — never read window or import.meta.env directly.
@@ -22,7 +23,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
   },
   // First scene in the list boots by default. Tab bar in each scene
   // (scenes/tab-bar.ts) navigates between them.
-  scene: [RunSandboxScene, CombatSandboxScene, FloorGraphSandboxScene],
+  scene: [RunSandboxScene, CombatSandboxScene, FloorGraphSandboxScene, FloorScene],
 };
 
 export const game = new Phaser.Game(gameConfig);

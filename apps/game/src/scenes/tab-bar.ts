@@ -17,7 +17,8 @@ interface TabDef {
 const TABS: readonly TabDef[] = [
   { label: 'RUN', sceneKey: 'RunSandboxScene' },
   { label: 'COMBAT', sceneKey: 'CombatSandboxScene' },
-  { label: 'FLOOR GRAPH', sceneKey: 'FloorGraphSandboxScene' },
+  { label: 'GRAPH', sceneKey: 'FloorGraphSandboxScene' },
+  { label: 'FLOOR', sceneKey: 'FloorScene' },
 ];
 
 const TAB_HEIGHT = 28;
