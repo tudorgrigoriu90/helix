@@ -52,6 +52,21 @@ export function markTutorialComplete(meta: MetaState): MetaState {
   return meta.tutorialComplete ? meta : { ...meta, tutorialComplete: true };
 }
 
+/** The achievement granted for clearing the Floor 0 boss (TDD §21 Q4 / GDD §18.6). */
+export const FIRST_CONVERGENCE_ACHIEVEMENT_ID = 'first_convergence';
+
+/**
+ * Folds a finished Floor 0 tutorial into the profile (T-142): grants the First
+ * Convergence achievement and marks the tutorial complete. Pure + idempotent —
+ * replaying it is a no-op once both are recorded.
+ */
+export function completeTutorial(meta: MetaState): MetaState {
+  return {
+    ...markTutorialComplete(meta),
+    achievementIds: union(meta.achievementIds, [FIRST_CONVERGENCE_ACHIEVEMENT_ID]),
+  };
+}
+
 export function recordRunOutcome(meta: MetaState, outcome: RunOutcome): MetaState {
   const l = meta.lifetime;
   const shardsEarned = shardsForRun({

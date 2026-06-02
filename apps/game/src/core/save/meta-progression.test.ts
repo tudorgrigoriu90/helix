@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newMetaState } from './meta-save';
-import { recordRunOutcome, shouldShowTutorial, markTutorialComplete } from './meta-progression';
+import { recordRunOutcome, shouldShowTutorial, markTutorialComplete, completeTutorial, FIRST_CONVERGENCE_ACHIEVEMENT_ID } from './meta-progression';
 
 describe('recordRunOutcome — T-111 meta-progression', () => {
   it('increments runs and (on a win) wins', () => {
@@ -94,5 +94,25 @@ describe('tutorial skip flag — T-143', () => {
     expect(fresh.tutorialComplete).toBe(false); // input untouched
     const done = markTutorialComplete(fresh);
     expect(markTutorialComplete(done)).toBe(done); // already complete → same object
+  });
+
+  it('completeTutorial grants First Convergence and marks the tutorial done (T-142)', () => {
+    const after = completeTutorial(newMetaState());
+    expect(after.tutorialComplete).toBe(true);
+    expect(after.achievementIds).toContain(FIRST_CONVERGENCE_ACHIEVEMENT_ID);
+    expect(shouldShowTutorial(after)).toBe(false);
+  });
+
+  it('completeTutorial does not duplicate the achievement on replay', () => {
+    const once = completeTutorial(newMetaState());
+    const twice = completeTutorial(once);
+    expect(twice.achievementIds.filter((id) => id === FIRST_CONVERGENCE_ACHIEVEMENT_ID)).toHaveLength(1);
+  });
+
+  it('completeTutorial is pure — leaves the input untouched', () => {
+    const fresh = newMetaState();
+    completeTutorial(fresh);
+    expect(fresh.tutorialComplete).toBe(false);
+    expect(fresh.achievementIds).toHaveLength(0);
   });
 });

@@ -6,6 +6,7 @@ import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { MutationDef } from '@shared-types/mutation';
 import type { ItemDef } from '@shared-types/item';
+import type { MetaState } from '@shared-types/meta-state';
 import { buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../core/floor-gen/floor-zero';
 import { parseEnemyDef } from '../core/content/enemy-loader';
 import { parseMutationDef } from '../core/content/mutation-loader';
@@ -13,6 +14,9 @@ import { RunSession, buildEnemyRegistry, type EnemyRegistry } from '../core/run'
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
 import { Mulberry32, makeRng } from '../core/rng/mulberry32';
+import { SaveManager } from '../core/save/save-manager';
+import { metaCodec, newMetaState, completeTutorial } from '../core/save';
+import { createWebStorageAdapter } from '../platform/storage-web';
 import { computeBounds, computeLayout, project, type Bounds, type LayoutTransform } from './floor-graph-layout';
 import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
 
@@ -80,6 +84,9 @@ const GUIDANCE: Record<string, string> = {
 export class TutorialScene extends Phaser.Scene {
   private enemyRegistry!: EnemyRegistry;
   private session!: RunSession;
+  private metaSaves!: SaveManager<MetaState>;
+  private meta: MetaState = newMetaState();
+  private tutorialDone = false;
 
   private view: 'map' | 'combat' | 'strand' = 'map';
   private combat: RunState | null = null;
@@ -100,6 +107,12 @@ export class TutorialScene extends Phaser.Scene {
 
   create(): void {
     this.loadContent();
+    // Persistent profile (own namespace) — the tutorial banks First Convergence
+    // + the tutorial-complete flag into it on the boss kill (T-142).
+    this.metaSaves = new SaveManager(createWebStorageAdapter(), metaCodec, 'helix.meta');
+    void this.metaSaves.load().then((res) => {
+      if (res !== null && res.ok) this.meta = res.value;
+    });
     this.session = new RunSession({
       seed: 0,
       template: TUTORIAL_TEMPLATE,
@@ -252,11 +265,17 @@ export class TutorialScene extends Phaser.Scene {
     this.render();
   }
 
-  /** Floor 0 boss down. T-142 grants the First Convergence achievement + marks
-   *  the tutorial complete in MetaState; here we close out the descent. */
+  /** Floor 0 boss down (T-142): grant First Convergence + mark the tutorial
+   *  complete in the persistent profile, then close out the descent. Idempotent. */
   private onTutorialComplete(): void {
+    if (!this.tutorialDone) {
+      this.tutorialDone = true;
+      this.meta = completeTutorial(this.meta);
+      void this.metaSaves.save(this.meta);
+      this.pushLog('★ Achievement unlocked: First Convergence.');
+    }
     this.pushLog('The tutorial boss falls. You survived Floor 0.');
-    this.guideText.setText('LACE: You made it through the shallows. This was only the beginning.');
+    this.guideText.setText('LACE: First Convergence. You are no longer quite what you were.\nThe shallows are behind you — the VEIN goes deeper.');
     this.render();
   }
 
