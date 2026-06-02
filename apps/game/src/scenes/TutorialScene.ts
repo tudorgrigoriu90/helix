@@ -1,0 +1,228 @@
+import Phaser from 'phaser';
+import type { EnemyDef } from '@shared-types/enemy';
+import type { FloorTemplate } from '@shared-types/floor-template';
+import type { PopulatedRoom } from '@shared-types/floor-plan';
+import { buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../core/floor-gen/floor-zero';
+import { parseEnemyDef } from '../core/content/enemy-loader';
+import { RunSession, buildEnemyRegistry, type EnemyRegistry } from '../core/run';
+import { computeBounds, computeLayout, project, type Bounds, type LayoutTransform } from './floor-graph-layout';
+import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
+
+import filterer from '@content/enemies/filterer.json';
+import pressureWarden from '@content/enemies/pressure_warden.json';
+
+/**
+ * TutorialScene — the scripted Floor 0 descent (S012–S016, TDD §21 Q4).
+ *
+ * Runs the hardcoded Floor 0 (T-137) through the real run loop (RunSession in
+ * tutorial mode, T-138) so the tutorial exercises the same engine a normal run
+ * does — no bespoke logic to drift. Each room teaches one mechanic, gated so the
+ * player can't skip ahead:
+ *
+ *   - Room 1 (entry):  movement — tap the lit chamber to advance   (S012, T-138)
+ *   - Room 2 (combat): first fight                                  (S013, T-139)
+ *   - Room 3 (strand): a 2-card micro Strand Event                  (S014, T-140)
+ *   - Room 4 (boss):   tutorial boss, teaches item use; the kill    (S015, T-141)
+ *                      grants First Convergence + marks tutorial done (S016, T-142)
+ *
+ * This commit lands Room 1 + the scene spine; later rooms fill in their gated
+ * stubs. Phaser scene — gated by build, not unit tests (repo convention).
+ */
+
+const HEADER_Y = TAB_BAR_HEIGHT + 8;
+const GUIDE_Y = TAB_BAR_HEIGHT + 40;
+const VIEWPORT_Y = TAB_BAR_HEIGHT + 130;
+const VIEWPORT_H = 460;
+const LOG_Y = VIEWPORT_Y + VIEWPORT_H + 20;
+const NODE_RADIUS = 18;
+
+const H = {
+  bg: 0x070b14,
+  viewportBorder: 0x1e2a40,
+  edge: 0x3a4868,
+  nodeLocked: 0x2a3450,
+  nodeCleared: 0x35506a,
+  nodeCurrent: 0xa0ffdc,
+  nodeExit: 0xffd479,
+  nodeBoss: 0xff4444,
+  nodeOutline: 0x0a0e1a,
+  ring: 0xffffff,
+};
+const C = { lace: '#a0ffdc', dim: '#7a8fad', label: '#0a0e1a', primary: '#e8edf5' };
+
+/** Scripted LACE guidance shown on entering each room (the tutorial's voice). */
+const GUIDANCE: Record<string, string> = {
+  [FLOOR_ZERO_ROOM_IDS.entry]:
+    'LACE: You are inside the VEIN now. Nothing here will hurt you yet.\nTap the lit chamber ahead to move.',
+  [FLOOR_ZERO_ROOM_IDS.combat]:
+    'LACE: Something is alive in here. You will have to deal with it.\n[first combat — T-139]',
+  [FLOOR_ZERO_ROOM_IDS.strand]:
+    'LACE: The VEIN is offering to change you. Choose.\n[Strand Event — T-140]',
+  [FLOOR_ZERO_ROOM_IDS.boss]:
+    'LACE: This one has a name. Names mean trouble.\n[tutorial boss — T-141]',
+};
+
+export class TutorialScene extends Phaser.Scene {
+  private enemyRegistry!: EnemyRegistry;
+  private session!: RunSession;
+
+  private guideText!: Phaser.GameObjects.Text;
+  private hudText!: Phaser.GameObjects.Text;
+  private logText!: Phaser.GameObjects.Text;
+  private graphGfx!: Phaser.GameObjects.Graphics;
+  private readonly logLines: string[] = [];
+  private dynamic: Phaser.GameObjects.GameObject[] = [];
+
+  constructor() {
+    super({ key: 'TutorialScene' });
+  }
+
+  create(): void {
+    this.loadContent();
+    this.session = new RunSession({
+      seed: 0,
+      template: TUTORIAL_TEMPLATE,
+      registry: this.enemyRegistry,
+      floorZero: buildFloorZero({ combatEnemyId: 'filterer', bossId: 'pressure_warden' }),
+    });
+
+    this.add.graphics().fillStyle(H.bg).fillRect(0, 0, this.scale.width, this.scale.height);
+    drawTabBar(this, this.scene.key);
+
+    this.add.text(16, HEADER_Y, 'FLOOR 0 — TUTORIAL', { fontFamily: 'monospace', fontSize: '13px', color: C.lace });
+
+    this.guideText = this.add.text(16, GUIDE_Y, '', {
+      fontFamily: 'monospace', fontSize: '11px', color: C.primary, lineSpacing: 4, wordWrap: { width: this.scale.width - 32 },
+    });
+
+    this.hudText = this.add.text(16, VIEWPORT_Y - 22, '', { fontFamily: 'monospace', fontSize: '10px', color: C.dim });
+    this.add.graphics().lineStyle(1, H.viewportBorder).strokeRect(8, VIEWPORT_Y - 4, this.scale.width - 16, VIEWPORT_H + 8);
+    this.graphGfx = this.add.graphics();
+
+    this.add.text(16, LOG_Y, '— LOG —', { fontFamily: 'monospace', fontSize: '9px', color: C.dim });
+    this.logText = this.add.text(16, LOG_Y + 14, '', { fontFamily: 'monospace', fontSize: '9px', color: C.dim, lineSpacing: 2 });
+
+    this.pushLog('Tutorial descent begins.');
+    this.render();
+  }
+
+  private loadContent(): void {
+    const defs: EnemyDef[] = [filterer, pressureWarden].map((raw) => {
+      const res = parseEnemyDef(raw);
+      if (!res.ok) throw new Error(`TutorialScene: bad enemy content — ${res.error.message}`);
+      return res.enemy;
+    });
+    this.enemyRegistry = buildEnemyRegistry(defs);
+  }
+
+  // ── Exploration ──────────────────────────────────────────────────────────
+
+  /** Exits the player may take. Gated: an unfought combat/boss room blocks
+   *  progress until its mechanic (a later task) clears it. */
+  private exits(): string[] {
+    if (this.session.needsCombat()) return []; // must resolve this room first
+    return this.session.adjacentRooms();
+  }
+
+  private moveTo(id: string): void {
+    this.session.moveTo(id);
+    this.pushLog(`→ ${id}`);
+    this.render();
+  }
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
+
+  private render(): void {
+    for (const obj of this.dynamic) obj.destroy();
+    this.dynamic = [];
+    this.graphGfx.clear();
+
+    const floor = this.session.floor;
+    const current = this.session.snapshot.currentRoomId;
+    const bossId = floor.bossRoomId;
+
+    this.guideText.setText(GUIDANCE[current] ?? 'LACE: Keep moving.');
+
+    const bounds: Bounds = computeBounds(floor.rooms);
+    const transform: LayoutTransform = computeLayout(
+      bounds,
+      { x: 8, y: VIEWPORT_Y, width: this.scale.width - 16, height: VIEWPORT_H },
+      { padding: 40, minScale: 26, maxScale: 90 },
+    );
+
+    this.graphGfx.lineStyle(2, H.edge, 0.9);
+    const byId = new Map(floor.rooms.map((r) => [r.id, r]));
+    for (const edge of floor.edges) {
+      const a = byId.get(edge.from);
+      const b = byId.get(edge.to);
+      if (!a || !b) continue;
+      const pa = project(a.pos, bounds, transform);
+      const pb = project(b.pos, bounds, transform);
+      this.graphGfx.lineBetween(pa.x, pa.y, pb.x, pb.y);
+    }
+
+    const exitSet = new Set(this.exits());
+    const cleared = new Set(this.session.snapshot.clearedRoomIds);
+    for (const room of floor.rooms) {
+      const p = project(room.pos, bounds, transform);
+      const isCurrent = room.id === current;
+      const isExit = exitSet.has(room.id);
+      const fill = isCurrent ? H.nodeCurrent
+        : isExit ? H.nodeExit
+        : room.id === bossId ? H.nodeBoss
+        : cleared.has(room.id) ? H.nodeCleared
+        : H.nodeLocked;
+
+      this.graphGfx.lineStyle(2, H.nodeOutline, 1);
+      this.graphGfx.fillStyle(fill, 1);
+      this.graphGfx.fillCircle(p.x, p.y, NODE_RADIUS);
+      this.graphGfx.strokeCircle(p.x, p.y, NODE_RADIUS);
+      if (isCurrent) this.graphGfx.lineStyle(2, H.ring, 1).strokeCircle(p.x, p.y, NODE_RADIUS + 4);
+
+      this.dynamic.push(
+        this.add.text(p.x, p.y, roomGlyph(room), { fontFamily: 'monospace', fontSize: '9px', color: C.label }).setOrigin(0.5),
+      );
+
+      if (isExit) {
+        const zone = this.add.zone(p.x - NODE_RADIUS, p.y - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2)
+          .setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        zone.on('pointerdown', () => this.moveTo(room.id));
+        this.dynamic.push(zone);
+      }
+    }
+
+    this.hudText.setText(`here: ${current}   cleared: ${cleared.size}/${floor.rooms.length}`);
+  }
+
+  private pushLog(line: string): void {
+    this.logLines.push(line);
+    if (this.logLines.length > 8) this.logLines.shift();
+    this.logText.setText(this.logLines.join('\n'));
+  }
+}
+
+/** A short glyph naming each room's role on the map. */
+function roomGlyph(room: PopulatedRoom): string {
+  switch (room.type) {
+    case 'safe': return 'YOU';
+    case 'combat': return 'FOE';
+    case 'lace_event': return 'LACE';
+    case 'boss': return 'BOSS';
+    default: return room.type.slice(0, 4).toUpperCase();
+  }
+}
+
+/** RunSession requires a template for its procedural path; the tutorial stays on
+ *  the hardcoded floor 0, so this only matters if a run descends past it. */
+const TUTORIAL_TEMPLATE: FloorTemplate = {
+  schemaVersion: 1,
+  floor: 1,
+  zone: 'shallows',
+  roomCount: { min: 8, max: 12 },
+  roomWeights: { combat: 0.5, loot: 0.15, safe: 0.15, merchant: 0.1, trap: 0.05, lace_event: 0.05 },
+  roomMinima: { safe: 1 },
+  connectivity: 'branching',
+  enemyPool: ['filterer'],
+  bossId: 'pressure_warden',
+  aestheticTags: ['caves'],
+};

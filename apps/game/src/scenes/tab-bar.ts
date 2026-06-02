@@ -19,6 +19,7 @@ const TABS: readonly TabDef[] = [
   { label: 'COMBAT', sceneKey: 'CombatSandboxScene' },
   { label: 'GRAPH', sceneKey: 'FloorGraphSandboxScene' },
   { label: 'FLOOR', sceneKey: 'FloorScene' },
+  { label: 'TUTORIAL', sceneKey: 'TutorialScene' },
 ];
 
 const TAB_HEIGHT = 28;

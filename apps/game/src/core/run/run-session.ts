@@ -135,6 +135,13 @@ export interface RunSessionOptions {
    * returns `[]` — the run loop is otherwise unchanged.
    */
   readonly itemPool?: readonly ItemDef[];
+  /**
+   * The hardcoded Floor 0 (T-137). When supplied, the run *starts on floor 0*
+   * using this fixed floor instead of generating — the tutorial descent (TDD
+   * §21 Q4). Floor 1+ still generate procedurally on {@link RunSession.descend}.
+   * Omit it (the default) for a normal run that starts on floor 1.
+   */
+  readonly floorZero?: PopulatedFloor;
 }
 
 /** Sums the VEIN dropped by the fallen enemies of a cleared encounter (T-106). */
@@ -173,6 +180,8 @@ export class RunSession {
   private readonly mutationPool: readonly MutationDef[];
   private readonly strandInterval: number;
   private readonly itemPool: readonly ItemDef[];
+  // The fixed tutorial floor (T-137), or null for a normal procedural run.
+  private readonly floorZero: PopulatedFloor | null;
 
   // Dispenser stock per merchant room, keyed by room id. Computed once per room
   // (deterministically) and reset each floor — GDD §10.3 "refresh once per floor".
@@ -211,8 +220,10 @@ export class RunSession {
     this.mutationPool = options.mutations ?? [];
     this.strandInterval = options.strandEventEveryNFloors ?? STRAND_INTERVAL_DEFAULT;
     this.itemPool = options.itemPool ?? [];
+    this.floorZero = options.floorZero ?? null;
     this.player = options.player ?? newRunPlayer();
-    this.loadFloor(1);
+    // A tutorial run begins on the hardcoded floor 0; a normal run on floor 1.
+    this.loadFloor(this.floorZero !== null ? 0 : 1);
   }
 
   // ── Read API ────────────────────────────────────────────────────────────
@@ -517,9 +528,10 @@ export class RunSession {
 
   // ── Strand Event (GDD §5) ─────────────────────────────────────────────────
 
-  /** True when this floor's boss clear should open a Strand Event. */
+  /** True when this floor's boss clear should open a Strand Event. Floor 0 is
+   *  excluded — its Strand is the scripted tutorial room, not the boss cadence. */
   private strandEventDue(): boolean {
-    return this.mutationPool.length > 0 && this.floorNumber % this.strandInterval === 0;
+    return this.mutationPool.length > 0 && this.floorNumber >= 1 && this.floorNumber % this.strandInterval === 0;
   }
 
   /** The owned mutations resolved to their defs (for weighting + application). */
@@ -620,7 +632,11 @@ export class RunSession {
 
   private loadFloor(n: number): void {
     this.floorNumber = n;
-    this.floorData = generateFloor({ ...this.template, floor: n }, this.floorRng(n));
+    // Floor 0 is the fixed tutorial floor (T-137); every other floor generates.
+    this.floorData =
+      n === 0 && this.floorZero !== null
+        ? this.floorZero
+        : generateFloor({ ...this.template, floor: n }, this.floorRng(n));
     this.adjacency = buildAdjacency(this.floorData.rooms, this.floorData.edges);
     this.current = this.floorData.startRoomId;
     this.cleared = new Set<string>();

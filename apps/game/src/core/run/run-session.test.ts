@@ -6,7 +6,7 @@ import type { RunState, PlayerState } from '@shared-types/run-state';
 import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import { makeRng } from '../rng/mulberry32';
 import { TurnEngine, chebyshev } from '../turn-engine';
-import { bfsDistances } from '../floor-gen';
+import { bfsDistances, buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../floor-gen';
 import { RunSession, CURRENT_RUN_SESSION_SAVE_VERSION } from './run-session';
 import { buildEnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
@@ -326,6 +326,48 @@ function resolveCombat(initial: RunState): RunState {
   }
   return state;
 }
+
+describe('RunSession — tutorial mode (Floor 0, T-138)', () => {
+  const floorZero = () => buildFloorZero({ combatEnemyId: 'filterer', bossId: 'pressure_warden' });
+  const walkToBoss = (s: RunSession): void => {
+    s.moveTo(FLOOR_ZERO_ROOM_IDS.combat);
+    s.moveTo(FLOOR_ZERO_ROOM_IDS.strand);
+    s.moveTo(FLOOR_ZERO_ROOM_IDS.boss);
+  };
+
+  it('starts on floor 0 using the hardcoded tutorial floor', () => {
+    const s = new RunSession({ seed: 1, template: template(), registry, floorZero: floorZero() });
+    expect(s.snapshot.floorNumber).toBe(0);
+    expect(s.snapshot.currentRoomId).toBe(FLOOR_ZERO_ROOM_IDS.entry);
+    expect(s.floor.rooms.map((r) => r.id)).toEqual([
+      FLOOR_ZERO_ROOM_IDS.entry, FLOOR_ZERO_ROOM_IDS.combat, FLOOR_ZERO_ROOM_IDS.strand, FLOOR_ZERO_ROOM_IDS.boss,
+    ]);
+  });
+
+  it('leaves a normal run unaffected — still starts on floor 1', () => {
+    expect(new RunSession({ seed: 1, template: template(), registry }).snapshot.floorNumber).toBe(1);
+  });
+
+  it('completes the floor on the Floor 0 boss kill — no post-boss Strand despite floor 0 % 5 === 0', () => {
+    const s = new RunSession({
+      seed: 1, template: template(), registry, player: hero(),
+      mutations: POOL, strandEventEveryNFloors: 5, floorZero: floorZero(),
+    });
+    walkToBoss(s);
+    expect(s.beginEncounter()).not.toBeNull(); // the boss room has a fight
+    s.endEncounter(terminal('victory'));
+    expect(s.snapshot.status).toBe('floor_complete'); // not 'strand_event'
+  });
+
+  it('descends from the tutorial floor into a procedural floor 1', () => {
+    const s = new RunSession({ seed: 1, template: template(), registry, player: hero(), floorZero: floorZero() });
+    walkToBoss(s);
+    s.beginEncounter();
+    s.endEncounter(terminal('victory'));
+    s.descend();
+    expect(s.snapshot.floorNumber).toBe(1);
+  });
+});
 
 function chooseAction(state: RunState): Action {
   const { player } = state;
