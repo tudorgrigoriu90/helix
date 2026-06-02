@@ -3,7 +3,7 @@ import { AUDIO_BY_KEY, AUDIO_MANIFEST, AUDIO_EXTENSIONS, type AudioKind } from '
 
 /** Keys the scene layer fires — kept in sync so a typo here fails CI, not silently at runtime. */
 const KEYS_USED_BY_SCENES = [
-  'music_menu', 'music_run', 'music_boss',
+  'music_menu', 'music_run', 'music_room_1', 'music_room_2', 'music_boss',
   'sfx_attack', 'sfx_ability', 'sfx_item', 'sfx_enemy_hit', 'sfx_enemy_death',
   'sfx_player_hurt', 'sfx_mutation', 'sfx_descend', 'sfx_victory', 'sfx_defeat',
   'ui_click', 'ui_confirm', 'ui_back',

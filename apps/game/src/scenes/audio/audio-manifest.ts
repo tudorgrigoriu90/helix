@@ -32,7 +32,11 @@ const MUSIC: readonly AudioSpec[] = [
   { key: 'music_menu', kind: 'music', volume: 0.5, loop: true,
     description: 'Menu / hub background loop. Calm, ambient, bioluminescent deep-sea; sets the mood without fatigue on repeat.' },
   { key: 'music_run', kind: 'music', volume: 0.45, loop: true,
-    description: 'In-run exploration/combat loop. Tense, atmospheric, low-key percussion; the descent through the VEIN.' },
+    description: 'In-run exploration/combat loop. Tense, atmospheric, low-key percussion; the descent through the VEIN. (Fallback; rooms now use the music_room_* variants.)' },
+  { key: 'music_room_1', kind: 'music', volume: 0.45, loop: true,
+    description: 'In-room ambient loop, variant 1. One of two room tracks picked per room (by room id) for variety while in a non-boss room.' },
+  { key: 'music_room_2', kind: 'music', volume: 0.45, loop: true,
+    description: 'In-room ambient loop, variant 2. The alternate room track to music_room_1.' },
   { key: 'music_boss', kind: 'music', volume: 0.55, loop: true,
     description: 'Boss-fight loop. Heavier, urgent, higher stakes than the run track.' },
 ];
