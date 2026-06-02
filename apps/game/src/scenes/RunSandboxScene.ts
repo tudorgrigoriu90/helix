@@ -86,7 +86,7 @@ const FINAL_FLOOR = 2; // short, winnable demo descent (beat the Floor 2 boss to
 // so the short 2-floor demo still shows the mutation pick.
 const STRAND_INTERVAL = 1;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'over' | 'loot' | 'swap';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'over' | 'loot' | 'swap' | 'inventory';
 
 export class RunSandboxScene extends Phaser.Scene {
   private session!: RunSession;
@@ -758,6 +758,7 @@ export class RunSandboxScene extends Phaser.Scene {
     else if (this.view === 'levelup') this.renderLevelUp();
     else if (this.view === 'loot') this.renderLoot();
     else if (this.view === 'swap') this.renderSwap();
+    else if (this.view === 'inventory') this.renderInventory();
     else this.renderOver();
 
     this.renderButtons();
@@ -815,6 +816,18 @@ export class RunSandboxScene extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '10px', color: C.dim,
     }).setOrigin(0.5, 1);
     this.transient.push(hint);
+
+    // Inventory entry (T-448): a tappable badge showing carried items vs caps.
+    const inv = this.session.inventory();
+    const total = inv.consumable.count + inv.passive.count + inv.equipment.count;
+    const cap = inv.consumable.limit + inv.passive.limit + inv.equipment.limit;
+    const label = this.add.text(W - 16, STAGE_Y + 4, `ITEMS ${total}/${cap}`, {
+      fontFamily: 'monospace', fontSize: '11px', color: C.yellow,
+    }).setOrigin(1, 0);
+    this.transient.push(label);
+    const z = this.add.zone(W - 16 - label.width, STAGE_Y + 4, label.width, 18).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    z.on('pointerdown', () => { playSfx(this, 'ui_click'); this.openInventory(); });
+    this.buttonZones.push(z);
   }
 
   private tileSize(state: RunState): number {
@@ -1183,6 +1196,43 @@ export class RunSandboxScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  // ── Inventory screen (T-448) ────────────────────────────────────────────────
+
+  /** Carried items by category with slot counts; tap an item to drop it. Opened
+   *  from the map ITEMS badge (and reachable in Safe Rooms / on pause, GDD §9.5). */
+  private renderInventory(): void {
+    const inv = this.session.inventory();
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 12, 'INVENTORY', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 32, `consumable ${inv.consumable.count}/${inv.consumable.limit}  ·  passive ${inv.passive.count}/${inv.passive.limit}  ·  equip ${inv.equipment.count}/${inv.equipment.limit}`,
+        { fontFamily: 'monospace', fontSize: '9px', color: C.dim }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 48, 'tap an item to drop it', { fontFamily: 'monospace', fontSize: '9px', color: C.dim }).setOrigin(0.5, 0),
+    );
+    const items = this.session.snapshot.player.items;
+    if (items.length === 0) {
+      this.transient.push(this.add.text(W / 2, STAGE_Y + 120, 'empty', { fontFamily: 'monospace', fontSize: '12px', color: C.dim }).setOrigin(0.5));
+      return;
+    }
+    items.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 72, () => this.onDropFromInventory(item.id)));
+  }
+
+  private onDropFromInventory(itemId: string): void {
+    this.session.dropItem(itemId);
+    playSfx(this, 'ui_back');
+    this.persist();
+    this.renderAll();
+  }
+
+  private openInventory(): void {
+    this.view = 'inventory';
+    this.renderAll();
+  }
+
+  private closeInventory(): void {
+    this.view = 'map';
+    this.renderAll();
+  }
+
   // ── Strand Event rendering ──────────────────────────────────────────────────
 
   private strandCardRect(i: number): { x: number; y: number; w: number; h: number } {
@@ -1329,6 +1379,10 @@ export class RunSandboxScene extends Phaser.Scene {
     }
     if (this.view === 'swap') {
       this.button(20, 'LEAVE IT', C.dim, () => this.leaveSwap());
+      return;
+    }
+    if (this.view === 'inventory') {
+      this.button(20, 'CLOSE', C.green, () => this.closeInventory());
       return;
     }
     // Level-up: no bottom buttons — you must spend every pending point (tap a
