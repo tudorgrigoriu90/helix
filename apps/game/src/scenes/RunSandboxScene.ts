@@ -198,7 +198,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.laceText.setText('LACE: ...you came back. The VEIN remembers where it left you.');
-    this.playRoomMusic();
+    this.playFloorMusic();
     // A run saved mid-combat resumes straight back into the fight (T-114), with
     // the combat RNG restored so rolls stay deterministic across the reload.
     const active = this.session.activeCombat();
@@ -226,18 +226,18 @@ export class RunSandboxScene extends Phaser.Scene {
     void this.saves.save(this.session.toSave());
   }
 
-  /** Picks one of the two room tracks for a room — deterministic per room id (a
-   *  stable hash), so each room consistently plays one variant and walking the
-   *  floor alternates them without re-triggering the same track. */
-  private roomMusicKey(roomId: string): string {
-    let h = 0;
-    for (let i = 0; i < roomId.length; i++) h = (Math.imul(h, 31) + roomId.charCodeAt(i)) | 0;
+  /** Picks one of the two ambient tracks for a *floor* — one track plays across
+   *  all the floor's rooms (changing music room-to-room felt jarring). Keyed by
+   *  floor + run seed, so it varies between floors and runs but stays stable
+   *  while you explore a floor. */
+  private floorMusicKey(floor: number): string {
+    const h = (Math.imul(floor, 0x9e3779b1) ^ this.seed) | 0;
     return (Math.abs(h) % 2) === 0 ? 'music_room_1' : 'music_room_2';
   }
 
-  /** Plays the current room's ambient track (no-op if it's already playing). */
-  private playRoomMusic(): void {
-    playMusic(this, this.roomMusicKey(this.session.snapshot.currentRoomId));
+  /** Plays the current floor's ambient track (no-op if it's already playing). */
+  private playFloorMusic(): void {
+    playMusic(this, this.floorMusicKey(this.session.snapshot.floorNumber));
   }
 
   // ── Content + run setup ───────────────────────────────────────────────────
@@ -290,7 +290,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.runRecorded = false;
     this.lastRunShards = 0;
     this.say('run_start');
-    this.playRoomMusic();
+    this.playFloorMusic();
     this.persist();
     this.renderAll();
   }
@@ -333,9 +333,8 @@ export class RunSandboxScene extends Phaser.Scene {
   private enterRoom(id: string): void {
     this.session.moveTo(id);
     const room = this.session.currentRoom();
-    // Each non-boss room plays its own ambient track (boss combat swaps to
-    // music_boss below). No-op if the new room maps to the same track.
-    if (room.type !== 'boss') this.playRoomMusic();
+    // Music stays at the floor track across rooms; only boss combat swaps it
+    // (below), and leaving the boss restores the floor track.
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
       // Non-combat rooms auto-clear. lace_event rooms are narrative beats — let
@@ -407,6 +406,7 @@ export class RunSandboxScene extends Phaser.Scene {
     this.session.descend();
     this.say('floor_enter');
     playSfx(this, 'sfx_descend');
+    this.playFloorMusic(); // new floor → its ambient track
     this.persist();
     this.renderAll();
   }
@@ -693,12 +693,12 @@ export class RunSandboxScene extends Phaser.Scene {
       this.openStrandEvent();
     } else if (status === 'floor_complete') {
       this.say('floor_complete');
-      if (wasBoss) this.playRoomMusic(); // leave the boss track for the room track
+      if (wasBoss) this.playFloorMusic(); // leave the boss track for the floor track
       this.view = 'map';
       this.persist();
     } else {
       this.say(wasBoss ? 'boss_killed' : 'room_cleared');
-      if (wasBoss) this.playRoomMusic();
+      if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();
     }
