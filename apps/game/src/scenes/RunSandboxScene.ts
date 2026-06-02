@@ -377,6 +377,12 @@ export class RunSandboxScene extends Phaser.Scene {
       this.renderAll();
       return;
     }
+    if (!this.session.canCarry(item)) {
+      const { count, limit } = this.session.inventory()[item.category];
+      this.laceText.setText(`LACE: Your ${item.category} slots are full (${count}/${limit}). Drop something first.`);
+      this.renderAll();
+      return;
+    }
     this.session.purchaseItem(item);
     playSfx(this, 'ui_click');
     this.laceText.setText(`LACE: Acquired ${item.name}. The Dispenser hums, satisfied.`);

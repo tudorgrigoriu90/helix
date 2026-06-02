@@ -18,6 +18,14 @@ import {
 import { buildEncounterState, type EnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
 import {
+  addItem as addToInventory,
+  dropItem as dropFromInventory,
+  swapItem as swapInInventory,
+  hasRoomFor,
+  inventoryCounts,
+} from './inventory';
+import type { ItemCategory } from '@shared-types/item';
+import {
   veinForKill,
   FLOOR_VEIN_CONSTANT,
   xpForKill,
@@ -488,9 +496,9 @@ export class RunSession {
   /**
    * Buys `item` from the VEIN Dispenser (GDD §10.3): deducts the floor-zoned
    * price from the run's VEIN and adds it to the player's inventory. Throws if
-   * VEIN is insufficient, or if called mid-combat. The scene gates presentation
-   * on {@link isAtDispenser}; slot-limit enforcement (GDD §7) is the inventory
-   * layer's concern, not handled here.
+   * VEIN is insufficient, the inventory category is full (GDD §9.5), or if
+   * called mid-combat. The scene gates presentation on {@link isAtDispenser} and
+   * should check {@link canCarry} first to offer a drop-to-swap.
    */
   purchaseItem(item: ItemDef): void {
     if (this.status === 'in_combat') {
@@ -500,14 +508,46 @@ export class RunSession {
     if (this.veinCrystals < price) {
       throw new Error(`purchaseItem: insufficient VEIN (need ${price}, have ${this.veinCrystals})`);
     }
+    if (!this.canCarry(item)) {
+      throw new Error(`purchaseItem: inventory full for "${item.category}" (GDD §9.5)`);
+    }
     this.veinCrystals -= price;
-    this.player = { ...this.player, items: [...this.player.items, item] };
+    this.addItem(item);
     // Sold items leave the shelf so they can't be bought twice (GDD §10.3).
     const stock = this.dispenserStockByRoom.get(this.current);
     if (stock !== undefined) {
       const idx = stock.findIndex((s) => s.id === item.id);
       if (idx !== -1) this.dispenserStockByRoom.set(this.current, stock.filter((_, i) => i !== idx));
     }
+  }
+
+  // ── Inventory (GDD §9.5 — capacity slots, drop-to-swap) ────────────────────
+
+  /** Per-category `{ count, limit }` for the inventory / swap UI (T-448). */
+  inventory(): Record<ItemCategory, { count: number; limit: number }> {
+    return inventoryCounts(this.player.items);
+  }
+
+  /** True when `item`'s category has a free slot. Callers offer a swap when false. */
+  canCarry(item: ItemDef): boolean {
+    return hasRoomFor(this.player.items, item.category);
+  }
+
+  /** Adds `item` if its category has room. Returns false when full (→ swap). */
+  addItem(item: ItemDef): boolean {
+    const res = addToInventory(this.player.items, item);
+    if (res.added) this.player = { ...this.player, items: res.items };
+    return res.added;
+  }
+
+  /** Drops the first item with `itemId` (no-op if absent). */
+  dropItem(itemId: string): void {
+    this.player = { ...this.player, items: dropFromInventory(this.player.items, itemId) };
+  }
+
+  /** Drops `dropId` and adds `incoming` in one step — the make-room swap (model b). */
+  swapItem(dropId: string, incoming: ItemDef): void {
+    this.player = { ...this.player, items: swapInInventory(this.player.items, dropId, incoming) };
   }
 
   /** Banks VEIN income: raises both the spendable balance and the lifetime
