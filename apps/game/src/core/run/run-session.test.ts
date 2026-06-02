@@ -367,6 +367,14 @@ describe('RunSession — tutorial mode (Floor 0, T-138)', () => {
     s.descend();
     expect(s.snapshot.floorNumber).toBe(1);
   });
+
+  it('applyMutationChoice carries a scripted-event mutation onto the run (Strand room / LACE event)', () => {
+    const s = new RunSession({ seed: 1, template: template(), registry, player: hero(), floorZero: floorZero() });
+    const card = POOL[0]!; // any minor mutation
+    s.applyMutationChoice(card);
+    expect(s.snapshot.player.mutations).toContain(card.id);
+    expect(s.snapshot.sig).toBeGreaterThan(0); // SIG accrued
+  });
 });
 
 function chooseAction(state: RunState): Action {

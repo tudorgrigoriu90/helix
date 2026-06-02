@@ -604,6 +604,18 @@ export class RunSession {
     this.endStrandEvent();
   }
 
+  /**
+   * Applies a mutation chosen *outside* the post-boss Strand flow — the scripted
+   * Floor 0 tutorial Strand (T-140) and LACE event rooms (GDD §18.6). Carries the
+   * mutation onto the run player, accrues SIG at the room rate, and refreshes
+   * Dominant Traits — the same effects as a Strand pick, without the cadence gate.
+   */
+  applyMutationChoice(mutation: MutationDef): void {
+    this.player = applyMutation(this.player, mutation);
+    this.sig = gainMutationSig(this.sig, mutation, 'lace_event');
+    this.refreshDominantTraits();
+  }
+
   /** Acknowledges a VEIN Intermission: banks its VEIN Crystals, ends the event. */
   acceptIntermission(): void {
     if (this.status !== 'strand_event') {

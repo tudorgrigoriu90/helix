@@ -4,8 +4,10 @@ import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
+import type { MutationDef } from '@shared-types/mutation';
 import { buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../core/floor-gen/floor-zero';
 import { parseEnemyDef } from '../core/content/enemy-loader';
+import { parseMutationDef } from '../core/content/mutation-loader';
 import { RunSession, buildEnemyRegistry, type EnemyRegistry } from '../core/run';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
@@ -15,6 +17,9 @@ import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
 
 import filterer from '@content/enemies/filterer.json';
 import pressureWarden from '@content/enemies/pressure_warden.json';
+// The tutorial Strand offers two fixed, downside-free cards ("2 safe cards").
+import crushDepth from '@content/mutations/abyssal_crush_depth.json';
+import carapace from '@content/mutations/lithic_carapace.json';
 
 /**
  * TutorialScene — the scripted Floor 0 descent (S012–S016, TDD §21 Q4).
@@ -56,8 +61,8 @@ const H = {
 const C = { lace: '#a0ffdc', dim: '#7a8fad', label: '#0a0e1a', primary: '#e8edf5' };
 
 /** Rooms whose mechanic isn't wired yet — onward progress stops here until the
- *  owning task lands. T-140 removes `strand`; T-141 removes `boss`. */
-const PENDING_ROOMS = new Set<string>([FLOOR_ZERO_ROOM_IDS.strand, FLOOR_ZERO_ROOM_IDS.boss]);
+ *  owning task lands. T-141 removes `boss`. */
+const PENDING_ROOMS = new Set<string>([FLOOR_ZERO_ROOM_IDS.boss]);
 
 /** Scripted LACE guidance shown on entering each room (the tutorial's voice). */
 const GUIDANCE: Record<string, string> = {
@@ -66,7 +71,7 @@ const GUIDANCE: Record<string, string> = {
   [FLOOR_ZERO_ROOM_IDS.combat]:
     'LACE: Something is alive in here. You will have to deal with it.\n[first combat — T-139]',
   [FLOOR_ZERO_ROOM_IDS.strand]:
-    'LACE: The VEIN is offering to change you. Choose.\n[Strand Event — T-140]',
+    'LACE: The VEIN is offering to change you. This is a Strand Event — pick one.',
   [FLOOR_ZERO_ROOM_IDS.boss]:
     'LACE: This one has a name. Names mean trouble.\n[tutorial boss — T-141]',
 };
@@ -75,9 +80,11 @@ export class TutorialScene extends Phaser.Scene {
   private enemyRegistry!: EnemyRegistry;
   private session!: RunSession;
 
-  private view: 'map' | 'combat' = 'map';
+  private view: 'map' | 'combat' | 'strand' = 'map';
   private combat: RunState | null = null;
   private combatRng!: Mulberry32;
+  private strandOffer: readonly MutationDef[] = [];
+  private strandResolved = false;
 
   private guideText!: Phaser.GameObjects.Text;
   private hudText!: Phaser.GameObjects.Text;
@@ -131,6 +138,12 @@ export class TutorialScene extends Phaser.Scene {
       return res.enemy;
     });
     this.enemyRegistry = buildEnemyRegistry(defs);
+
+    this.strandOffer = [crushDepth, carapace].map((raw) => {
+      const res = parseMutationDef(raw);
+      if (!res.ok) throw new Error(`TutorialScene: bad mutation content — ${res.error.message}`);
+      return res.mutation;
+    });
   }
 
   // ── Exploration ──────────────────────────────────────────────────────────
@@ -148,7 +161,26 @@ export class TutorialScene extends Phaser.Scene {
     this.session.moveTo(id);
     this.pushLog(`→ ${id}`);
     if (this.session.needsCombat()) this.startCombat();
+    else if (id === FLOOR_ZERO_ROOM_IDS.strand && !this.strandResolved) this.openStrand();
     else this.render();
+  }
+
+  // ── Strand Event (T-140) ────────────────────────────────────────────────────
+
+  private openStrand(): void {
+    this.view = 'strand';
+    this.pushLog('A Strand Event — choose what to become.');
+    this.render();
+  }
+
+  /** Takes a tutorial Strand card: applies the mutation to the run, then opens
+   *  the way onward. A scripted, downside-free intro to the real Strand Event. */
+  private chooseStrandCard(mutation: MutationDef): void {
+    this.session.applyMutationChoice(mutation);
+    this.strandResolved = true;
+    this.view = 'map';
+    this.pushLog(`Became: ${mutation.name}.`);
+    this.render();
   }
 
   // ── Combat (T-139) ─────────────────────────────────────────────────────────
@@ -240,6 +272,10 @@ export class TutorialScene extends Phaser.Scene {
     this.graphGfx.clear();
     if (this.view === 'combat') {
       this.renderCombat();
+      return;
+    }
+    if (this.view === 'strand') {
+      this.renderStrand();
       return;
     }
     this.renderMap();
@@ -346,6 +382,34 @@ export class TutorialScene extends Phaser.Scene {
     const z = this.add.zone(bx, by, bw, bh).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     z.on('pointerdown', () => this.combatAction({ type: 'endTurn' }));
     this.dynamic.push(z);
+  }
+
+  private renderStrand(): void {
+    this.guideText.setText('LACE: Two paths. Both will keep you alive. Tap the one you want.');
+    this.hudText.setText('STRAND EVENT — pick 1 of 2');
+
+    const cardW = this.scale.width - 48;
+    const cardH = 120;
+    const gap = 20;
+    const x = 24;
+    let y = VIEWPORT_Y + 20;
+
+    for (const mut of this.strandOffer) {
+      this.graphGfx.fillStyle(0x12121e, 1).fillRect(x, y, cardW, cardH);
+      this.graphGfx.lineStyle(1, 0x2a3050, 1).strokeRect(x, y, cardW, cardH);
+      this.dynamic.push(
+        this.add.text(x + 12, y + 10, `${mut.name}`, { fontFamily: 'monospace', fontSize: '14px', color: C.lace }),
+        this.add.text(x + 12, y + 32, `${mut.family} · ${mut.tier} · +${mut.sigBonus} SIG`, { fontFamily: 'monospace', fontSize: '9px', color: C.dim }),
+        this.add.text(x + 12, y + 52, mut.lace, {
+          fontFamily: 'monospace', fontSize: '10px', color: C.primary, lineSpacing: 3, wordWrap: { width: cardW - 24 },
+        }),
+      );
+      const cy = y;
+      const zone = this.add.zone(x, cy, cardW, cardH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      zone.on('pointerdown', () => this.chooseStrandCard(mut));
+      this.dynamic.push(zone);
+      y += cardH + gap;
+    }
   }
 
   private pushLog(line: string): void {
