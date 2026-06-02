@@ -85,6 +85,30 @@ describe('RunSession — enemy drops + loot pickup (T-445)', () => {
     expect(s.lootPending()).toHaveLength(0);
   });
 
+  it('grants exactly one item per loot room entered (T-446), once each', () => {
+    const s = new RunSession({ seed: 5, template: template(), registry, itemPool: POOL });
+    // DFS the whole (connected) floor without fighting — status stays exploring.
+    const start = s.snapshot.currentRoomId;
+    const seen = new Set<string>([start]);
+    const stack = [start];
+    while (stack.length > 0) {
+      const next = s.adjacentRooms().find((r) => !seen.has(r));
+      if (next !== undefined) {
+        s.moveTo(next);
+        seen.add(next);
+        stack.push(next);
+      } else {
+        stack.pop();
+        const back = stack[stack.length - 1];
+        if (back === undefined || !s.adjacentRooms().includes(back)) break;
+        s.moveTo(back);
+      }
+    }
+    const lootRoomsEntered = s.floor.rooms.filter((r) => r.type === 'loot' && r.id !== start).length;
+    expect(s.lootPending()).toHaveLength(lootRoomsEntered);
+    expect(lootRoomsEntered).toBeGreaterThan(0); // seed 5 floor 1 has a loot room (else this is vacuous)
+  });
+
   it('persists pending loot through save/restore (save v6)', () => {
     const s = new RunSession({ seed: 5, template: template(), registry, itemPool: POOL });
     const combat = intoCombat(s);

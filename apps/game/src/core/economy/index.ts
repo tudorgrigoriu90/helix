@@ -48,4 +48,4 @@ export {
   type DispenserStockParams,
 } from './dispenser-stock';
 
-export { rollItemDrops } from './item-drops';
+export { rollItemDrops, rollLootRoomItem } from './item-drops';

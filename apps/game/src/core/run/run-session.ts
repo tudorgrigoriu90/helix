@@ -36,6 +36,7 @@ import {
   dispenserPriceForFloor,
   rollDispenserStock,
   rollItemDrops,
+  rollLootRoomItem,
 } from '../economy';
 
 /**
@@ -345,8 +346,20 @@ export class RunSession {
       throw new Error(`moveTo: "${roomId}" is not adjacent to "${this.current}"`);
     }
     this.current = roomId;
+    this.grantLootRoom(this.current); // before auto-clear (which marks it looted)
     this.autoClearIfTrivial(this.current);
     this.restIfSafe(this.current);
+  }
+
+  /** On first entry to a loot room, drop 1 guaranteed floor-tier item onto the
+   *  pending-pickup pile (GDD §9.4, T-446). The `cleared` guard + auto-clear make
+   *  it fire exactly once per room. No-op without an item pool. */
+  private grantLootRoom(roomId: string): void {
+    if (this.itemPool.length === 0 || this.cleared.has(roomId)) return;
+    if (this.roomById(roomId).type !== 'loot') return;
+    const rng = makeRng((this.masterSeed ^ Math.imul(this.floorNumber, 0x165667b1) ^ hashString(roomId)) >>> 0, 'loot');
+    const item = rollLootRoomItem(this.floorNumber, this.itemPool, rng);
+    if (item !== undefined) this.addPendingLoot(item);
   }
 
   /**
