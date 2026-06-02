@@ -64,6 +64,9 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     if (combat !== undefined && (!isObject(combat) || !isPlayerShape(combat['player']) || !isObject(combat['grid']))) {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed combat state' } };
     }
+    if (parsed['pendingLoot'] !== undefined && !Array.isArray(parsed['pendingLoot'])) {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has malformed pendingLoot' } };
+    }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };
   },

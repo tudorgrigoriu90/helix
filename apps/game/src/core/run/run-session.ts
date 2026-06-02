@@ -35,6 +35,7 @@ import {
   ALLOCATABLE_STATS,
   dispenserPriceForFloor,
   rollDispenserStock,
+  rollItemDrops,
 } from '../economy';
 
 /**
@@ -85,8 +86,9 @@ export interface RunSnapshot {
 /** Schema version for the persisted run-session shape.
  *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
  *  v4 added `veinEarned`; v5 added mid-combat persistence (`combat` +
- *  `combatRngState`). Older saves load fine — missing fields default to 0/none. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 5;
+ *  `combatRngState`); v6 added `pendingLoot` (uncollected drops). Older saves
+ *  load fine — missing fields default to 0/none. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 6;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -111,6 +113,8 @@ export interface RunSessionSave {
   readonly pendingStatPoints?: number;
   /** Lifetime VEIN earned this run (added in save v4; absent → 0). */
   readonly veinEarned?: number;
+  /** Uncollected drops awaiting pickup (added in save v6; absent → none). */
+  readonly pendingLoot?: readonly ItemDef[];
   /**
    * The live combat state, present only when `status === 'in_combat'` and the
    * scene has synced it via {@link RunSession.syncCombat} (save v5). Its presence
@@ -220,6 +224,9 @@ export class RunSession {
   // resume mid-fight (T-114). Null whenever the run isn't in an active encounter.
   private combatState: RunState | null = null;
   private combatRngState = 0;
+  // Drops rolled on kills / loot rooms awaiting pickup (T-445/T-446). Consumed by
+  // the pickup flow (takeLoot); persisted so a reload doesn't lose them.
+  private pendingLoot: ItemDef[] = [];
 
   constructor(options: RunSessionOptions) {
     this.masterSeed = options.seed;
@@ -280,6 +287,7 @@ export class RunSession {
       xp: this.xp,
       pendingStatPoints: this.pendingStatPoints,
       ...(persistCombat ? { combat: this.combatState!, combatRngState: this.combatRngState } : {}),
+      ...(this.pendingLoot.length > 0 ? { pendingLoot: [...this.pendingLoot] } : {}),
     };
   }
 
@@ -298,6 +306,7 @@ export class RunSession {
     // Pre-v4 saves lack veinEarned; fall back to the spendable balance as a
     // lower-bound estimate of income so resumed runs still convert some Shards.
     this.veinEarned = save.veinEarned ?? this.veinCrystals;
+    this.pendingLoot = save.pendingLoot !== undefined ? [...save.pendingLoot] : [];
     // A mid-combat save (v5+) carries the encounter; restore it so the run
     // resumes mid-fight. Otherwise an in-combat status degrades to exploring.
     if (save.status === 'in_combat' && save.combat !== undefined) {
@@ -406,6 +415,9 @@ export class RunSession {
     // grants XP (T-111) by tier.
     this.bankVein(veinFromKills(finalState.enemies, this.registry));
     this.grantXp(xpFromKills(finalState.enemies, this.registry));
+    // Item drops (T-445, GDD §9.4): roll loot per fallen enemy from the floor
+    // pool onto the pending-pickup pile (consumed by the pickup flow, T-447).
+    this.rollKillLoot(finalState.enemies);
 
     if (this.current === this.floorData.bossRoomId) {
       // Floor loot: the ambient per-floor VEIN constant (loot rooms, GDD §9) banks
@@ -558,6 +570,55 @@ export class RunSession {
     this.player = { ...player, items: swapInInventory(player.items, dropId, incoming) };
   }
 
+  // ── Loot pickup (T-445/T-446) ──────────────────────────────────────────────
+
+  /** Rolls item drops for the fallen enemies onto the pending-pickup pile. */
+  private rollKillLoot(enemies: readonly EnemyState[]): void {
+    if (this.itemPool.length === 0) return; // no item content → no drops
+    const rng = makeRng((this.masterSeed ^ Math.imul(this.floorNumber, 0x27d4eb2f) ^ hashString(this.current)) >>> 0, 'loot');
+    for (const e of enemies) {
+      if (e.hp > 0) continue; // only the fallen drop
+      const tier = this.registry.get(e.enemyDefId)?.tier;
+      if (tier !== undefined) this.pendingLoot.push(...rollItemDrops(tier, this.itemPool, rng));
+    }
+  }
+
+  /** Adds an item to the pending-pickup pile directly (loot rooms, T-446). */
+  addPendingLoot(item: ItemDef): void {
+    this.pendingLoot.push(item);
+  }
+
+  /** Drops awaiting pickup (enemy kills, loot rooms). The pickup UI reads this. */
+  lootPending(): readonly ItemDef[] {
+    return [...this.pendingLoot];
+  }
+
+  /**
+   * Picks up a pending item: adds it (consuming the pending entry), or — when its
+   * category is full — swaps it for `swapDropId`. Returns `needsSwap` when full
+   * and no `swapDropId` was given, so the UI can open the drop-to-swap modal.
+   */
+  takeLoot(itemId: string, swapDropId?: string): { readonly taken: boolean; readonly needsSwap: boolean } {
+    const idx = this.pendingLoot.findIndex((i) => i.id === itemId);
+    if (idx === -1) return { taken: false, needsSwap: false };
+    const item = this.pendingLoot[idx]!;
+    if (this.canCarry(item)) {
+      this.addItem(item);
+    } else if (swapDropId !== undefined) {
+      this.swapItem(swapDropId, item);
+    } else {
+      return { taken: false, needsSwap: true }; // full → caller opens the swap modal
+    }
+    this.pendingLoot.splice(idx, 1);
+    return { taken: true, needsSwap: false };
+  }
+
+  /** Leaves a pending item behind (the "discard" option), removing it unclaimed. */
+  discardLoot(itemId: string): void {
+    const idx = this.pendingLoot.findIndex((i) => i.id === itemId);
+    if (idx !== -1) this.pendingLoot.splice(idx, 1);
+  }
+
   /** Banks VEIN income: raises both the spendable balance and the lifetime
    *  earned total (the latter drives the run-end Shard conversion, T-113). */
   private bankVein(amount: number): void {
@@ -703,6 +764,7 @@ export class RunSession {
     this.dispenserStockByRoom = new Map(); // fresh shelves each floor (GDD §10.3)
     this.combatState = null; // a new floor is never mid-combat
     this.combatRngState = 0;
+    this.pendingLoot = []; // uncollected loot doesn't follow you down a floor
     this.autoClearIfTrivial(this.current);
     this.restIfSafe(this.current);
     this.status = 'exploring';

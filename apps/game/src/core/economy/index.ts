@@ -47,3 +47,5 @@ export {
   DISPENSER_MAX_STOCK,
   type DispenserStockParams,
 } from './dispenser-stock';
+
+export { rollItemDrops } from './item-drops';
