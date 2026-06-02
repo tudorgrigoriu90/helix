@@ -86,7 +86,7 @@ const FINAL_FLOOR = 2; // short, winnable demo descent (beat the Floor 2 boss to
 // so the short 2-floor demo still shows the mutation pick.
 const STRAND_INTERVAL = 1;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'over';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'over' | 'loot' | 'swap';
 
 export class RunSandboxScene extends Phaser.Scene {
   private session!: RunSession;
@@ -118,6 +118,8 @@ export class RunSandboxScene extends Phaser.Scene {
   private view: View = 'map';
   private combat: RunState | null = null;
   private combatRng!: Mulberry32;
+  /** A loot item awaiting a drop-to-swap choice (its category is full). */
+  private swapIncoming: ItemDef | null = null;
   /** Active ability/item awaiting a target tap (null = not targeting). */
   private targeting:
     | { readonly kind: 'ability'; readonly slot: AbilitySlot }
@@ -341,6 +343,7 @@ export class RunSandboxScene extends Phaser.Scene {
       // the companion speak. (loot/merchant/trap rooms are content stubs for now.)
       if (room.type === 'lace_event') this.say('generic');
       else if (room.type === 'merchant') this.openDispenser();
+      this.maybeShowLoot(); // a loot room just dropped an item (T-446/T-447)
       this.persist();
       this.renderAll();
       return;
@@ -714,6 +717,8 @@ export class RunSandboxScene extends Phaser.Scene {
     if (this.view === 'map' && this.session.snapshot.pendingStatPoints > 0) {
       this.view = 'levelup';
     }
+    // Then any item drops from the kill (T-445/T-447) — after the level-up.
+    this.maybeShowLoot();
   }
 
   /** Folds the finished run into the persistent profile (T-113/T-114b): banks
@@ -751,6 +756,8 @@ export class RunSandboxScene extends Phaser.Scene {
     else if (this.view === 'strand') this.renderStrand();
     else if (this.view === 'shop') this.renderShop();
     else if (this.view === 'levelup') this.renderLevelUp();
+    else if (this.view === 'loot') this.renderLoot();
+    else if (this.view === 'swap') this.renderSwap();
     else this.renderOver();
 
     this.renderButtons();
@@ -1081,6 +1088,101 @@ export class RunSandboxScene extends Phaser.Scene {
     });
   }
 
+  // ── Loot pickup (T-447) + drop-to-swap (model b) ────────────────────────────
+
+  /** Switch to the loot view if there's loot waiting and we're idle on the map. */
+  private maybeShowLoot(): void {
+    if (this.view === 'map' && this.session.lootPending().length > 0) this.view = 'loot';
+  }
+
+  /** Short "+6 RES, +10 HP" style summary of an item's passive modifiers (T-444). */
+  private static modifierLine(item: ItemDef): string {
+    const mods = item.modifiers ?? [];
+    if (mods.length === 0) return RunSandboxScene.itemSummary(item);
+    return mods
+      .map((m) => (m.kind === 'stat' ? `+${m.delta} ${m.stat.toUpperCase()}` : m.kind === 'maxHp' ? `+${m.delta} HP` : `+${m.delta} AP`))
+      .join(', ');
+  }
+
+  private itemRow(item: ItemDef, i: number, top: number, onTap: () => void): void {
+    const x = 16;
+    const y = top + i * 60;
+    const w = W - 32;
+    this.stage.fillStyle(0x12243a).fillRoundedRect(x, y, w, 52, 8);
+    this.stage.lineStyle(1, H.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
+    this.transient.push(
+      this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: C.text }),
+      this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}`, { fontFamily: 'monospace', fontSize: '9px', color: C.dim }),
+      this.add.text(x + w - 12, y + 26, RunSandboxScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5),
+    );
+    const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    z.on('pointerdown', onTap);
+    this.buttonZones.push(z);
+  }
+
+  private renderLoot(): void {
+    const pending = this.session.lootPending();
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 12, 'LOOT FOUND', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 34, 'tap to take · LEAVE drops the rest', { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0),
+    );
+    pending.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 60, () => this.onTakeLoot(item)));
+  }
+
+  private onTakeLoot(item: ItemDef): void {
+    const res = this.session.takeLoot(item.id);
+    if (res.needsSwap) {
+      this.swapIncoming = item;
+      this.view = 'swap';
+    } else if (res.taken) {
+      playSfx(this, 'ui_click');
+      if (this.session.lootPending().length === 0) this.view = 'map';
+    }
+    this.persist();
+    this.renderAll();
+  }
+
+  private renderSwap(): void {
+    const incoming = this.swapIncoming;
+    if (incoming === null) { this.view = 'loot'; this.renderAll(); return; }
+    const { count, limit } = this.session.inventory()[incoming.category];
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 12, 'INVENTORY FULL', { fontFamily: 'monospace', fontSize: '14px', color: C.red }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 34, `your ${incoming.category} slots are full (${count}/${limit})`, { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 50, `take ${incoming.name} — tap an item below to drop for it`, { fontFamily: 'monospace', fontSize: '10px', color: C.yellow }).setOrigin(0.5, 0),
+    );
+    const carried = this.session.snapshot.player.items.filter((i) => i.category === incoming.category);
+    carried.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 78, () => this.onSwapPick(item.id)));
+  }
+
+  private onSwapPick(dropId: string): void {
+    if (this.swapIncoming === null) return;
+    this.session.takeLoot(this.swapIncoming.id, dropId); // drop `dropId`, take the incoming
+    playSfx(this, 'ui_click');
+    this.swapIncoming = null;
+    this.view = this.session.lootPending().length > 0 ? 'loot' : 'map';
+    this.persist();
+    this.renderAll();
+  }
+
+  /** LEAVE IT: skip the item that needed a swap, keep any other pending loot. */
+  private leaveSwap(): void {
+    if (this.swapIncoming !== null) this.session.discardLoot(this.swapIncoming.id);
+    this.swapIncoming = null;
+    this.view = this.session.lootPending().length > 0 ? 'loot' : 'map';
+    this.persist();
+    this.renderAll();
+  }
+
+  /** LEAVE: drop the remaining pending loot and return to the map. */
+  private leaveLoot(): void {
+    for (const item of this.session.lootPending()) this.session.discardLoot(item.id);
+    this.swapIncoming = null;
+    this.view = 'map';
+    this.persist();
+    this.renderAll();
+  }
+
   // ── Strand Event rendering ──────────────────────────────────────────────────
 
   private strandCardRect(i: number): { x: number; y: number; w: number; h: number } {
@@ -1219,6 +1321,14 @@ export class RunSandboxScene extends Phaser.Scene {
     }
     if (this.view === 'shop') {
       this.button(20, 'LEAVE', C.green, () => this.leaveDispenser());
+      return;
+    }
+    if (this.view === 'loot') {
+      this.button(20, 'LEAVE', C.dim, () => this.leaveLoot());
+      return;
+    }
+    if (this.view === 'swap') {
+      this.button(20, 'LEAVE IT', C.dim, () => this.leaveSwap());
       return;
     }
     // Level-up: no bottom buttons — you must spend every pending point (tap a
