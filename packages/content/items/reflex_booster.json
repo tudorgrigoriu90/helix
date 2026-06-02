@@ -4,5 +4,6 @@
   "name": "Reflex Booster",
   "rarity": "common",
   "category": "passive",
-  "effect": null
+  "effect": null,
+  "modifiers": [{ "kind": "stat", "stat": "agi", "delta": 4 }]
 }

@@ -24,6 +24,7 @@ import {
   hasRoomFor,
   inventoryCounts,
 } from './inventory';
+import { equipItem, unequipItem } from './item-effects';
 import type { ItemCategory } from '@shared-types/item';
 import {
   veinForKill,
@@ -533,21 +534,28 @@ export class RunSession {
     return hasRoomFor(this.player.items, item.category);
   }
 
-  /** Adds `item` if its category has room. Returns false when full (→ swap). */
+  /** Adds `item` if its category has room, folding in its passive modifiers
+   *  (T-444). Returns false when full (→ caller offers a swap). */
   addItem(item: ItemDef): boolean {
     const res = addToInventory(this.player.items, item);
-    if (res.added) this.player = { ...this.player, items: res.items };
+    if (res.added) this.player = { ...equipItem(this.player, item), items: res.items };
     return res.added;
   }
 
-  /** Drops the first item with `itemId` (no-op if absent). */
+  /** Drops the first item with `itemId` (no-op if absent), reversing its modifiers. */
   dropItem(itemId: string): void {
-    this.player = { ...this.player, items: dropFromInventory(this.player.items, itemId) };
+    const dropped = this.player.items.find((i) => i.id === itemId);
+    const player = dropped !== undefined ? unequipItem(this.player, dropped) : this.player;
+    this.player = { ...player, items: dropFromInventory(player.items, itemId) };
   }
 
-  /** Drops `dropId` and adds `incoming` in one step — the make-room swap (model b). */
+  /** Drops `dropId` and adds `incoming` in one step — the make-room swap (model b),
+   *  reversing the dropped item's modifiers and folding in the incoming one's. */
   swapItem(dropId: string, incoming: ItemDef): void {
-    this.player = { ...this.player, items: swapInInventory(this.player.items, dropId, incoming) };
+    const dropped = this.player.items.find((i) => i.id === dropId);
+    let player = dropped !== undefined ? unequipItem(this.player, dropped) : this.player;
+    player = equipItem(player, incoming);
+    this.player = { ...player, items: swapInInventory(player.items, dropId, incoming) };
   }
 
   /** Banks VEIN income: raises both the spendable balance and the lifetime

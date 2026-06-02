@@ -1,6 +1,6 @@
-import type { ItemCategory, ItemDef, ItemEffect, ItemRarity } from '@shared-types/item';
+import type { ItemCategory, ItemDef, ItemEffect, ItemModifier, ItemRarity } from '@shared-types/item';
 import { CURRENT_ITEM_SCHEMA_VERSION } from '@shared-types/item';
-import type { DamageType, StatusEffect } from '@shared-types/run-state';
+import type { DamageType, EntityStats, StatusEffect } from '@shared-types/run-state';
 import type { ContentError } from './validation';
 import {
   asObject,
@@ -35,6 +35,7 @@ const VALID_STATUSES = new Set<StatusEffect>([
   'burn', 'infected', 'stagger', 'suppressed', 'fractured',
   'crushed', 'rooted', 'phased', 'regenerating', 'overheated',
 ]);
+const VALID_STATS = new Set<keyof EntityStats>(['str', 'res', 'agi', 'int']);
 
 function isPositiveInt(v: unknown): v is number {
   return isFiniteNumber(v) && Number.isInteger(v) && v >= 1;
@@ -102,6 +103,36 @@ function readEffect(category: ItemCategory, raw: unknown): ItemEffect | null | C
   }
 }
 
+/** Validates the optional `modifiers` array (passive/equipment always-on stats). */
+function readModifiers(raw: unknown): readonly ItemModifier[] | ContentError {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) {
+    return contentError('WRONG_TYPE', 'modifiers must be an array', 'modifiers');
+  }
+  const out: ItemModifier[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const m: unknown = raw[i];
+    if (!isPlainObject(m)) {
+      return contentError('WRONG_TYPE', `modifiers[${i}] must be an object`, `modifiers.${i}`);
+    }
+    const kind = m['kind'];
+    if (!isFiniteNumber(m['delta']) || !Number.isInteger(m['delta'])) {
+      return contentError('INVALID_VALUE', `modifiers[${i}].delta must be an integer`, `modifiers.${i}.delta`);
+    }
+    if (kind === 'stat') {
+      if (!VALID_STATS.has(m['stat'] as keyof EntityStats)) {
+        return contentError('INVALID_VALUE', `modifiers[${i}].stat is not a valid stat`, `modifiers.${i}.stat`);
+      }
+      out.push({ kind: 'stat', stat: m['stat'] as keyof EntityStats, delta: m['delta'] });
+    } else if (kind === 'maxHp' || kind === 'maxAp') {
+      out.push({ kind, delta: m['delta'] });
+    } else {
+      return contentError('INVALID_VALUE', `modifiers[${i}].kind "${String(kind)}" is not recognised`, `modifiers.${i}.kind`);
+    }
+  }
+  return out;
+}
+
 export function parseItemDef(input: unknown): ItemLoaderResult {
   const payload = asObject(input);
   if (isContentError(payload)) return { ok: false, error: payload };
@@ -124,5 +155,12 @@ export function parseItemDef(input: unknown): ItemLoaderResult {
   const effect = readEffect(category, payload['effect']);
   if (isContentError(effect)) return { ok: false, error: effect };
 
-  return { ok: true, item: { id, name, rarity, category, effect } };
+  const modifiers = readModifiers(payload['modifiers']);
+  if (isContentError(modifiers)) return { ok: false, error: modifiers };
+
+  // Omit `modifiers` when empty so plain consumables keep their lean shape (NFR P8).
+  return {
+    ok: true,
+    item: modifiers.length > 0 ? { id, name, rarity, category, effect, modifiers } : { id, name, rarity, category, effect },
+  };
 }

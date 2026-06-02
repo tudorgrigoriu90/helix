@@ -4,5 +4,6 @@
   "name": "Chitin Plate",
   "rarity": "common",
   "category": "passive",
-  "effect": null
+  "effect": null,
+  "modifiers": [{ "kind": "stat", "stat": "res", "delta": 6 }]
 }

@@ -4,5 +4,6 @@
   "name": "Depth Gauge",
   "rarity": "common",
   "category": "passive",
-  "effect": null
+  "effect": null,
+  "modifiers": [{ "kind": "maxHp", "delta": 10 }]
 }

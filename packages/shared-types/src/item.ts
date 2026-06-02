@@ -1,6 +1,17 @@
-import type { DamageType, StatusEffect } from './run-state.js';
+import type { DamageType, EntityStats, StatusEffect } from './run-state.js';
 
 export type ItemCategory = 'consumable' | 'passive' | 'equipment';
+
+/**
+ * Always-on stat effect of a passive/equipment item (GDD §9.2 — e.g. Depth Gauge
+ * +10 HP, Fault Liner +5 RES). Same shape as a mutation modifier: applied when
+ * the item is equipped (carried) and reversed when it's dropped. `delta` may be
+ * negative (cursed items, T-449). Consumables use `effect`, not `modifiers`.
+ */
+export type ItemModifier =
+  | { readonly kind: 'stat'; readonly stat: keyof EntityStats; readonly delta: number }
+  | { readonly kind: 'maxHp'; readonly delta: number }
+  | { readonly kind: 'maxAp'; readonly delta: number };
 
 /** Drop-rarity band (GDD §9.2). Drives drop tables + Dispenser pricing. */
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -32,6 +43,11 @@ export interface ItemDef {
   readonly category: ItemCategory;
   /** Use-effect for consumables; null for passive/equipment. */
   readonly effect: ItemEffect | null;
+  /**
+   * Always-on stat modifiers, applied while the item is carried (passives +
+   * equipment, T-444). Absent/empty for plain consumables. Reversed on drop.
+   */
+  readonly modifiers?: readonly ItemModifier[];
 }
 
 /** Current item-content schema version. Increment when the on-disk shape changes. */

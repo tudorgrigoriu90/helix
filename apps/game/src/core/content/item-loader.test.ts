@@ -56,6 +56,23 @@ describe('parseItemDef — T-284', () => {
     if (res.ok) expect(res.item.effect).toBeNull();
   });
 
+  it('parses a passive with always-on modifiers (T-444)', () => {
+    const res = parseItemDef({
+      schemaVersion: 1, id: 'depth_gauge', name: 'Depth Gauge', rarity: 'common', category: 'passive', effect: null,
+      modifiers: [{ kind: 'maxHp', delta: 10 }, { kind: 'stat', stat: 'res', delta: 6 }],
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.item.modifiers).toEqual([{ kind: 'maxHp', delta: 10 }, { kind: 'stat', stat: 'res', delta: 6 }]);
+  });
+
+  it('rejects malformed modifiers (bad stat, non-integer delta, bad kind)', () => {
+    const base = { schemaVersion: 1, id: 'x', name: 'X', rarity: 'common', category: 'passive', effect: null };
+    expect(parseItemDef({ ...base, modifiers: [{ kind: 'stat', stat: 'luck', delta: 1 }] }).ok).toBe(false);
+    expect(parseItemDef({ ...base, modifiers: [{ kind: 'maxHp', delta: 1.5 }] }).ok).toBe(false);
+    expect(parseItemDef({ ...base, modifiers: [{ kind: 'wat', delta: 1 }] }).ok).toBe(false);
+    expect(parseItemDef({ ...base, modifiers: 'nope' }).ok).toBe(false);
+  });
+
   it('rejects a consumable with no effect', () => {
     const raw = healRaw();
     delete raw['effect'];

@@ -52,4 +52,22 @@ describe('RunSession — inventory slots (T-443, GDD §9.5)', () => {
     expect(s.inventory().consumable.count).toBe(3);
     expect(s.canCarry(mk('consumable', 'c'))).toBe(true); // 3/6
   });
+
+  it('adding a passive applies its modifiers; dropping/swapping reverses them (T-444)', () => {
+    const s = session();
+    const baseHp = s.snapshot.player.maxHp;
+    const baseRes = s.snapshot.player.stats.res;
+    const gauge: ItemDef = { id: 'gauge', name: 'Gauge', rarity: 'common', category: 'passive', effect: null, modifiers: [{ kind: 'maxHp', delta: 10 }] };
+    const plate: ItemDef = { id: 'plate', name: 'Plate', rarity: 'common', category: 'passive', effect: null, modifiers: [{ kind: 'stat', stat: 'res', delta: 6 }] };
+
+    s.addItem(gauge);
+    expect(s.snapshot.player.maxHp).toBe(baseHp + 10);
+    s.dropItem('gauge');
+    expect(s.snapshot.player.maxHp).toBe(baseHp); // reversed
+
+    s.addItem(gauge);
+    s.swapItem('gauge', plate); // drop gauge (+10 HP off), take plate (+6 RES on)
+    expect(s.snapshot.player.maxHp).toBe(baseHp);
+    expect(s.snapshot.player.stats.res).toBe(baseRes + 6);
+  });
 });
