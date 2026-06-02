@@ -7,7 +7,7 @@ import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import { makeRng } from '../rng/mulberry32';
 import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances } from '../floor-gen';
-import { RunSession } from './run-session';
+import { RunSession, CURRENT_RUN_SESSION_SAVE_VERSION } from './run-session';
 import { buildEnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
 
@@ -262,7 +262,7 @@ describe('RunSession — Strand Events', () => {
     s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
     const save = s.toSave();
     expect(save.sig).toBeGreaterThan(0);
-    expect(save.schemaVersion).toBe(4);
+    expect(save.schemaVersion).toBe(CURRENT_RUN_SESSION_SAVE_VERSION);
 
     const resumed = new RunSession({
       seed: 4, template: template(), registry, mutations: POOL, strandEventEveryNFloors: 1,

@@ -194,6 +194,17 @@ export class RunSandboxScene extends Phaser.Scene {
     this.targeting = null;
     this.laceText.setText('LACE: ...you came back. The VEIN remembers where it left you.');
     playMusic(this, 'music_run');
+    // A run saved mid-combat resumes straight back into the fight (T-114), with
+    // the combat RNG restored so rolls stay deterministic across the reload.
+    const active = this.session.activeCombat();
+    if (active !== null) {
+      this.combat = active.state;
+      this.combatRng = new Mulberry32(active.rngState);
+      if (this.session.currentRoom().type === 'boss') playMusic(this, 'music_boss');
+      this.view = 'combat';
+      this.renderAll();
+      return;
+    }
     // A run saved mid-Strand-Event resumes straight into the pick; one with
     // unspent level-up points resumes into the allocation screen.
     if (save.status === 'strand_event') {
@@ -319,6 +330,10 @@ export class RunSandboxScene extends Phaser.Scene {
     this.combatRng = makeRng(encounter.seed, 'combat');
     this.targeting = null;
     this.view = 'combat';
+    // Save-on-action (T-114): the run is now mid-fight — persist the encounter so
+    // a reload resumes it rather than re-entering the room.
+    this.session.syncCombat(this.combat, this.combatRng.state);
+    this.persist();
     this.renderAll();
   }
 
@@ -530,8 +545,12 @@ export class RunSandboxScene extends Phaser.Scene {
       else if (action.type === 'useAbility') playSfx(this, 'sfx_ability');
       else if (action.type === 'useItem') playSfx(this, 'sfx_item');
       this.combat = result.state;
+      this.session.syncCombat(result.state, this.combatRng.state);
       this.reactToCombatEffects(result.effects);
       this.maybeEndCombat();
+      // Save-on-action (T-114): persist every turn while the fight continues
+      // (maybeEndCombat already persists/clears on a terminal result).
+      if (this.combat !== null) this.persist();
     }
     this.renderAll();
   }

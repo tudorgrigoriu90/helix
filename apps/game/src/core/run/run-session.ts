@@ -75,8 +75,9 @@ export interface RunSnapshot {
 
 /** Schema version for the persisted run-session shape.
  *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
- *  v4 added `veinEarned`. Older saves load fine — missing fields default to 0. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 4;
+ *  v4 added `veinEarned`; v5 added mid-combat persistence (`combat` +
+ *  `combatRngState`). Older saves load fine — missing fields default to 0/none. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 5;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -101,6 +102,16 @@ export interface RunSessionSave {
   readonly pendingStatPoints?: number;
   /** Lifetime VEIN earned this run (added in save v4; absent → 0). */
   readonly veinEarned?: number;
+  /**
+   * The live combat state, present only when `status === 'in_combat'` and the
+   * scene has synced it via {@link RunSession.syncCombat} (save v5). Its presence
+   * is what lets a run resume *mid-fight* rather than re-entering the room. Absent
+   * → the run resumes exploring at `currentRoomId` (the pre-v5 behaviour).
+   */
+  readonly combat?: RunState;
+  /** The combat RNG's state word at save time, so crit/AI rolls stay deterministic
+   *  across the resume (NFR P2). Paired with {@link combat}; added in save v5. */
+  readonly combatRngState?: number;
 }
 
 export interface RunSessionOptions {
@@ -187,6 +198,10 @@ export class RunSession {
   private strandRng: Mulberry32 | null = null;
   private strandOutcome: StrandOutcome | null = null;
   private strandCards: readonly DrawnCard[] = [];
+  // Live combat state, kept current by the scene via syncCombat so a save can
+  // resume mid-fight (T-114). Null whenever the run isn't in an active encounter.
+  private combatState: RunState | null = null;
+  private combatRngState = 0;
 
   constructor(options: RunSessionOptions) {
     this.masterSeed = options.seed;
@@ -222,35 +237,40 @@ export class RunSession {
     return this.floorData;
   }
 
-  /** Serialisable snapshot for save/resume. Combat is not persisted — an
-   *  in-combat save resumes at the room (exploring) it was entered from. */
+  /**
+   * Serialisable snapshot for save/resume. When the scene has synced a live
+   * encounter (T-114), an in-combat save carries the full combat state so the
+   * run resumes mid-fight; otherwise an in-combat save degrades to resuming at
+   * the room (exploring). A Strand Event is preserved — its offer regenerates
+   * deterministically on resume.
+   */
   toSave(): RunSessionSave {
+    const persistCombat = this.status === 'in_combat' && this.combatState !== null;
     return {
       schemaVersion: CURRENT_RUN_SESSION_SAVE_VERSION,
       seed: this.masterSeed,
       floorNumber: this.floorNumber,
       currentRoomId: this.current,
       clearedRoomIds: [...this.cleared],
-      // In-combat saves resume at the room (exploring); a Strand Event is
-      // preserved and its offer regenerates deterministically on resume.
-      status: this.status === 'in_combat' ? 'exploring' : this.status,
+      status: this.status === 'in_combat' && !persistCombat ? 'exploring' : this.status,
       player: this.player,
       sig: this.sig,
       veinCrystals: this.veinCrystals,
       veinEarned: this.veinEarned,
       xp: this.xp,
       pendingStatPoints: this.pendingStatPoints,
+      ...(persistCombat ? { combat: this.combatState!, combatRngState: this.combatRngState } : {}),
     };
   }
 
   /** Restores a saved run: regenerates the floor deterministically, then
-   *  overlays the saved position, cleared set, player, status, and run currencies. */
+   *  overlays the saved position, cleared set, player, status, currencies, and —
+   *  when present — the live combat encounter (T-114). */
   applySave(save: RunSessionSave): void {
     this.loadFloor(save.floorNumber);
     this.current = save.currentRoomId;
     this.cleared = new Set(save.clearedRoomIds);
     this.player = save.player;
-    this.status = save.status === 'in_combat' ? 'exploring' : save.status;
     this.sig = save.sig ?? 0; // absent in v1 saves
     this.veinCrystals = save.veinCrystals ?? 0;
     this.xp = save.xp ?? 0; // absent in pre-v3 saves
@@ -258,6 +278,17 @@ export class RunSession {
     // Pre-v4 saves lack veinEarned; fall back to the spendable balance as a
     // lower-bound estimate of income so resumed runs still convert some Shards.
     this.veinEarned = save.veinEarned ?? this.veinCrystals;
+    // A mid-combat save (v5+) carries the encounter; restore it so the run
+    // resumes mid-fight. Otherwise an in-combat status degrades to exploring.
+    if (save.status === 'in_combat' && save.combat !== undefined) {
+      this.status = 'in_combat';
+      this.combatState = save.combat;
+      this.combatRngState = (save.combatRngState ?? 0) >>> 0;
+    } else {
+      this.status = save.status === 'in_combat' ? 'exploring' : save.status;
+      this.combatState = null;
+      this.combatRngState = 0;
+    }
   }
 
   currentRoom(): PopulatedRoom {
@@ -311,11 +342,33 @@ export class RunSession {
     });
   }
 
+  /**
+   * The save-on-action hook (T-114, TDD §5.5): the scene calls this after every
+   * combat action with the new state and the combat RNG's state word, so a save
+   * taken mid-fight captures exact progress (and resumes deterministically).
+   */
+  syncCombat(state: RunState, rngState: number): void {
+    if (this.status !== 'in_combat') {
+      throw new Error(`syncCombat: not in combat (status: ${this.status})`);
+    }
+    this.combatState = state;
+    this.combatRngState = rngState >>> 0;
+  }
+
+  /** The live encounter to resume after a mid-combat restore, or null if none.
+   *  The scene rebuilds its combat RNG from `rngState` and re-enters the fight. */
+  activeCombat(): { readonly state: RunState; readonly rngState: number } | null {
+    return this.combatState === null ? null : { state: this.combatState, rngState: this.combatRngState };
+  }
+
   /** Applies a terminal combat result: carry the player, clear the room, or end the run. */
   endEncounter(finalState: RunState): void {
     if (this.status !== 'in_combat') {
       throw new Error(`endEncounter: not in combat (status: ${this.status})`);
     }
+    // The encounter is over — drop the persisted combat state.
+    this.combatState = null;
+    this.combatRngState = 0;
     if (finalState.phase === 'defeat') {
       this.player = finalState.player;
       this.status = 'defeat';
@@ -572,6 +625,8 @@ export class RunSession {
     this.current = this.floorData.startRoomId;
     this.cleared = new Set<string>();
     this.dispenserStockByRoom = new Map(); // fresh shelves each floor (GDD §10.3)
+    this.combatState = null; // a new floor is never mid-combat
+    this.combatRngState = 0;
     this.autoClearIfTrivial(this.current);
     this.restIfSafe(this.current);
     this.status = 'exploring';

@@ -57,6 +57,13 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     ) {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save failed the structural check' } };
     }
+    // Mid-combat saves (v5+) carry the live encounter; if present it must be a
+    // RunState-shaped object with a player. (applySave still degrades gracefully
+    // to exploring when it's absent.)
+    const combat = parsed['combat'];
+    if (combat !== undefined && (!isObject(combat) || !isPlayerShape(combat['player']) || !isObject(combat['grid']))) {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed combat state' } };
+    }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };
   },
