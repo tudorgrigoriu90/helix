@@ -3,7 +3,7 @@ import type { FloorTemplate, RoomType } from '@shared-types/floor-template';
 import type { TypedRoom } from '@shared-types/floor-plan';
 import type { Position } from '@shared-types/action';
 import { Mulberry32 } from '../rng/mulberry32';
-import { buildRoom } from './encounter';
+import { buildRoom, COMBAT_ROOM_MIN_SIZE, COMBAT_ROOM_MAX_SIZE } from './encounter';
 
 function template(over: Partial<FloorTemplate> = {}): FloorTemplate {
   return {
@@ -36,6 +36,34 @@ function hazardTiles(grid: { width: number; height: number; tiles: readonly stri
   }
   return out;
 }
+
+describe('buildRoom — randomised combat room size (GDD §6.1)', () => {
+  it('randomises each side within the combat range, and varies across seeds', () => {
+    const t = template();
+    const widths = new Set<number>();
+    const heights = new Set<number>();
+    for (let seed = 1; seed <= 60; seed++) {
+      const room = buildRoom(typed('r1', 'combat'), t, new Mulberry32(seed));
+      expect(room.grid.width, `seed ${seed}`).toBeGreaterThanOrEqual(COMBAT_ROOM_MIN_SIZE);
+      expect(room.grid.width, `seed ${seed}`).toBeLessThanOrEqual(COMBAT_ROOM_MAX_SIZE);
+      expect(room.grid.height, `seed ${seed}`).toBeGreaterThanOrEqual(COMBAT_ROOM_MIN_SIZE);
+      expect(room.grid.height, `seed ${seed}`).toBeLessThanOrEqual(COMBAT_ROOM_MAX_SIZE);
+      expect(room.grid.tiles).toHaveLength(room.grid.width * room.grid.height);
+      widths.add(room.grid.width);
+      heights.add(room.grid.height);
+    }
+    // The point of the change: rooms aren't all one fixed size any more.
+    expect(widths.size).toBeGreaterThan(1);
+    expect(heights.size).toBeGreaterThan(1);
+  });
+
+  it('is deterministic — same (room, seed) yields the same dimensions', () => {
+    const t = template();
+    const a = buildRoom(typed('r1', 'combat'), t, new Mulberry32(42));
+    const b = buildRoom(typed('r1', 'combat'), t, new Mulberry32(42));
+    expect({ w: a.grid.width, h: a.grid.height }).toEqual({ w: b.grid.width, h: b.grid.height });
+  });
+});
 
 describe('buildRoom — T-74 enemy placement', () => {
   it('combat rooms get 2-4 enemies, all drawn from the pool', () => {

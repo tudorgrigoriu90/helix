@@ -33,7 +33,7 @@ const bossRoom = (t: FloorTemplate, seed: number): ReturnType<typeof buildRoom> 
   buildRoom({ id: 'rb', pos: { x: 9, y: 9 }, type: 'boss' } as TypedRoom, t, new Mulberry32(seed));
 
 describe('boss-room handling — T-77', () => {
-  it('uses the 10x10 boss arena, larger than a standard room', () => {
+  it('uses the square boss arena, larger than the reference room', () => {
     const room = bossRoom(template(), 1);
     expect(room.grid.width).toBe(BOSS_ROOM_SIZE);
     expect(room.grid.height).toBe(BOSS_ROOM_SIZE);

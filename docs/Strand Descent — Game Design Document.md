@@ -463,9 +463,18 @@ Full stat blocks live in Appendix A. Overview:
 
 ### 6.1 Grid
 
-- Combat rooms: **7×7 tile grid**
-- Boss rooms: **10×10 tile grid**
-- Special rooms (event rooms): may use irregular layouts
+- Combat rooms: **randomised, each side 10–14 tiles** (varied rectangular rooms; updated 2026-06-02 from the original fixed 7×7 — fights felt cramped and samey).
+- Boss rooms: **14×14 tile grid** (the largest arena).
+- Special rooms (event rooms): may use irregular layouts.
+
+**Room-size roadmap — toward 100×100.** The design target is much larger, explorable rooms (up to ~100×100). This is *not* limited by the turn engine — its per-turn cost is O(enemies), independent of tile count (TDD §7.3) — but by presentation. The current 10–14 ceiling keeps a room legible whole-on-screen on a phone; scaling past ~15 per side requires, in order: a **scrolling camera** that follows the player, **fog of war + viewport culling** (render only seen/on-screen tiles, §6.1a), and **pathfinding enemy AI** (greedy chase gets stuck on walls in large rooms). Until those land, rooms stay in the 10–14 band.
+
+#### 6.1a Visibility & Fog of War
+
+Two layers of fog (updated 2026-06-02):
+
+- **Map fog (floor minimap):** room outlines are shown but room *type* is hidden until visited; safe rooms are revealed from floor start (see §7.2).
+- **In-room fog (tactical, line-of-sight):** inside a room the player sees only tiles within their vision radius / line of sight; unseen tiles and the enemies on them are hidden until revealed by exploring. **Enemies have vision too** — they stay dormant until they detect the player (line of sight / aggro range), rather than all acting from the moment the room loads. This makes large rooms tense and exploratory and stops a whole room aggroing at once.
 
 Tile types: Open, Wall, Hazard (damage on entry), Cover (-50% incoming ranged), Elevated (+10% damage out), Corruption (spreads 1 tile/turn).
 
@@ -555,7 +564,7 @@ The VEIN has 20 floors across **4 Zones of 5 floors each**. Each Zone has a dist
 6. Place Codex Fragments (0–4 per floor, non-boss rooms)
 7. Seed enemy placements
 
-Minimap shows room outlines but not room type until visited. Safe-room locations are revealed (green) from floor start — the player should always be able to find rest.
+Minimap shows room outlines but not room type until visited. Safe-room locations are revealed (green) from floor start — the player should always be able to find rest. This is the **map-fog** layer; the in-room tactical line-of-sight fog (player + enemy vision) is specified in §6.1a.
 
 ### 7.3 Room Types
 

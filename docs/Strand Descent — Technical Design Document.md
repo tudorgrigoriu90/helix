@@ -434,15 +434,25 @@ Generation pipeline:
 
 ### 7.2 Tile-Based Representation
 
-Floors are 2D grids, max 32×32 tiles per room. Each tile has:
+Rooms are 2D grids. Each tile has:
 
 - `terrain`: walkable, wall, hazard, water, etc.
 - `entity` (optional): enemy, item, door, interactive
 - `effects[]`: ongoing tile effects (fire, spore cloud)
 
+**Room dimensions (updated 2026-06-02).** Combat rooms randomise each side in **10–14** tiles; the boss arena is **14×14** (GDD §6.1). The design target is much larger explorable rooms (up to ~**100×100**). The grid representation already supports this (a flat `width*height` tile array, index `y*width+x`), and the **turn engine cost is O(enemies), not O(tiles)** — enemy AI is a greedy single-step chase, no per-tile pathfinding (§5) — so large rooms do not threaten the per-turn budget (§7.3, §15). The binding constraints are presentation, addressed in this order:
+
+1. **Scrolling camera** that follows the player (a phone fits only ~10–13 tappable tiles per side, so anything larger must scroll).
+2. **Fog of war + viewport culling** — render only on-screen / line-of-sight tiles rather than the whole grid each frame, keeping render cost ~constant regardless of room size. Covers both the player's in-room vision and **enemy vision/aggro** (enemies dormant until they detect the player).
+3. **Pathfinding enemy AI** (BFS/A* over the room) so chase behaviour isn't fooled by walls; even on 100×100 this is sub-millisecond per enemy and stays within the 16ms turn budget.
+
+Until (1)–(2) ship, rooms stay in the 10–14 band so they render whole-on-screen.
+
 ### 7.3 Performance
 
 Generation runs once when floor is entered. **Target <100ms per floor** on mid-tier mobile. Heavy work happens during the floor-transition animation (~1s mask), so player perceives no wait.
+
+Per-turn combat resolution is independent of room size (O(enemies)); the perf harness (T-69) measures p50 well under the 16ms iPhone-X budget with >100× headroom. Large rooms shift the cost to *rendering*, mitigated by the viewport culling above — not to the engine.
 
 Slow seeds (gen >1s) are logged via `system_warning` topic per UFD E051.
 

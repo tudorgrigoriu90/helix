@@ -389,13 +389,29 @@ Plugs the S-3.6 economy core into the live run loop (`core/run/run-session.ts`).
 | T-151 | Tile renderer via Phaser Graphics primitives — **PARTIAL 2026-05-28.** Tiles render via the sprite registry (`scenes/sprites/`): a `<key>.png` if present, else the geometry fallback (the original coloured rects). `tile_open/wall/hazard/cover/elevated/corruption` keys defined. | Frontend | P0       | TDD §21 Q2 | PARTIAL — NFR perf |
 | T-152 | Player entity (runtime-generated geometry) — **PARTIAL 2026-05-30.** Player renders via sprite registry; **real art now ships** — `player.png` sliced from the Kenney Roguelike sheet (was the teal-circle/test fallback). Phaser `pixelArt: true` set so 16px art scales crisply. | Frontend | P0       | TDD §13.5  | PARTIAL — art landed |
 | T-153 | Enemy entities (shape encodes behavior) — **PARTIAL 2026-05-30.** Enemies render by `enemyDefId` through the sprite registry (per-enemy PNG or coloured-circle fallback, grey-tinted when dead). **Sprite pipeline** (2026-05-28): pure `sprite-manifest.ts` (single source of truth, CI-tested to cover every enemy/tile/room/item id) + `sprite-registry.ts` (Phaser loader with graceful per-file fallback) + `public/sprites/` drop-folder + artist spec `docs/SPRITES.md`. **Real art landing** (2026-05-30): all 6 Zone-1 enemies sliced from the Kenney sheet via `tools/tilesheet.cjs` (source + `apps/game/art/sprite-map.json` kept for reproducibility). Per-key delivery tracked below. | Frontend | P0       | GDD §13.3  | PARTIAL — art landing |
-| T-154 | Fog of war                                             | Frontend | P0       | GDD §7.2   | |
+| T-154 | Fog of war (map-level) — minimap reveals room outlines, hides type until visited; safe rooms shown from start | Frontend | P0       | GDD §7.2   | In-room tactical fog is T-441b (see below) |
 | T-155 | Minimap (compact + tap-to-expand)                      | Frontend | P0       | GDD §12.6  | |
 | T-156 | Color-blind friendly minimap (shape glyphs)            | Frontend | P1       | GDD §17    | NFR a11y |
 | T-157 | Player movement input handling                         | Frontend | P0       | UFD 02     | |
 | T-158 | Camera tracking                                        | Frontend | P0       | —          | |
 | T-159 | Enemy threat indicators above heads (in-reach marker + reach overlay; scripted-wind-up icon only for bosses) | Frontend | P0 | GDD §6.2, §6.2.1 | Replaces baseline telegraph icons (cut — see T-64/T-67) |
 | T-160 | Particle effects (ambient per family)                  | Frontend | P1       | GDD §13.3  | |
+
+#### Large rooms & in-room vision (toward 100×100 — GDD §6.1/§6.1a, TDD §7.2)
+
+Combat rooms moved off the original fixed 7×7. The turn engine cost is O(enemies),
+not O(tiles) (TDD §7.3), so the limit on big rooms is *presentation*, not perf —
+these tasks build the path from the current 10–14 band toward the ~100×100 design
+target. (Camera tracking already exists as T-158, also required.)
+
+| ID    | Title                                                  | Role          | Priority | Refs            | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | --------------- | ----- |
+| T-441a | ~~Randomised combat room sizes~~ — **DONE 2026-06-02.** `buildRoom` now randomises each side independently in `[COMBAT_ROOM_MIN_SIZE=10, COMBAT_ROOM_MAX_SIZE=14]` (drawn first from the room rng, deterministic), replacing the fixed 7×7; `BOSS_ROOM_SIZE` bumped 10→14 (largest arena). `STANDARD_ROOM_SIZE=7` kept for Floor 0 + as the reference constant. Win-rate balance gate still 100%/100%/98% (1F/2F/3F). 2 new tests (range + variety, determinism). GDD §6.1 + TDD §7.2 updated. | Game Engineer | P0 | GDD §6.1 | DONE |
+| T-441b | In-room tactical fog / line-of-sight (player vision radius; unseen tiles + enemies hidden until revealed) | Frontend | P0 | GDD §6.1a | The in-combat half of fog; complements map-fog T-154 |
+| T-441c | Enemy vision & aggro-on-detect (enemies dormant until they see the player; no whole-room aggro on load) | Game Engineer | P1 | GDD §6.1a | Combat-AI; pairs with T-441b |
+| T-441d | Viewport culling / tilemap renderer for large rooms (render only on-screen tiles; unlocks >15-per-side up to ~100×100) | Frontend | P1 | TDD §7.2/§7.3 | Extends T-151; needed with T-158 camera |
+| T-441e | Pathfinding enemy AI (BFS/A* chase so walls don't fool it; required for obstacle-rich large rooms) | Game Engineer | P1 | TDD §5 | Greedy chase replaced; sub-ms even at 100×100 |
+| T-442 | ~~Fix off-screen ability button~~ — **DONE 2026-06-02.** The combat ability bar used a fixed `x = 20 + i*178` stride with 170px buttons, so a 3rd ability (granted by a mutation) rendered at x=376 on a 390px screen — only its corner visible/tappable. `renderAbilityBar` now fits all N buttons within the width (dynamic `btnW`, gap, font shrink), so up to the GDD's 6 slots stay on-screen. Reported via playtest. | Frontend | P0 | GDD §12.3 | DONE |
 
 #### Sprite-asset delivery tracker (T-151/152/153)
 

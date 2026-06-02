@@ -873,23 +873,34 @@ export class RunSandboxScene extends Phaser.Scene {
     const state = this.combat;
     if (state === null || state.phase !== 'player') return;
 
+    // Fit every ability button within the screen width — a fixed stride pushed
+    // the 3rd+ ability (granted by a mutation) off the right edge. Width scales
+    // with the count (up to the GDD's 6 slots) so they all stay on-screen + tappable.
+    const n = state.player.abilities.length;
+    if (n === 0) return;
+    const margin = 16;
+    const gap = 6;
+    const btnW = Math.floor((W - 2 * margin - (n - 1) * gap) / n);
+    // Tighten the label when buttons get narrow (many abilities).
+    const fontSize = btnW >= 150 ? '10px' : btnW >= 95 ? '9px' : '8px';
+
     state.player.abilities.forEach((slot, i) => {
-      const x = 20 + i * 178;
+      const x = margin + i * (btnW + gap);
       const ready = slot.cooldownRemaining === 0 && state.player.ap >= slot.def.apCost;
       const active = this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id;
       const border = active ? 0xffdd44 : ready ? H.btnBrd : 0x2a3050;
       const color = active ? C.yellow : ready ? C.green : C.dim;
 
-      this.stage.fillStyle(H.btnBg).fillRoundedRect(x, ABILITY_Y, 170, 32, 6);
-      this.stage.lineStyle(1, border).strokeRoundedRect(x, ABILITY_Y, 170, 32, 6);
+      this.stage.fillStyle(H.btnBg).fillRoundedRect(x, ABILITY_Y, btnW, 32, 6);
+      this.stage.lineStyle(1, border).strokeRoundedRect(x, ABILITY_Y, btnW, 32, 6);
 
       const cd = slot.cooldownRemaining > 0 ? ` cd${slot.cooldownRemaining}` : '';
-      const label = this.add.text(x + 8, ABILITY_Y + 16, `${slot.def.id}  ${slot.def.apCost}AP${cd}`, {
-        fontFamily: 'monospace', fontSize: '10px', color,
+      const label = this.add.text(x + 6, ABILITY_Y + 16, `${slot.def.id} ${slot.def.apCost}AP${cd}`, {
+        fontFamily: 'monospace', fontSize, color, wordWrap: { width: btnW - 10 },
       }).setOrigin(0, 0.5);
       this.transient.push(label);
 
-      const z = this.add.zone(x, ABILITY_Y, 170, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      const z = this.add.zone(x, ABILITY_Y, btnW, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => this.onAbilityButton(slot));
       this.buttonZones.push(z);
     });

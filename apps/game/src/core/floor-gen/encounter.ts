@@ -22,10 +22,24 @@ import type { Mulberry32 } from '../rng/mulberry32';
 
 // ── Tunables ─────────────────────────────────────────────────────────────────
 
-/** Standard combat-room grid (GDD §6.1 reference room). Boss rooms override. */
+/**
+ * Reference / tutorial room side (Floor 0 + the size constant tests pin to).
+ * Procedural combat rooms now randomise their dimensions — see
+ * {@link COMBAT_ROOM_MIN_SIZE}..{@link COMBAT_ROOM_MAX_SIZE}.
+ */
 export const STANDARD_ROOM_SIZE = 7;
-/** Boss arena is larger to give the fight room to breathe (T-77 / GDD §7.4). */
-export const BOSS_ROOM_SIZE = 10;
+/**
+ * Procedural combat rooms randomise each side in this inclusive range (GDD §6.1).
+ * Bumped from the old fixed 7×7 so fights have room to breathe and feel varied.
+ * The ceiling is deliberately conservative: rooms render whole-on-screen today,
+ * so a side stays tappable/readable on a phone. Scaling toward the 100×100 design
+ * target is gated on camera + fog culling + pathfinding (see TDD §7.2/§7.3), not
+ * on the turn engine — its cost is O(enemies), independent of tile count.
+ */
+export const COMBAT_ROOM_MIN_SIZE = 10;
+export const COMBAT_ROOM_MAX_SIZE = 14;
+/** Boss arena — the largest room, sized to the combat ceiling (T-77 / GDD §7.4). */
+export const BOSS_ROOM_SIZE = 14;
 
 /** Inclusive enemy-count range for a standard combat room. */
 const COMBAT_ENEMY_MIN = 2;
@@ -112,7 +126,13 @@ export function buildRoom(
 ): PopulatedRoom {
   if (typed.type === 'boss') return buildBossRoom(typed, template, rng);
 
-  const base = openGrid(STANDARD_ROOM_SIZE, STANDARD_ROOM_SIZE);
+  // Randomise each side independently in the combat range (GDD §6.1). Drawn
+  // first so the size is stable for a given (typed, rng-state); the existing
+  // enemy/hazard draws follow.
+  const span = COMBAT_ROOM_MAX_SIZE - COMBAT_ROOM_MIN_SIZE + 1;
+  const width = COMBAT_ROOM_MIN_SIZE + rng.nextInt(span);
+  const height = COMBAT_ROOM_MIN_SIZE + rng.nextInt(span);
+  const base = openGrid(width, height);
   const playerSpawn = playerSpawnFor(base);
   const enemies = typed.type === 'combat' ? placeCombatEnemies(base, template, rng) : [];
 
