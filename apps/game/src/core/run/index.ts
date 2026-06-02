@@ -7,3 +7,6 @@ export { scaledMaxHp, scaledStats, HP_SCALE_PER_FLOOR, STAT_SCALE_PER_FLOOR } fr
 
 export { RunSession } from './run-session';
 export type { RunStatus, RunSnapshot, RunSessionOptions } from './run-session';
+
+export { decideResume } from './resume-decision';
+export type { ResumeDecision, ResumeSummary } from './resume-decision';

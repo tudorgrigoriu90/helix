@@ -22,6 +22,7 @@ import { parseFloorTemplate } from '../core/floor-gen';
 import { RunSession, buildEnemyRegistry } from '../core/run';
 import { ALLOCATABLE_STATS } from '../core/economy';
 import { restoreRunSession, runSessionCodec } from '../core/run/run-session-save';
+import { decideResume } from '../core/run/resume-decision';
 import type { RunSessionSave } from '../core/run/run-session';
 import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState, recordRunOutcome } from '../core/save';
@@ -174,12 +175,16 @@ export class RunSandboxScene extends Phaser.Scene {
     void this.boot();
   }
 
-  /** Loads the persistent profile, then resumes a saved run or starts fresh. */
+  /** Loads the persistent profile, then resumes a saved run or starts fresh. The
+   *  Resume Run? decision (S100) is delegated to {@link decideResume} (T-117); the
+   *  modal that surfaces the choice to the player is T-136 — the sandbox auto-picks
+   *  "Resume" for now. A missing/corrupt/terminal save falls through to a fresh run. */
   private async boot(): Promise<void> {
     const metaRes = await this.metaSaves.load();
     if (metaRes !== null && metaRes.ok) this.meta = metaRes.value;
     const res = await this.saves.load();
-    if (res !== null && res.ok) this.resumeFrom(res.value);
+    const decision = decideResume(res);
+    if (decision.kind === 'prompt' && res !== null && res.ok) this.resumeFrom(res.value);
     else this.startRun();
   }
 
