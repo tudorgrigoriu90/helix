@@ -37,7 +37,9 @@ const HAZARD_MAX = 3;
 
 // ── Grid helpers ─────────────────────────────────────────────────────────────
 
-function openGrid(width: number, height: number): GridState {
+/** An all-`open` combat grid of the given size. Exported so authored floors
+ *  (e.g. the hardcoded Floor 0, T-137) build grids the same way generation does. */
+export function openGrid(width: number, height: number): GridState {
   return { width, height, tiles: new Array<TileType>(width * height).fill('open') };
 }
 
@@ -68,8 +70,9 @@ function withHazards(grid: GridState, reserved: readonly Position[], rng: Mulber
   return { ...grid, tiles };
 }
 
-/** Player enters at the bottom-centre of the room. */
-function playerSpawnFor(grid: GridState): Position {
+/** Player enters at the bottom-centre of the room. Exported so authored floors
+ *  (Floor 0, T-137) place the player by the same convention as generation. */
+export function playerSpawnFor(grid: GridState): Position {
   return { x: Math.floor(grid.width / 2), y: grid.height - 1 };
 }
 

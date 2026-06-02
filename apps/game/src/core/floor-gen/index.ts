@@ -16,3 +16,6 @@ export { fillRoomTypes } from './room-fill';
 export { buildRoom, STANDARD_ROOM_SIZE, BOSS_ROOM_SIZE } from './encounter';
 
 export { generateFloor, MAX_GEN_ATTEMPTS } from './generate-floor';
+
+export { buildFloorZero, FLOOR_ZERO_NUMBER, FLOOR_ZERO_ROOM_IDS } from './floor-zero';
+export type { FloorZeroOptions } from './floor-zero';
