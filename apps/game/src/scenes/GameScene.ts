@@ -76,7 +76,7 @@ const GC = {
 const FINAL_FLOOR = 20;
 const STRAND_INTERVAL = 5;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory' | 'event';
 
 /**
  * S040+ Production game scene — T-161.
@@ -334,11 +334,13 @@ export class GameScene extends Phaser.Scene {
     const room = this.session.currentRoom();
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
-      if (room.type === 'lace_event') this.say('generic');
+      if (room.type === 'lace_event') this.openEventRoom();
       else if (room.type === 'merchant') this.openDispenser();
-      this.maybeShowLoot();
-      this.persist();
-      this.renderAll();
+      if (this.view !== 'event') {
+        this.maybeShowLoot();
+        this.persist();
+        this.renderAll();
+      }
       return;
     }
     this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
@@ -1034,6 +1036,121 @@ export class GameScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  // ── S024 Event Room ───────────────────────────────────────────────────────
+
+  /**
+   * In-world lore choices surfaced when the player enters a `lace_event` room.
+   * Three event sets are embedded here; the active set is picked deterministically
+   * from the current room id so the same run always shows the same event.
+   * Mechanical rewards are intentionally minimal for v0.1 — authored event
+   * content and richer outcomes land with the content system (T-282+).
+   */
+  private static readonly EVENT_SETS: ReadonlyArray<{
+    title: string;
+    sub: string;
+    choices: ReadonlyArray<{ label: string; desc: string; reward: 'vein' | 'heal' | 'sig' }>;
+  }> = [
+    {
+      title: 'ANOMALOUS SIGNAL',
+      sub: 'LACE detects a residual broadcast from before the first descent.',
+      choices: [
+        { label: 'TAP THE FREQUENCY', desc: '+20 VEIN Crystals — the signal rewards contact.', reward: 'vein' },
+        { label: 'FILTER THE NOISE', desc: 'Recover 25% HP — discipline has its own dividend.', reward: 'heal' },
+        { label: 'LOG AND LEAVE', desc: '+15 VEIN — prudence over curiosity.', reward: 'sig' },
+      ],
+    },
+    {
+      title: 'SEALED ALCOVE',
+      sub: 'A recess in the wall, untouched. LACE cannot read what is inside.',
+      choices: [
+        { label: 'FORCE IT OPEN', desc: '+20 VEIN — whatever was sealed is now yours.', reward: 'vein' },
+        { label: 'LISTEN FIRST', desc: 'Recover 25% HP — patience costs nothing here.', reward: 'heal' },
+        { label: 'LEAVE IT SEALED', desc: '+15 VEIN — some debts stay closed.', reward: 'sig' },
+      ],
+    },
+    {
+      title: 'STRAND ECHO',
+      sub: 'A previous Sigma-carrier\'s mutation left an imprint in the floor.',
+      choices: [
+        { label: 'ABSORB THE ECHO', desc: '+20 VEIN — borrowed memory, real reward.', reward: 'vein' },
+        { label: 'REINFORCE YOUR CELLS', desc: 'Recover 25% HP — your biology asserts itself.', reward: 'heal' },
+        { label: 'PASS THROUGH QUICKLY', desc: '+15 VEIN — no inheritance today.', reward: 'sig' },
+      ],
+    },
+  ];
+
+  private openEventRoom(): void {
+    this.view = 'event';
+    this.say('generic');
+    this.persist();
+    this.renderAll();
+  }
+
+  private resolveEventChoice(reward: 'vein' | 'heal' | 'sig'): void {
+    const snap = this.session.snapshot;
+    if (reward === 'vein') {
+      this.session.grantVein(20);
+    } else if (reward === 'heal') {
+      const amount = Math.floor(snap.player.maxHp * 0.25);
+      this.session.healPlayer(amount);
+    } else {
+      // 'sig' — the lesser VEIN grant; a richer SIG system comes with T-282+.
+      this.session.grantVein(15);
+    }
+    playSfx(this, 'ui_click');
+    this.persist();
+    this.view = 'map';
+    this.maybeShowLoot();
+    this.renderAll();
+  }
+
+  private renderEvent(): void {
+    const roomId = this.session.snapshot.currentRoomId;
+    // Pick event set deterministically from the room id's character codes.
+    const setIndex = roomId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % GameScene.EVENT_SETS.length;
+    const evt = GameScene.EVENT_SETS[setIndex];
+    if (evt === undefined) return;
+
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 10, evt.title, {
+        fontFamily: 'monospace', fontSize: '14px', color: C.yellow, letterSpacing: 2,
+      }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 34, evt.sub, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+        wordWrap: { width: W - 40 }, align: 'center',
+      }).setOrigin(0.5, 0),
+    );
+
+    const cardTop = STAGE_Y + 76;
+    const cardH = 78;
+    const cardGap = 10;
+
+    evt.choices.forEach((choice, i) => {
+      const x = 16;
+      const y = cardTop + i * (cardH + cardGap);
+      const w = W - 32;
+
+      this.stage.fillStyle(0x0e1830).fillRoundedRect(x, y, w, cardH, 8);
+      this.stage.lineStyle(1, GC.edge).strokeRoundedRect(x, y, w, cardH, 8);
+
+      this.transient.push(
+        this.add.text(x + 14, y + 14, choice.label, { fontFamily: 'monospace', fontSize: '12px', color: C.text }),
+        this.add.text(x + 14, y + 38, choice.desc, {
+          fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+          wordWrap: { width: w - 28 },
+        }),
+      );
+
+      const z = this.add.zone(x, y, w, cardH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.resolveEventChoice(choice.reward));
+      z.on('pointerover', () => {
+        this.stage.fillStyle(0x162040).fillRoundedRect(x, y, w, cardH, 8);
+        this.stage.lineStyle(1, GC.start).strokeRoundedRect(x, y, w, cardH, 8);
+      });
+      this.buttonZones.push(z);
+    });
+  }
+
   // ── Stat allocation ───────────────────────────────────────────────────────
 
   private allocateStat(stat: keyof EntityStats): void {
@@ -1237,6 +1354,7 @@ export class GameScene extends Phaser.Scene {
     else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); this.renderItemBar(); }
     else if (this.view === 'strand') this.renderStrand();
     else if (this.view === 'shop') this.renderShop();
+    else if (this.view === 'event') this.renderEvent();
     else if (this.view === 'levelup') this.renderLevelUp();
     else if (this.view === 'loot') this.renderLoot();
     else if (this.view === 'swap') this.renderSwap();
