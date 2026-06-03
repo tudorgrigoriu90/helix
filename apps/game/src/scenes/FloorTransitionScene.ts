@@ -127,8 +127,10 @@ export class FloorTransitionScene extends Phaser.Scene {
   }
 
   private handOff(): void {
-    // T-161 will replace RunSandboxScene with GameScene once it exists.
-    // Pass seed + originId forward so GameScene can initialise the RunSession.
-    this.scene.start('RunSandboxScene');
+    this.scene.start('GameScene', {
+      meta: this.meta,
+      originId: this.originId,
+      seed: this.seed,
+    });
   }
 }
