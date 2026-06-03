@@ -1507,25 +1507,45 @@ export class GameScene extends Phaser.Scene {
     const margin = 16;
     const gap = 6;
     const btnW = Math.floor((W - 2 * margin - (n - 1) * gap) / n);
-    const fontSize = btnW >= 150 ? '10px' : btnW >= 95 ? '9px' : '8px';
+    const btnH = 36;
+    // Tighten label size when buttons are narrow (many abilities granted by mutations)
+    const labelSize = btnW >= 150 ? '10px' : btnW >= 95 ? '9px' : '8px';
 
     state.player.abilities.forEach((slot, i) => {
       const x = margin + i * (btnW + gap);
-      const ready = slot.cooldownRemaining === 0 && state.player.ap >= slot.def.apCost;
+      const onCooldown = slot.cooldownRemaining > 0;
+      const canAfford = state.player.ap >= slot.def.apCost;
+      const ready = !onCooldown && canAfford;
       const active = this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id;
+
       const border = active ? 0xffdd44 : ready ? GC.btnBrd : 0x2a3050;
-      const color = active ? C.yellow : ready ? C.green : C.dim;
+      const fillColor = active ? 0x1e2c1a : onCooldown ? 0x0e1020 : GC.btnBg;
+      const textColor = active ? C.yellow : ready ? C.green : C.dim;
 
-      this.stage.fillStyle(GC.btnBg).fillRoundedRect(x, ABILITY_Y, btnW, 32, 6);
-      this.stage.lineStyle(1, border).strokeRoundedRect(x, ABILITY_Y, btnW, 32, 6);
+      this.stage.fillStyle(fillColor).fillRoundedRect(x, ABILITY_Y, btnW, btnH, 6);
+      this.stage.lineStyle(1, border).strokeRoundedRect(x, ABILITY_Y, btnW, btnH, 6);
 
-      const cd = slot.cooldownRemaining > 0 ? ` cd${slot.cooldownRemaining}` : '';
-      const label = this.add.text(x + 6, ABILITY_Y + 16, `${slot.def.id} ${slot.def.apCost}AP${cd}`, {
-        fontFamily: 'monospace', fontSize, color, wordWrap: { width: btnW - 10 },
-      }).setOrigin(0, 0.5);
-      this.transient.push(label);
+      // Cooldown progress bar: a dim fill across the bottom of the button
+      if (onCooldown && slot.def.cooldown > 0) {
+        const cdFrac = slot.cooldownRemaining / slot.def.cooldown;
+        this.stage.fillStyle(0x3a3060, 0.7).fillRect(x + 1, ABILITY_Y + btnH - 5, Math.round((btnW - 2) * cdFrac), 4);
+      }
 
-      const z = this.add.zone(x, ABILITY_Y, btnW, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      // Ability name: replace underscores with spaces, title-cased
+      const name = slot.def.id.replace(/_/g, ' ');
+      const apCostLabel = `${slot.def.apCost}AP`;
+      const cdLabel = onCooldown ? ` · cd${slot.cooldownRemaining}` : '';
+
+      const nameText = this.add.text(x + 6, ABILITY_Y + 10, name, {
+        fontFamily: 'monospace', fontSize: labelSize, color: textColor, wordWrap: { width: btnW - 32 },
+      }).setOrigin(0, 0);
+      const apText = this.add.text(x + btnW - 5, ABILITY_Y + 10, `${apCostLabel}${cdLabel}`, {
+        fontFamily: 'monospace', fontSize: '8px', color: onCooldown ? '#554466' : C.dim,
+      }).setOrigin(1, 0);
+
+      this.transient.push(nameText, apText);
+
+      const z = this.add.zone(x, ABILITY_Y, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => this.onAbilityButton(slot));
       this.buttonZones.push(z);
     });
@@ -1535,31 +1555,42 @@ export class GameScene extends Phaser.Scene {
     const state = this.combat;
     if (state === null || state.phase !== 'player') return;
     const items = state.player.items.filter((it) => it.category === 'consumable');
-    items.slice(0, 3).forEach((item, i) => {
-      const x = 20 + i * 118;
+    if (items.length === 0) return;
+
+    // Dynamic width: same fill-the-row logic as ability bar (up to 3 items shown)
+    const shown = items.slice(0, 3);
+    const margin = 16;
+    const gap = 5;
+    const btnW = Math.floor((W - 2 * margin - (shown.length - 1) * gap) / shown.length);
+    const btnH = 28;
+
+    shown.forEach((item, i) => {
+      const x = margin + i * (btnW + gap);
       const ready = state.player.ap >= 1;
-      const active = this.targeting?.kind === 'item' && this.targeting.item.id === item.id;
+      const active = (this.targeting?.kind === 'item' && this.targeting.item.id === item.id)
+        || this.itemConfirmPending?.id === item.id;
       const border = active ? 0xffdd44 : ready ? GC.btnBrd : 0x2a3050;
       const color = active ? C.yellow : ready ? C.green : C.dim;
 
-      this.stage.fillStyle(GC.btnBg).fillRoundedRect(x, ITEM_Y, 112, 28, 6);
-      this.stage.lineStyle(1, border).strokeRoundedRect(x, ITEM_Y, 112, 28, 6);
-      const label = this.add.text(x + 6, ITEM_Y + 14, item.name, {
-        fontFamily: 'monospace', fontSize: '9px', color,
+      this.stage.fillStyle(active ? 0x1e2210 : GC.btnBg).fillRoundedRect(x, ITEM_Y, btnW, btnH, 6);
+      this.stage.lineStyle(1, border).strokeRoundedRect(x, ITEM_Y, btnW, btnH, 6);
+
+      const label = this.add.text(x + 5, ITEM_Y + btnH / 2, item.name, {
+        fontFamily: 'monospace', fontSize: '9px', color, wordWrap: { width: btnW - 8 },
       }).setOrigin(0, 0.5);
       this.transient.push(label);
 
-      const z = this.add.zone(x, ITEM_Y, 112, 28).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      const z = this.add.zone(x, ITEM_Y, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => this.onItemButton(item));
       this.buttonZones.push(z);
     });
 
     if (this.targeting !== null) {
       const what = this.targeting.kind === 'ability'
-        ? this.targeting.slot.def.id
+        ? this.targeting.slot.def.id.replace(/_/g, ' ')
         : this.targeting.item.name;
-      const hint = this.add.text(W / 2, ITEM_Y + 38, `targeting ${what} — tap a tile (tap again to cancel)`, {
-        fontFamily: 'monospace', fontSize: '10px', color: C.yellow,
+      const hint = this.add.text(W / 2, ITEM_Y + 36, `tap a target tile  (tap ${what} again to cancel)`, {
+        fontFamily: 'monospace', fontSize: '9px', color: C.yellow,
       }).setOrigin(0.5);
       this.transient.push(hint);
     }
