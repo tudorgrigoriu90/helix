@@ -8,3 +8,5 @@ export {
   isAdCapReached,
 } from './ad-gatekeeper';
 export { AD_TIMEOUT_MS, withAdTimeout } from './ad-timeout';
+export type { RewardOutcome, AdServiceOptions } from './ad-service';
+export { AdService } from './ad-service';
