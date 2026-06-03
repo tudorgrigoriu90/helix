@@ -128,6 +128,8 @@ export class GameScene extends Phaser.Scene {
   private movePending: { col: number; row: number } | null = null;
   /** S043: enemy currently hovered — drives the damage-range preview label. */
   private attackHoverEnemyId: string | null = null;
+  /** S044: tile currently hovered during ability targeting — drives AoE circle preview. */
+  private abilityHoverTile: { col: number; row: number } | null = null;
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -269,23 +271,30 @@ export class GameScene extends Phaser.Scene {
     else if (this.view === 'strand') this.onStrandPointer(x, y);
   }
 
-  /** S043: track which enemy the pointer is over so renderCombat can draw the
-   *  damage-range preview. Triggers a re-render only on change to avoid thrash. */
+  /** S043/S044: track hovered tile for attack-preview and AoE-circle preview.
+   *  Re-renders only on change to avoid frame thrash. */
   private onPointerMove(x: number, y: number): void {
     const state = this.combat;
-    if (state === null || state.phase !== 'player' || this.targeting !== null || this.revealingEnemies) return;
+    if (state === null || state.phase !== 'player' || this.revealingEnemies) return;
     const tile = this.tileSize(state);
     const col = Math.floor((x - this.gridX(state)) / tile);
     const row = Math.floor((y - STAGE_Y) / tile);
+    const inBounds = col >= 0 && col < state.grid.width && row >= 0 && row < state.grid.height;
 
-    let hoveredId: string | null = null;
-    if (col >= 0 && col < state.grid.width && row >= 0 && row < state.grid.height) {
-      const enemy = state.enemies.find((e) => e.hp > 0 && e.pos.x === col && e.pos.y === row);
-      if (enemy !== undefined && chebyshev(state.player.pos, { x: col, y: row }) <= 1) {
-        hoveredId = enemy.id;
-      }
+    // S044: ability AoE hover (targeting mode active)
+    if (this.targeting?.kind === 'ability') {
+      const newTile = inBounds ? { col, row } : null;
+      const changed = newTile?.col !== this.abilityHoverTile?.col || newTile?.row !== this.abilityHoverTile?.row;
+      if (changed) { this.abilityHoverTile = newTile; this.renderAll(); }
+      return;
     }
 
+    // S043: attack hover (no targeting mode)
+    let hoveredId: string | null = null;
+    if (inBounds) {
+      const enemy = state.enemies.find((e) => e.hp > 0 && e.pos.x === col && e.pos.y === row);
+      if (enemy !== undefined && chebyshev(state.player.pos, { x: col, y: row }) <= 1) hoveredId = enemy.id;
+    }
     if (hoveredId !== this.attackHoverEnemyId) {
       this.attackHoverEnemyId = hoveredId;
       this.renderAll();
@@ -500,14 +509,15 @@ export class GameScene extends Phaser.Scene {
     if (state === null || state.phase !== 'player') return;
     if (slot.cooldownRemaining > 0 || state.player.ap < slot.def.apCost) return;
     if (this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id) {
-      this.targeting = null; this.renderAll(); return;
+      this.targeting = null; this.abilityHoverTile = null; this.renderAll(); return;
     }
     if (slot.def.targetType === 'self') {
-      this.targeting = null;
+      this.targeting = null; this.abilityHoverTile = null;
       this.combatAction({ type: 'useAbility', abilityId: slot.def.id });
       return;
     }
     this.targeting = { kind: 'ability', slot };
+    this.abilityHoverTile = null;
     this.renderAll();
   }
 
@@ -596,6 +606,7 @@ export class GameScene extends Phaser.Scene {
     this.targeting = null;
     this.movePending = null;
     this.attackHoverEnemyId = null;
+    this.abilityHoverTile = null;
     const status = this.session.snapshot.status;
 
     if (status === 'defeat') {
@@ -969,6 +980,37 @@ export class GameScene extends Phaser.Scene {
           if (chebyshev(state.player.pos, { x: c, y: r }) <= range) {
             this.topGfx.fillStyle(0x44ccff, 0.16).fillRect(gx + c * tile, STAGE_Y + r * tile, tile, tile);
           }
+        }
+      }
+
+      // S044: AoE circle on hovered tile for ability targeting
+      if (this.targeting.kind === 'ability' && this.abilityHoverTile !== null) {
+        const def = this.targeting.slot.def;
+        const { col: hc, row: hr } = this.abilityHoverTile;
+        const inRange = chebyshev(state.player.pos, { x: hc, y: hr }) <= def.range;
+
+        if (inRange) {
+          const hx = gx + hc * tile + tile / 2;
+          const hy = STAGE_Y + hr * tile + tile / 2;
+
+          // Highlight the targeted tile
+          this.topGfx.fillStyle(0xffdd44, 0.28).fillRect(gx + hc * tile, STAGE_Y + hr * tile, tile, tile);
+          this.topGfx.lineStyle(2, 0xffdd44, 0.9).strokeRect(gx + hc * tile, STAGE_Y + hr * tile, tile, tile);
+
+          // AoE radius circle (when > 0)
+          if (def.aoeRadius > 0) {
+            const radiusPx = (def.aoeRadius + 0.5) * tile;
+            this.topGfx.fillStyle(0xffdd44, 0.08).fillCircle(hx, hy, radiusPx);
+            this.topGfx.lineStyle(1.5, 0xffdd44, 0.55).strokeCircle(hx, hy, radiusPx);
+          }
+
+          // Damage range label
+          const dmgVal = def.baseDamage + Math.floor(state.player.stats.int * def.intScaling);
+          const label = def.aoeRadius > 0 ? `${dmgVal} AoE·${def.aoeRadius} · ${def.apCost}AP` : `${dmgVal} · ${def.apCost}AP`;
+          const dmgLabel = this.add.text(hx, STAGE_Y + hr * tile - 3, label, {
+            fontFamily: 'monospace', fontSize: '9px', color: '#ffdd44',
+          }).setOrigin(0.5, 1).setDepth(2);
+          this.transient.push(dmgLabel);
         }
       }
     }
