@@ -459,6 +459,44 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── S048 Hit flash ────────────────────────────────────────────────────────
+
+  /** Briefly flashes a bright overlay rect at the entity's tile position.
+   *  Red for enemies, white for the player (damage taken). */
+  private playHitFlash(entityId: string): void {
+    const state = this.combat;
+    if (state === null) return;
+
+    let tilePos: { x: number; y: number } | null = null;
+    let flashColor = 0xff4444;
+
+    if (entityId === 'player') {
+      tilePos = state.player.pos;
+      flashColor = 0xffffff;
+    } else {
+      const enemy = state.enemies.find((e) => e.id === entityId);
+      if (enemy !== undefined) tilePos = enemy.pos;
+    }
+
+    if (tilePos === null) return;
+
+    const tile = this.tileSize(state);
+    const gx = this.gridX(state);
+    const px = gx + tilePos.x * tile;
+    const py = STAGE_Y + tilePos.y * tile;
+
+    const flash = this.add.graphics().setDepth(3).setAlpha(0.7);
+    flash.fillStyle(flashColor, 1).fillRect(px, py, tile, tile);
+
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 220,
+      ease: 'Sine.easeOut',
+      onComplete: () => flash.destroy(),
+    });
+  }
+
   // ── S040 Enemy reveal animation ───────────────────────────────────────────
 
   /** Fades each enemy in one-by-one (150ms stagger) over the already-rendered
@@ -648,6 +686,10 @@ export class GameScene extends Phaser.Scene {
         playSfx(this, 'sfx_enemy_death');
       }
       if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
+      // S048: flash the hit entity's tile
+      if (fx.type === 'damageDealt') {
+        this.playHitFlash(fx.targetId);
+      }
       // S041: fire the "YOUR TURN" banner the moment the player phase begins.
       if (fx.type === 'phaseChanged' && fx.to === 'player' && this.combat !== null) {
         const { ap, maxAp } = this.combat.player;
