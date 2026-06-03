@@ -1,0 +1,10 @@
+export type { AdGateState, AdGateDecision } from './ad-gatekeeper';
+export {
+  MAX_ADS_PER_RUN,
+  AD_COOLDOWN_MS,
+  newAdGateState,
+  canShowAd,
+  recordAdAttempt,
+  isAdCapReached,
+} from './ad-gatekeeper';
+export { AD_TIMEOUT_MS, withAdTimeout } from './ad-timeout';
