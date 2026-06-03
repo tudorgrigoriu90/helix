@@ -13,7 +13,7 @@ import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
-import { applyCrit, rollCrit } from './combat';
+import { applyCrit, rollCrit, HAZARD_DAMAGE } from './combat';
 import { damageTo, effectiveMaxAp, hasDominantTrait, isImmobilized } from './effective-stats';
 import { resolveEnemyPhase } from './enemy-phase';
 import { tickStatuses } from './status-tick';
@@ -95,15 +95,22 @@ function applyMove(
   }
 
   const remaining = state.player.ap - MOVE_AP_COST;
+  // Hazard tiles damage on entry (GDD §6.1) — unmitigated `true` damage.
+  const hazardDmg = tileAt(state.grid, to) === 'hazard' ? HAZARD_DAMAGE : 0;
+  const newHp = Math.max(0, state.player.hp - hazardDmg);
   const nextState: RunState = {
     ...state,
-    player: { ...state.player, pos: to, ap: remaining },
+    player: { ...state.player, pos: to, ap: remaining, hp: newHp },
   };
 
-  return ok(nextState, [
+  const effects: Effect[] = [
     { type: 'entityMoved', entityId: 'player', from, to },
     { type: 'apSpent', amount: MOVE_AP_COST, remaining },
-  ]);
+  ];
+  if (hazardDmg > 0) {
+    effects.push({ type: 'damageDealt', targetId: 'player', amount: hazardDmg, isCrit: false, damageType: 'true' });
+  }
+  return ok(nextState, effects);
 }
 
 function applyAttack(
@@ -477,8 +484,12 @@ export const TurnEngine = {
 
     // Win/loss/floor-complete detection after every successful action — e.g. a
     // killing blow that clears the last enemy ends the floor immediately
-    // (idempotent if the handler already set a terminal phase).
-    const outcome = detectOutcome(result.state);
+    // (idempotent if the handler already set a terminal phase). A move that ended
+    // on a hazard tile attributes a player death to `hazard` (GDD §6.7 enum).
+    const cause = action.type === 'move' && tileAt(result.state.grid, result.state.player.pos) === 'hazard'
+      ? 'hazard'
+      : 'enemy_kill';
+    const outcome = detectOutcome(result.state, cause);
     if (outcome.effects.length === 0) return result;
     return { state: outcome.state, effects: [...result.effects, ...outcome.effects], errors: [] };
   },

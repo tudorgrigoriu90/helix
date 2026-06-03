@@ -4,6 +4,7 @@ import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import { chebyshev, inBounds, tileAt } from './grid';
 import { damageTo, isImmobilized } from './effective-stats';
+import { HAZARD_DAMAGE } from './combat';
 
 const ENEMY_MELEE_RANGE = 1;
 
@@ -93,9 +94,14 @@ function enemyStepTowardPlayer(state: RunState, enemy: EnemyState): EnemyPhaseRe
   if (occupied) return { state, effects: [] };
 
   const from = enemy.pos;
-  const nextEnemies = state.enemies.map((e) => (e.id === enemy.id ? { ...e, pos: to } : e));
-  return {
-    state: { ...state, enemies: nextEnemies },
-    effects: [{ type: 'entityMoved', entityId: enemy.id, from, to }],
-  };
+  // Hazard tiles damage on entry (GDD §6.1) — enemies are not immune.
+  const hazardDmg = tileAt(state.grid, to) === 'hazard' ? HAZARD_DAMAGE : 0;
+  const newHp = Math.max(0, enemy.hp - hazardDmg);
+  const nextEnemies = state.enemies.map((e) => (e.id === enemy.id ? { ...e, pos: to, hp: newHp } : e));
+  const effects: Effect[] = [{ type: 'entityMoved', entityId: enemy.id, from, to }];
+  if (hazardDmg > 0) {
+    effects.push({ type: 'damageDealt', targetId: enemy.id, amount: hazardDmg, isCrit: false, damageType: 'true' });
+    if (newHp === 0) effects.push({ type: 'entityDied', entityId: enemy.id });
+  }
+  return { state: { ...state, enemies: nextEnemies }, effects };
 }

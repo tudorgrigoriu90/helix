@@ -22,6 +22,12 @@ function gridWithWall(x: number, y: number, width = 7, height = 7): GridState {
   return { width, height, tiles };
 }
 
+function gridWithHazard(x: number, y: number, width = 7, height = 7): GridState {
+  const tiles = new Array<TileType>(width * height).fill('open');
+  tiles[y * width + x] = 'hazard';
+  return { width, height, tiles };
+}
+
 function enemy(
   id: string,
   pos: { x: number; y: number },
@@ -267,5 +273,18 @@ describe('endTurn / wait turn flow — T-64', () => {
     const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
     expect(result.state.phase).toBe('defeat');
     expect(result.effects).toContainEqual({ type: 'defeat', cause: 'status_tick' });
+  });
+
+  it('damages an enemy that steps onto a hazard tile (GDD §6.1)', () => {
+    // Enemy at (3,5) chases the player at (3,3) → steps to (3,4), a hazard.
+    const state = baseState({
+      grid: gridWithHazard(3, 4),
+      enemies: [enemy('e1', { x: 3, y: 5 }, { hp: 30, maxHp: 30 })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    const e1 = result.state.enemies.find((e) => e.id === 'e1')!;
+    expect(e1.pos).toEqual({ x: 3, y: 4 }); // stepped onto the hazard
+    expect(e1.hp).toBe(30 - 5); // HAZARD_DAMAGE
+    expect(result.effects.some((e) => e.type === 'damageDealt' && e.targetId === 'e1' && e.damageType === 'true')).toBe(true);
   });
 });

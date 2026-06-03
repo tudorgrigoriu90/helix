@@ -26,3 +26,11 @@ export function mitigate(raw: number, res: number, damageType: DamageType): numb
   const reduction = damageType === 'true' ? 0 : res;
   return Math.max(0, raw - reduction);
 }
+
+/**
+ * Damage taken on entering a hazard tile (GDD §6.1 "Hazard — damage on entry").
+ * Unmitigated `true` damage — it's the environment, not an attacker, so RES
+ * doesn't help. Flat amount is authored tuning (the GDD names the rule, not the
+ * number). Applies to any entity that steps onto a hazard, player or enemy.
+ */
+export const HAZARD_DAMAGE = 5;

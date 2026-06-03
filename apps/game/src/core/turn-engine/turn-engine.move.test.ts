@@ -195,4 +195,28 @@ describe('TurnEngine.apply — move (T-60)', () => {
     const b = TurnEngine.apply(state, move({ x: 3, y: 1 }), rng());
     expect(a).toEqual(b);
   });
+
+  // ── Hazard tiles (GDD §6.1 — damage on entry) ────────────────────────────────
+
+  it('damages the player on entering a hazard tile (true damage), emitting the hit', () => {
+    const state = baseState({ grid: gridWith(5, 5, { '2,1': 'hazard' }) });
+    const result = TurnEngine.apply(state, move({ x: 2, y: 1 }), rng());
+    expect(result.errors).toHaveLength(0);
+    expect(result.state.player.hp).toBe(30 - 5); // HAZARD_DAMAGE
+    expect(result.effects.some((e) => e.type === 'damageDealt' && e.targetId === 'player' && e.damageType === 'true')).toBe(true);
+  });
+
+  it('moving onto an open tile deals no damage (regression)', () => {
+    const result = TurnEngine.apply(baseState(), move({ x: 2, y: 1 }), rng());
+    expect(result.state.player.hp).toBe(30);
+    expect(result.effects.some((e) => e.type === 'damageDealt')).toBe(false);
+  });
+
+  it('a hazard step that drops HP to 0 ends the run with cause "hazard"', () => {
+    const base = baseState({ grid: gridWith(5, 5, { '2,1': 'hazard' }) });
+    const state: RunState = { ...base, player: { ...base.player, hp: 3 } }; // less than HAZARD_DAMAGE
+    const result = TurnEngine.apply(state, move({ x: 2, y: 1 }), rng());
+    expect(result.state.phase).toBe('defeat');
+    expect(result.effects.some((e) => e.type === 'defeat' && e.cause === 'hazard')).toBe(true);
+  });
 });
