@@ -1727,11 +1727,42 @@ export class GameScene extends Phaser.Scene {
 
   private renderLoot(): void {
     const pending = this.session.lootPending();
-    this.transient.push(
-      this.add.text(W / 2, STAGE_Y + 12, 'LOOT FOUND', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0),
-      this.add.text(W / 2, STAGE_Y + 34, 'tap to take · LEAVE drops the rest', { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0),
-    );
-    pending.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 60, () => this.onTakeLoot(item)));
+    const hdr = this.add.text(W / 2, STAGE_Y + 12, 'LOOT FOUND', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0).setAlpha(0);
+    const sub = this.add.text(W / 2, STAGE_Y + 34, 'tap to take · LEAVE drops the rest', { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0).setAlpha(0);
+    this.transient.push(hdr, sub);
+    this.tweens.add({ targets: [hdr, sub], alpha: 1, duration: 200, ease: 'Sine.easeOut' });
+
+    // S027: stagger each item card in with an 80ms offset, creating per-item
+    // Graphics objects so each can be tweened independently.
+    pending.forEach((item, i) => {
+      const x = 16;
+      const y = STAGE_Y + 60 + i * 60;
+      const w = W - 32;
+      const cursed = item.cursed === true;
+
+      // Per-item card background (own Graphics so alpha can be tweened).
+      const card = this.add.graphics().setAlpha(0);
+      card.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(x, y, w, 52, 8);
+      card.lineStyle(1, cursed ? GC.boss : GC.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
+
+      const nameT = this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setAlpha(0);
+      const tagT = this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}${cursed ? ' · CURSED' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }).setAlpha(0);
+      const modT = this.add.text(x + w - 12, y + 26, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5).setAlpha(0);
+
+      this.transient.push(card, nameT, tagT, modT);
+
+      this.tweens.add({
+        targets: [card, nameT, tagT, modT],
+        alpha: 1,
+        duration: 220,
+        delay: i * 80,
+        ease: 'Sine.easeOut',
+      });
+
+      const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.onTakeLoot(item));
+      this.buttonZones.push(z);
+    });
   }
 
   private renderSwap(): void {
