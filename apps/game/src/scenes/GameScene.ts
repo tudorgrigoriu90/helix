@@ -13,6 +13,8 @@ import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
+import { damageTo } from '../core/turn-engine/effective-stats';
+import { CRIT_MULTIPLIER } from '../core/turn-engine/combat';
 import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { parseEnemyDef } from '../core/content/enemy-loader';
 import { parseItemDef } from '../core/content/item-loader';
@@ -124,6 +126,8 @@ export class GameScene extends Phaser.Scene {
   private yourTurnContainer: Phaser.GameObjects.GameObject[] = [];
   /** S042: tile the player tapped first; confirmed on a second tap of the same tile. */
   private movePending: { col: number; row: number } | null = null;
+  /** S043: enemy currently hovered — drives the damage-range preview label. */
+  private attackHoverEnemyId: string | null = null;
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -164,6 +168,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p.x, p.y));
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onPointerMove(p.x, p.y));
 
     const adapter = createWebStorageAdapter();
     this.saves = new SaveManager(adapter, runSessionCodec);
@@ -262,6 +267,29 @@ export class GameScene extends Phaser.Scene {
     if (this.view === 'map') this.onMapPointer(x, y);
     else if (this.view === 'combat') this.onCombatPointer(x, y);
     else if (this.view === 'strand') this.onStrandPointer(x, y);
+  }
+
+  /** S043: track which enemy the pointer is over so renderCombat can draw the
+   *  damage-range preview. Triggers a re-render only on change to avoid thrash. */
+  private onPointerMove(x: number, y: number): void {
+    const state = this.combat;
+    if (state === null || state.phase !== 'player' || this.targeting !== null || this.revealingEnemies) return;
+    const tile = this.tileSize(state);
+    const col = Math.floor((x - this.gridX(state)) / tile);
+    const row = Math.floor((y - STAGE_Y) / tile);
+
+    let hoveredId: string | null = null;
+    if (col >= 0 && col < state.grid.width && row >= 0 && row < state.grid.height) {
+      const enemy = state.enemies.find((e) => e.hp > 0 && e.pos.x === col && e.pos.y === row);
+      if (enemy !== undefined && chebyshev(state.player.pos, { x: col, y: row }) <= 1) {
+        hoveredId = enemy.id;
+      }
+    }
+
+    if (hoveredId !== this.attackHoverEnemyId) {
+      this.attackHoverEnemyId = hoveredId;
+      this.renderAll();
+    }
   }
 
   private onMapPointer(x: number, y: number): void {
@@ -567,6 +595,7 @@ export class GameScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.movePending = null;
+    this.attackHoverEnemyId = null;
     const status = this.session.snapshot.status;
 
     if (status === 'defeat') {
@@ -956,6 +985,22 @@ export class GameScene extends Phaser.Scene {
       this.transient.push(apLabel);
     }
 
+    // S043: attack preview — red hover tint + damage range on hovered adjacent enemy
+    if (this.attackHoverEnemyId !== null && state.phase === 'player') {
+      const hovEnemy = state.enemies.find((e) => e.id === this.attackHoverEnemyId && e.hp > 0);
+      if (hovEnemy !== undefined) {
+        const ex = gx + hovEnemy.pos.x * tile;
+        const ey = STAGE_Y + hovEnemy.pos.y * tile;
+        this.topGfx.fillStyle(0xff4444, 0.22).fillRect(ex, ey, tile, tile);
+        this.topGfx.lineStyle(2, 0xff6644, 0.85).strokeRect(ex, ey, tile, tile);
+        const dmgRange = this.calcAttackRange(state, hovEnemy);
+        const dmgLabel = this.add.text(ex + tile / 2, ey - 3, `${dmgRange} · 1 AP`, {
+          fontFamily: 'monospace', fontSize: '9px', color: '#ff8866',
+        }).setOrigin(0.5, 1).setDepth(2);
+        this.transient.push(dmgLabel);
+      }
+    }
+
     const pp = state.player;
     const pcx = gx + pp.pos.x * tile + tile / 2;
     const pcy = STAGE_Y + pp.pos.y * tile + tile / 2;
@@ -1272,6 +1317,14 @@ export class GameScene extends Phaser.Scene {
     const room = this.session.floor.rooms.find((r) => r.id === id);
     if (room === undefined) throw new Error(`GameScene: no room ${id}`);
     return room;
+  }
+
+  /** Returns a "min–max" or single value attack damage range string for the preview. */
+  private calcAttackRange(state: RunState, enemy: RunState['enemies'][number]): string {
+    const baseDmg = Math.floor(state.player.stats.str);  // MELEE_DAMAGE_MULT = 1.0
+    const normalDmg = damageTo(enemy, baseDmg, 'physical');
+    const critDmg = damageTo(enemy, Math.floor(baseDmg * CRIT_MULTIPLIER), 'physical');
+    return normalDmg === critDmg ? `${normalDmg}` : `${normalDmg}–${critDmg}`;
   }
 
   private static statBlurb(stat: keyof EntityStats): string {
