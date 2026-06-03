@@ -124,6 +124,8 @@ export class GameScene extends Phaser.Scene {
   private revealingEnemies = false;
   /** S041: transient "YOUR TURN" overlay container — destroyed after its tween completes. */
   private yourTurnContainer: Phaser.GameObjects.GameObject[] = [];
+  /** S046: transient "ENEMY PHASE" overlay container — destroyed after its tween completes. */
+  private enemyPhaseContainer: Phaser.GameObjects.GameObject[] = [];
   /** S042: tile the player tapped first; confirmed on a second tap of the same tile. */
   private movePending: { col: number; row: number } | null = null;
   /** S043: enemy currently hovered — drives the damage-range preview label. */
@@ -406,6 +408,52 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── S046 "ENEMY PHASE" announcement ─────────────────────────────────────
+
+  /** Brief centred "ENEMY PHASE" banner (red) when the enemy phase begins.
+   *  Fades in 180ms, holds 350ms, fades out 250ms. Non-blocking. */
+  private playEnemyPhaseFlash(): void {
+    this.enemyPhaseContainer.forEach((g) => g.destroy());
+    this.enemyPhaseContainer = [];
+
+    const cy = STAGE_Y + STAGE_H / 2 - 20;
+    const bw = 230;
+    const bh = 50;
+    const bx = (W - bw) / 2;
+
+    const bg = this.add.graphics().setDepth(4).setAlpha(0);
+    bg.fillStyle(0x000000, 0.72).fillRoundedRect(bx, cy - 8, bw, bh, 10);
+    bg.lineStyle(2, 0xff4444, 0.6).strokeRoundedRect(bx, cy - 8, bw, bh, 10);
+
+    const label = this.add.text(W / 2, cy + 16, 'ENEMY PHASE', {
+      fontFamily: 'monospace', fontSize: '20px', color: '#ff6644', letterSpacing: 5,
+    }).setOrigin(0.5).setDepth(4).setAlpha(0);
+
+    const targets = [bg, label];
+    this.enemyPhaseContainer = targets;
+
+    this.tweens.add({
+      targets,
+      alpha: 1,
+      duration: 180,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(350, () => {
+          this.tweens.add({
+            targets,
+            alpha: 0,
+            duration: 250,
+            ease: 'Sine.easeIn',
+            onComplete: () => {
+              targets.forEach((g) => g.destroy());
+              this.enemyPhaseContainer = [];
+            },
+          });
+        });
+      },
+    });
+  }
+
   // ── S040 Enemy reveal animation ───────────────────────────────────────────
 
   /** Fades each enemy in one-by-one (150ms stagger) over the already-rendered
@@ -599,6 +647,10 @@ export class GameScene extends Phaser.Scene {
       if (fx.type === 'phaseChanged' && fx.to === 'player' && this.combat !== null) {
         const { ap, maxAp } = this.combat.player;
         this.playYourTurnFlash(ap, maxAp);
+      }
+      // S046: fire the "ENEMY PHASE" banner the moment the enemy phase begins.
+      if (fx.type === 'phaseChanged' && fx.to === 'enemy') {
+        this.playEnemyPhaseFlash();
       }
     }
     if (playerHurt) playSfx(this, 'sfx_player_hurt');
