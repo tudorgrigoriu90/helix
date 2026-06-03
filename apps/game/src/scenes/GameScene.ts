@@ -459,6 +459,43 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── S049 Sequential enemy action flashes ─────────────────────────────────
+
+  /** Collects enemy-movement events from the resolved turn effects and
+   *  plays a brief orange tile flash for each enemy in order, 200ms apart.
+   *  This gives the player a readable sequence of "who moved where". */
+  private playEnemyActionsSequential(effects: readonly Effect[], finalState: RunState): void {
+    // Ordered list of unique enemy IDs that moved this phase
+    const actedfrom: string[] = [];
+    for (const fx of effects) {
+      if (fx.type === 'entityMoved' && fx.entityId !== 'player' && !actedfrom.includes(fx.entityId)) {
+        actedfrom.push(fx.entityId);
+      }
+    }
+
+    actedfrom.forEach((enemyId, i) => {
+      this.time.delayedCall(i * 200, () => {
+        const enemy = finalState.enemies.find((e) => e.id === enemyId);
+        if (enemy === undefined || enemy.hp <= 0) return;
+        this.playEnemyActionFlash(enemy.pos);
+      });
+    });
+  }
+
+  /** A brief orange/amber tile flash at `pos` to indicate an enemy just acted there. */
+  private playEnemyActionFlash(pos: { x: number; y: number }): void {
+    const state = this.combat;
+    if (state === null) return;
+    const tile = this.tileSize(state);
+    const gx = this.gridX(state);
+    const g = this.add.graphics().setDepth(3).setAlpha(0.55);
+    g.fillStyle(0xffaa44, 1).fillRect(gx + pos.x * tile, STAGE_Y + pos.y * tile, tile, tile);
+    this.tweens.add({
+      targets: g, alpha: 0, duration: 200, ease: 'Sine.easeOut',
+      onComplete: () => g.destroy(),
+    });
+  }
+
   // ── S048 Hit flash ────────────────────────────────────────────────────────
 
   /** Briefly flashes a bright overlay rect at the entity's tile position.
@@ -671,6 +708,10 @@ export class GameScene extends Phaser.Scene {
       this.combat = result.state;
       this.session.syncCombat(result.state, this.combatRng.state);
       this.reactToCombatEffects(result.effects);
+      // S049: for endTurn, schedule per-enemy action flashes at 200ms stagger
+      if (action.type === 'endTurn') {
+        this.playEnemyActionsSequential(result.effects, result.state);
+      }
       this.maybeEndCombat();
       if (this.combat !== null) this.persist();
     }
