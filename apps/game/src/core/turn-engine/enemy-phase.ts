@@ -73,25 +73,33 @@ function enemyAttack(state: RunState, enemy: EnemyState, rawDamage: number): Ene
   };
 }
 
+/** 8-neighbour offsets, orthogonal first so a clear straight approach is
+ *  preferred over a diagonal on ties (keeps simple chases looking direct). */
+const STEP_DIRS: readonly (readonly [number, number])[] = [
+  [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [-1, 1], [1, -1], [1, 1],
+];
+
 function enemyStepTowardPlayer(state: RunState, enemy: EnemyState): EnemyPhaseResult {
   if (isImmobilized(enemy)) return { state, effects: [] };
 
-  const to: Position = {
-    x: enemy.pos.x + Math.sign(state.player.pos.x - enemy.pos.x),
-    y: enemy.pos.y + Math.sign(state.player.pos.y - enemy.pos.y),
-  };
-  // Defensive: if player and enemy share a tile (zero-distance step), abort.
-  // Unreachable from a valid RunState since player/enemy tile collision is
-  // forbidden upstream. Branch intentionally uncovered.
-  if (to.x === enemy.pos.x && to.y === enemy.pos.y) return { state, effects: [] };
-  if (!inBounds(state.grid, to) || tileAt(state.grid, to) === 'wall') return { state, effects: [] };
-  // Defensive: never step onto the player's tile. Unreachable today because
-  // the melee-range-1 check above redirects to enemyAttack before this path;
-  // ranged enemies with reach > step distance would exercise it. Branch
-  // intentionally uncovered until ranged AI lands.
-  if (to.x === state.player.pos.x && to.y === state.player.pos.y) return { state, effects: [] };
-  const occupied = state.enemies.some((e) => e.id !== enemy.id && e.hp > 0 && e.pos.x === to.x && e.pos.y === to.y);
-  if (occupied) return { state, effects: [] };
+  // Pick the free adjacent tile that gets *closest* to the player, rather than
+  // only the straight sign-step. When the tile directly toward the player is
+  // taken by another enemy, this routes the enemy to an open flanking tile, so
+  // a group encircles the player instead of queueing behind one another.
+  const cur = chebyshev(enemy.pos, state.player.pos);
+  let to: Position | null = null;
+  let bestDist = Infinity;
+  for (const [dx, dy] of STEP_DIRS) {
+    const cand: Position = { x: enemy.pos.x + dx, y: enemy.pos.y + dy };
+    if (!inBounds(state.grid, cand) || tileAt(state.grid, cand) === 'wall') continue;
+    if (cand.x === state.player.pos.x && cand.y === state.player.pos.y) continue; // never onto the player
+    if (state.enemies.some((e) => e.id !== enemy.id && e.hp > 0 && e.pos.x === cand.x && e.pos.y === cand.y)) continue;
+    const d = chebyshev(cand, state.player.pos);
+    if (d < bestDist) { bestDist = d; to = cand; } // first dir wins ties (ortho preferred)
+  }
+  // Only move if a free tile actually gets us closer; otherwise hold position
+  // (blocked in — an ally is in the way and no flank is open this turn).
+  if (to === null || bestDist >= cur) return { state, effects: [] };
 
   const from = enemy.pos;
   // Hazard tiles damage on entry (GDD §6.1) — enemies are not immune.

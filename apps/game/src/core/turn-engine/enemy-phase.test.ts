@@ -9,6 +9,7 @@ import type {
 import { Mulberry32 } from '../rng/mulberry32';
 import { TurnEngine } from './turn-engine';
 import { resolveEnemyPhase } from './enemy-phase';
+import { chebyshev } from './grid';
 
 const STATS: EntityStats = { str: 10, res: 10, agi: 10, int: 10 };
 
@@ -273,6 +274,21 @@ describe('endTurn / wait turn flow — T-64', () => {
     const result = TurnEngine.apply(state, { type: 'endTurn' }, rng());
     expect(result.state.phase).toBe('defeat');
     expect(result.effects).toContainEqual({ type: 'defeat', cause: 'status_tick' });
+  });
+
+  it('flanks: a second enemy routes to a free diagonal when the direct tile is taken', () => {
+    // Player (3,3). Enemy A is already adjacent at (3,2) → it attacks (stays).
+    // Enemy B at (3,1) wants to close, but (3,2) is taken, so it must flank to a
+    // free tile next to the player rather than queue behind A.
+    const state = baseState({
+      enemies: [enemy('a', { x: 3, y: 2 }), enemy('b', { x: 3, y: 1 })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    const a = result.state.enemies.find((e) => e.id === 'a')!;
+    const b = result.state.enemies.find((e) => e.id === 'b')!;
+    expect(a.pos).toEqual({ x: 3, y: 2 }); // A held its ground to attack
+    expect(b.pos).not.toEqual({ x: 3, y: 2 }); // B did not pile onto A's tile
+    expect(chebyshev(b.pos, state.player.pos)).toBe(1); // B reached a flanking tile
   });
 
   it('damages an enemy that steps onto a hazard tile (GDD §6.1)', () => {
