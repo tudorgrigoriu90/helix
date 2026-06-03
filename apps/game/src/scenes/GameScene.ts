@@ -126,6 +126,10 @@ export class GameScene extends Phaser.Scene {
   private yourTurnContainer: Phaser.GameObjects.GameObject[] = [];
   /** S046: transient "ENEMY PHASE" overlay container — destroyed after its tween completes. */
   private enemyPhaseContainer: Phaser.GameObjects.GameObject[] = [];
+  /** S047: whether the in-combat pause menu is open. */
+  private combatMenuOpen = false;
+  /** S047: whether the player has already confirmed once for surrender (double-confirm). */
+  private surrenderConfirmPending = false;
   /** S042: tile the player tapped first; confirmed on a second tap of the same tile. */
   private movePending: { col: number; row: number } | null = null;
   /** S043: enemy currently hovered — drives the damage-range preview label. */
@@ -270,6 +274,7 @@ export class GameScene extends Phaser.Scene {
 
   private onPointer(x: number, y: number): void {
     if (this.revealingEnemies) return; // block input during S040 reveal
+    if (this.combatMenuOpen) return;   // S047: menu zones handle their own input
     if (this.view === 'map') this.onMapPointer(x, y);
     else if (this.view === 'combat') this.onCombatPointer(x, y);
     else if (this.view === 'strand') this.onStrandPointer(x, y);
@@ -669,6 +674,8 @@ export class GameScene extends Phaser.Scene {
     this.attackHoverEnemyId = null;
     this.abilityHoverTile = null;
     this.itemConfirmPending = null;
+    this.combatMenuOpen = false;
+    this.surrenderConfirmPending = false;
     const status = this.session.snapshot.status;
 
     if (status === 'defeat') {
@@ -921,6 +928,11 @@ export class GameScene extends Phaser.Scene {
       this.renderItemConfirm(this.itemConfirmPending);
     }
 
+    // S047: combat pause menu overlay (depth 5 — above item confirm)
+    if (this.combatMenuOpen && this.view === 'combat') {
+      this.renderCombatMenu();
+    }
+
     this.renderButtons();
     this.updateHud();
   }
@@ -1116,6 +1128,84 @@ export class GameScene extends Phaser.Scene {
     this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, GC.hpGreen);
     addLabel(pcx, STAGE_Y + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
+  }
+
+  /** S047: in-combat pause menu overlay with RESUME and double-confirm SURRENDER. */
+  private renderCombatMenu(): void {
+    const cw = 260;
+    const ch = this.surrenderConfirmPending ? 200 : 160;
+    const cx = (W - cw) / 2;
+    const cy = STAGE_Y + (STAGE_H - ch) / 2;
+
+    // Dim the game behind
+    const dim = this.add.graphics().setDepth(5);
+    dim.fillStyle(0x000000, 0.6).fillRect(0, 0, W, H);
+
+    const card = this.add.graphics().setDepth(5);
+    card.fillStyle(0x0e1626).fillRoundedRect(cx, cy, cw, ch, 12);
+    card.lineStyle(2, 0x2a3a55).strokeRoundedRect(cx, cy, cw, ch, 12);
+
+    this.transient.push(dim, card,
+      this.add.text(W / 2, cy + 20, 'PAUSED', {
+        fontFamily: 'monospace', fontSize: '16px', color: '#e8edf5', letterSpacing: 4,
+      }).setOrigin(0.5).setDepth(5),
+    );
+
+    // RESUME button
+    const rowY = cy + 52;
+    const rowW = cw - 32;
+    const rowX = cx + 16;
+    const resumeG = this.add.graphics().setDepth(5);
+    resumeG.fillStyle(0x1a3028).fillRoundedRect(rowX, rowY, rowW, 40, 8);
+    resumeG.lineStyle(1, 0xa0ffdc).strokeRoundedRect(rowX, rowY, rowW, 40, 8);
+    this.transient.push(resumeG,
+      this.add.text(W / 2, rowY + 20, 'RESUME', {
+        fontFamily: 'monospace', fontSize: '14px', color: '#a0ffdc',
+      }).setOrigin(0.5).setDepth(5),
+    );
+    const resumeZ = this.add.zone(rowX, rowY, rowW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    resumeZ.on('pointerdown', () => { this.combatMenuOpen = false; this.surrenderConfirmPending = false; this.renderAll(); });
+    this.buttonZones.push(resumeZ);
+
+    // SURRENDER button (with double-confirm)
+    const surrY = rowY + 52;
+    const surrLabel = this.surrenderConfirmPending ? 'CONFIRM SURRENDER' : 'SURRENDER';
+    const surrColor = this.surrenderConfirmPending ? '#ff4444' : '#7a8fad';
+    const surrBorderColor = this.surrenderConfirmPending ? 0xff4444 : 0x3a3050;
+    const surrG = this.add.graphics().setDepth(5);
+    surrG.fillStyle(0x1a1420).fillRoundedRect(rowX, surrY, rowW, 40, 8);
+    surrG.lineStyle(1, surrBorderColor).strokeRoundedRect(rowX, surrY, rowW, 40, 8);
+    this.transient.push(surrG,
+      this.add.text(W / 2, surrY + 20, surrLabel, {
+        fontFamily: 'monospace', fontSize: '14px', color: surrColor,
+      }).setOrigin(0.5).setDepth(5),
+    );
+    const surrZ = this.add.zone(rowX, surrY, rowW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    surrZ.on('pointerdown', () => {
+      if (!this.surrenderConfirmPending) {
+        this.surrenderConfirmPending = true;
+        this.renderAll();
+      } else {
+        // Second tap confirms: force a defeat
+        this.combatMenuOpen = false;
+        this.surrenderConfirmPending = false;
+        this.combatAction({ type: 'endTurn' }); // exhaust player turn to trigger enemy win
+        // The actual surrender is handled by routing to 'over' below
+        this.view = 'over';
+        this.recordRun(false);
+        void this.saves.clear();
+        this.renderAll();
+      }
+    });
+    this.buttonZones.push(surrZ);
+
+    if (this.surrenderConfirmPending) {
+      this.transient.push(
+        this.add.text(W / 2, surrY + 44, 'this ends your run permanently', {
+          fontFamily: 'monospace', fontSize: '9px', color: '#7a8fad',
+        }).setOrigin(0.5).setDepth(5),
+      );
+    }
   }
 
   /** S045: floating confirm prompt for instant-use (heal) items.
@@ -1437,8 +1527,22 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.view === 'combat') {
-      if (this.combat?.phase === 'player' && !this.revealingEnemies) {
+      if (this.combat?.phase === 'player' && !this.revealingEnemies && !this.combatMenuOpen) {
         this.button(20, 'END TURN', C.green, () => this.combatAction({ type: 'endTurn' }));
+      }
+      // Pause/menu button — always available during combat (top-right corner)
+      if (!this.combatMenuOpen) {
+        const pBtnX = W - 52;
+        const pBtnY = HUD_Y - 2;
+        this.stage.fillStyle(0x1a2840).fillRoundedRect(pBtnX, pBtnY, 40, 28, 6);
+        this.stage.lineStyle(1, 0x2a3a55).strokeRoundedRect(pBtnX, pBtnY, 40, 28, 6);
+        const pauseLabel = this.add.text(pBtnX + 20, pBtnY + 14, '≡', {
+          fontFamily: 'monospace', fontSize: '16px', color: C.dim,
+        }).setOrigin(0.5);
+        this.transient.push(pauseLabel);
+        const pz = this.add.zone(pBtnX, pBtnY, 40, 28).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        pz.on('pointerdown', () => { this.combatMenuOpen = true; this.surrenderConfirmPending = false; this.renderAll(); });
+        this.buttonZones.push(pz);
       }
       return;
     }
