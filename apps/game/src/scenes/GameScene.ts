@@ -534,6 +534,56 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── S050 Status tick visualisation ────────────────────────────────────────
+
+  /** Flash the entity's tile and show a brief status icon/label when a status
+   *  is applied (bright tint) or expires (fading grey). */
+  private playStatusFlash(entityId: string, status: string, applied: boolean): void {
+    const state = this.combat;
+    if (state === null) return;
+
+    let tilePos: { x: number; y: number } | null = null;
+    if (entityId === 'player') {
+      tilePos = state.player.pos;
+    } else {
+      const enemy = state.enemies.find((e) => e.id === entityId);
+      if (enemy !== undefined) tilePos = enemy.pos;
+    }
+    if (tilePos === null) return;
+
+    const tile = this.tileSize(state);
+    const gx = this.gridX(state);
+    const px = gx + tilePos.x * tile;
+    const py = STAGE_Y + tilePos.y * tile;
+
+    const color = applied ? this.statusColor(status) : 0x888888;
+    const flash = this.add.graphics().setDepth(3).setAlpha(applied ? 0.55 : 0.4);
+    flash.fillStyle(color, 1).fillRect(px, py, tile, tile);
+
+    // Small icon text above the tile (status abbreviation)
+    const icon = this.add.text(px + tile / 2, py - 2, applied ? `+${status}` : `${status}✓`, {
+      fontFamily: 'monospace', fontSize: '8px',
+      color: applied ? `#${color.toString(16).padStart(6, '0')}` : '#888888',
+    }).setOrigin(0.5, 1).setDepth(3).setAlpha(applied ? 1 : 0.7);
+
+    this.tweens.add({
+      targets: [flash, icon], alpha: 0, duration: applied ? 280 : 400,
+      ease: applied ? 'Sine.easeOut' : 'Sine.easeIn',
+      onComplete: () => { flash.destroy(); icon.destroy(); },
+    });
+  }
+
+  /** A status-specific colour for the tile flash. */
+  private statusColor(status: string): number {
+    switch (status) {
+      case 'burn': return 0xff6600;
+      case 'infected': return 0x44cc44;
+      case 'crushed': return 0xcc8844;
+      case 'frozen': return 0x44ccff;
+      default: return 0xaa44ff;
+    }
+  }
+
   // ── S040 Enemy reveal animation ───────────────────────────────────────────
 
   /** Fades each enemy in one-by-one (150ms stagger) over the already-rendered
@@ -730,6 +780,13 @@ export class GameScene extends Phaser.Scene {
       // S048: flash the hit entity's tile
       if (fx.type === 'damageDealt') {
         this.playHitFlash(fx.targetId);
+      }
+      // S050: flash + icon when a status is applied or expires
+      if (fx.type === 'statusApplied') {
+        this.playStatusFlash(fx.targetId, fx.status, true);
+      }
+      if (fx.type === 'statusExpired') {
+        this.playStatusFlash(fx.targetId, fx.status, false);
       }
       // S041: fire the "YOUR TURN" banner the moment the player phase begins.
       if (fx.type === 'phaseChanged' && fx.to === 'player' && this.combat !== null) {
