@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ColdSplashScene } from '@scenes/ColdSplashScene';
 import { RunSandboxScene } from '@scenes/RunSandboxScene';
 import { CombatSandboxScene } from '@scenes/CombatSandboxScene';
 import { FloorGraphSandboxScene } from '@scenes/FloorGraphSandboxScene';
@@ -22,9 +23,17 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  // First scene in the list boots by default. Tab bar in each scene
-  // (scenes/tab-bar.ts) navigates between them.
-  scene: [RunSandboxScene, CombatSandboxScene, FloorGraphSandboxScene, FloorScene, TutorialScene],
+  // First scene in the list boots automatically.
+  // ColdSplashScene leads the production boot flow; sandbox scenes remain
+  // accessible via the dev tab bar inside RunSandboxScene.
+  scene: [
+    ColdSplashScene,
+    RunSandboxScene,
+    CombatSandboxScene,
+    FloorGraphSandboxScene,
+    FloorScene,
+    TutorialScene,
+  ],
 };
 
 export const game = new Phaser.Game(gameConfig);
