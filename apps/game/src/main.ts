@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ColdSplashScene } from '@scenes/ColdSplashScene';
 import { StudioSplashScene } from '@scenes/StudioSplashScene';
+import { GameBootScene } from '@scenes/GameBootScene';
 import { RunSandboxScene } from '@scenes/RunSandboxScene';
 import { CombatSandboxScene } from '@scenes/CombatSandboxScene';
 import { FloorGraphSandboxScene } from '@scenes/FloorGraphSandboxScene';
@@ -30,6 +31,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
   scene: [
     ColdSplashScene,
     StudioSplashScene,
+    GameBootScene,
     RunSandboxScene,
     CombatSandboxScene,
     FloorGraphSandboxScene,
