@@ -8,6 +8,7 @@ import { CombatSandboxScene } from '@scenes/CombatSandboxScene';
 import { FloorGraphSandboxScene } from '@scenes/FloorGraphSandboxScene';
 import { FloorScene } from '@scenes/FloorScene';
 import { TutorialScene } from '@scenes/TutorialScene';
+import { HubScene } from '@scenes/HubScene';
 
 // Compile-time constant replaced by Vite define. Import this wherever DEMO_MODE
 // branching is needed — never read window or import.meta.env directly.
@@ -39,6 +40,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     FloorGraphSandboxScene,
     FloorScene,
     TutorialScene,
+    HubScene,
   ],
 };
 
