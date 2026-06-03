@@ -122,6 +122,8 @@ export class GameScene extends Phaser.Scene {
   private revealingEnemies = false;
   /** S041: transient "YOUR TURN" overlay container — destroyed after its tween completes. */
   private yourTurnContainer: Phaser.GameObjects.GameObject[] = [];
+  /** S042: tile the player tapped first; confirmed on a second tap of the same tile. */
+  private movePending: { col: number; row: number } | null = null;
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -426,18 +428,43 @@ export class GameScene extends Phaser.Scene {
     const row = Math.floor((y - STAGE_Y) / tile);
     if (col < 0 || col >= state.grid.width || row < 0 || row >= state.grid.height) return;
 
+    // Ability/item targeting overrides everything
     if (this.targeting !== null) {
+      this.movePending = null;
       this.onTargetTile(col, row);
       return;
     }
 
+    // Player's own tile: cancel pending move
+    if (col === state.player.pos.x && row === state.player.pos.y) {
+      if (this.movePending !== null) { this.movePending = null; this.renderAll(); }
+      return;
+    }
+
+    // Enemy tile: attack if adjacent, else cancel pending
     const enemy = state.enemies.find((e) => e.hp > 0 && e.pos.x === col && e.pos.y === row);
-    if (enemy) {
+    if (enemy !== undefined) {
+      this.movePending = null;
       if (chebyshev(state.player.pos, { x: col, y: row }) <= 1) this.combatAction({ type: 'attack', targetId: enemy.id });
       return;
     }
-    if (col === state.player.pos.x && row === state.player.pos.y) return;
-    if (chebyshev(state.player.pos, { x: col, y: row }) === 1) this.combatAction({ type: 'move', targetPos: { x: col, y: row } });
+
+    // S042: adjacent empty tile — first tap previews, second tap confirms
+    if (chebyshev(state.player.pos, { x: col, y: row }) === 1) {
+      if (this.movePending?.col === col && this.movePending.row === row) {
+        // Second tap on the same tile → confirm move
+        this.movePending = null;
+        this.combatAction({ type: 'move', targetPos: { x: col, y: row } });
+      } else {
+        // First tap → show preview
+        this.movePending = { col, row };
+        this.renderAll();
+      }
+      return;
+    }
+
+    // Non-adjacent non-enemy tile → cancel any pending preview
+    if (this.movePending !== null) { this.movePending = null; this.renderAll(); }
   }
 
   private onAbilityButton(slot: AbilitySlot): void {
@@ -539,6 +566,7 @@ export class GameScene extends Phaser.Scene {
     this.session.endEncounter(state);
     this.combat = null;
     this.targeting = null;
+    this.movePending = null;
     const status = this.session.snapshot.status;
 
     if (status === 'defeat') {
@@ -914,6 +942,18 @@ export class GameScene extends Phaser.Scene {
           }
         }
       }
+    }
+
+    // S042: move preview — teal tint + border + "1 AP" cost label on the pending tile
+    if (this.movePending !== null && state.phase === 'player') {
+      const mx = gx + this.movePending.col * tile;
+      const my = STAGE_Y + this.movePending.row * tile;
+      this.topGfx.fillStyle(0xa0ffdc, 0.22).fillRect(mx, my, tile, tile);
+      this.topGfx.lineStyle(2, 0xa0ffdc, 0.85).strokeRect(mx, my, tile, tile);
+      const apLabel = this.add.text(mx + tile / 2, my - 3, '1 AP · tap to confirm', {
+        fontFamily: 'monospace', fontSize: '9px', color: '#a0ffdc',
+      }).setOrigin(0.5, 1).setDepth(2);
+      this.transient.push(apLabel);
     }
 
     const pp = state.player;
