@@ -13,6 +13,8 @@ import { OriginSelectScene } from '@scenes/OriginSelectScene';
 import { RunPreviewScene } from '@scenes/RunPreviewScene';
 import { FloorTransitionScene } from '@scenes/FloorTransitionScene';
 import { GameScene } from '@scenes/GameScene';
+import { PostRunScene } from '@scenes/PostRunScene';
+import { SettingsScene } from '@scenes/SettingsScene';
 
 // Compile-time constant replaced by Vite define. Import this wherever DEMO_MODE
 // branching is needed — never read window or import.meta.env directly.
@@ -49,6 +51,8 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     RunPreviewScene,
     FloorTransitionScene,
     GameScene,
+    PostRunScene,
+    SettingsScene,
   ],
 };
 
