@@ -459,6 +459,42 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── S051 Combat victory flash + XP readout ────────────────────────────────
+
+  /** Brief centred overlay: green "CLEARED" with XP gained. Auto-dismisses after 1.5s. */
+  private playCombatVictoryFlash(xpGained: number): void {
+    const bw = 220;
+    const bh = 60;
+    const bx = (W - bw) / 2;
+    const by = STAGE_Y + (STAGE_H - bh) / 2;
+
+    const bg = this.add.graphics().setDepth(4).setAlpha(0);
+    bg.fillStyle(0x000000, 0.7).fillRoundedRect(bx, by, bw, bh, 10);
+    bg.lineStyle(2, 0xa0ffdc, 0.7).strokeRoundedRect(bx, by, bw, bh, 10);
+
+    const label = this.add.text(W / 2, by + 16, 'CLEARED', {
+      fontFamily: 'monospace', fontSize: '18px', color: '#a0ffdc', letterSpacing: 5,
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+
+    const xpLabel = this.add.text(W / 2, by + 38, `+${xpGained} XP`, {
+      fontFamily: 'monospace', fontSize: '11px', color: '#ffdd44',
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+
+    const targets = [bg, label, xpLabel];
+
+    this.tweens.add({
+      targets, alpha: 1, duration: 200, ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(1100, () => {
+          this.tweens.add({
+            targets, alpha: 0, duration: 300, ease: 'Sine.easeIn',
+            onComplete: () => targets.forEach((g) => g.destroy()),
+          });
+        });
+      },
+    });
+  }
+
   // ── S049 Sequential enemy action flashes ─────────────────────────────────
 
   /** Collects enemy-movement events from the resolved turn effects and
@@ -807,7 +843,9 @@ export class GameScene extends Phaser.Scene {
     if (state.phase === 'player' || state.phase === 'enemy') return;
 
     const wasBoss = this.session.currentRoom().type === 'boss';
+    const xpBefore = this.session.snapshot.xp;
     this.session.endEncounter(state);
+    const xpGained = this.session.snapshot.xp - xpBefore;
     this.combat = null;
     this.targeting = null;
     this.movePending = null;
@@ -840,11 +878,13 @@ export class GameScene extends Phaser.Scene {
       if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();
+      if (xpGained > 0) this.playCombatVictoryFlash(xpGained);
     } else {
       this.say(wasBoss ? 'boss_killed' : 'room_cleared');
       if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();
+      if (xpGained > 0) this.playCombatVictoryFlash(xpGained);
     }
 
     if (this.view === 'map' && this.session.snapshot.pendingStatPoints > 0) {
