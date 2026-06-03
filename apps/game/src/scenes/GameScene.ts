@@ -459,6 +459,55 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── S052 Death sequence animation ────────────────────────────────────────
+
+  /** Red screen flash → vignette closes → "YOU DIED" appears → auto-transitions
+   *  to game-over view after 2s total. */
+  private playDeathSequence(): void {
+    // Phase 1: full red flash (100ms)
+    const redFlash = this.add.graphics().setDepth(10).setAlpha(0.85);
+    redFlash.fillStyle(0xff0000, 1).fillRect(0, 0, W, H);
+
+    this.tweens.add({
+      targets: redFlash, alpha: 0, duration: 100, ease: 'Sine.easeOut',
+      onComplete: () => {
+        redFlash.destroy();
+
+        // Phase 2: vignette darkness (four corner rects closing in, 600ms)
+        const vignette = this.add.graphics().setDepth(10).setAlpha(0);
+        vignette.fillStyle(0x000000, 1);
+        vignette.fillRect(0, 0, W, H / 3);
+        vignette.fillRect(0, H * 2 / 3, W, H / 3);
+        vignette.fillRect(0, 0, W / 4, H);
+        vignette.fillRect(W * 3 / 4, 0, W / 4, H);
+
+        this.tweens.add({
+          targets: vignette, alpha: 0.88, duration: 600, ease: 'Sine.easeIn',
+          onComplete: () => {
+            // Phase 3: "YOU DIED" text appears (300ms)
+            const diedLabel = this.add.text(W / 2, H / 2 - 20, 'YOU DIED', {
+              fontFamily: 'monospace', fontSize: '32px', color: '#ff4444',
+              stroke: '#000000', strokeThickness: 4, letterSpacing: 8,
+            }).setOrigin(0.5).setDepth(11).setAlpha(0);
+
+            this.tweens.add({
+              targets: diedLabel, alpha: 1, duration: 300, ease: 'Sine.easeOut',
+              onComplete: () => {
+                // Phase 4: hold 700ms then transition to game-over
+                this.time.delayedCall(700, () => {
+                  vignette.destroy();
+                  diedLabel.destroy();
+                  this.view = 'over';
+                  this.renderAll();
+                });
+              },
+            });
+          },
+        });
+      },
+    });
+  }
+
   // ── S051 Combat victory flash + XP readout ────────────────────────────────
 
   /** Brief centred overlay: green "CLEARED" with XP gained. Auto-dismisses after 1.5s. */
@@ -860,9 +909,10 @@ export class GameScene extends Phaser.Scene {
       this.say('player_death');
       playSfx(this, 'sfx_defeat');
       playMusic(this, 'music_menu');
-      this.view = 'over';
       this.recordRun(false);
       void this.saves.clear();
+      // S052: play death sequence before revealing game-over
+      this.playDeathSequence();
     } else if (status === 'victory') {
       this.say('boss_killed');
       playSfx(this, 'sfx_victory');
