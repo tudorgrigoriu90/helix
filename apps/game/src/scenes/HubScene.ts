@@ -115,7 +115,9 @@ export class HubScene extends Phaser.Scene {
     });
 
     this.menuButton(menuTop + 88, 'CODEX', C.dim, 'Knowledge earned in the dark.', true, null);
-    this.menuButton(menuTop + 168, 'SETTINGS', C.dim, 'Audio, display, accessibility.', true, null);
+    this.menuButton(menuTop + 168, 'SETTINGS', C.accent, 'Audio, display, accessibility.', false, () => {
+      this.scene.start('SettingsScene', { meta: this.meta });
+    });
     this.menuButton(menuTop + 248, 'ABOUT', C.dim, 'Licences and legal.', true, null);
   }
 
