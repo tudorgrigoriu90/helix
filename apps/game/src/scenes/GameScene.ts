@@ -120,6 +120,8 @@ export class GameScene extends Phaser.Scene {
 
   /** S040: true while the enemy-reveal animation is playing; suppresses enemy draw in renderCombat. */
   private revealingEnemies = false;
+  /** S041: transient "YOUR TURN" overlay container — destroyed after its tween completes. */
+  private yourTurnContainer: Phaser.GameObjects.GameObject[] = [];
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -299,6 +301,70 @@ export class GameScene extends Phaser.Scene {
     this.playEnemyReveal(encounter);
   }
 
+  // ── S041 "YOUR TURN" flash ────────────────────────────────────────────────
+
+  /** Plays a brief centred "YOUR TURN" banner + AP pips when the player phase begins.
+   *  The banner fades in (200ms), holds (400ms), then fades out (300ms) before
+   *  handing back control. Input is not blocked — the player can act immediately. */
+  private playYourTurnFlash(ap: number, maxAp: number): void {
+    // Destroy any still-running instance from a previous turn
+    this.yourTurnContainer.forEach((g) => g.destroy());
+    this.yourTurnContainer = [];
+
+    const cy = STAGE_Y + STAGE_H / 2 - 20;
+    const bw = 230;
+    const bh = 66;
+    const bx = (W - bw) / 2;
+
+    const bg = this.add.graphics().setDepth(4).setAlpha(0);
+    bg.fillStyle(0x000000, 0.72).fillRoundedRect(bx, cy - 8, bw, bh, 10);
+    bg.lineStyle(2, 0xa0ffdc, 0.7).strokeRoundedRect(bx, cy - 8, bw, bh, 10);
+
+    const label = this.add.text(W / 2, cy + 12, 'YOUR TURN', {
+      fontFamily: 'monospace', fontSize: '22px', color: '#a0ffdc', letterSpacing: 6,
+    }).setOrigin(0.5).setDepth(4).setAlpha(0);
+
+    // AP pip row (filled squares for available, empty for spent)
+    const pipG = this.add.graphics().setDepth(4).setAlpha(0);
+    const pipSize = 10;
+    const pipGap = 6;
+    const totalPipW = maxAp * pipSize + (maxAp - 1) * pipGap;
+    const pipStartX = W / 2 - totalPipW / 2;
+    const pipY = cy + 38;
+    for (let i = 0; i < maxAp; i++) {
+      const px = pipStartX + i * (pipSize + pipGap);
+      if (i < ap) {
+        pipG.fillStyle(0xa0ffdc, 0.9).fillRect(px, pipY, pipSize, pipSize);
+      } else {
+        pipG.lineStyle(1, 0xa0ffdc, 0.35).strokeRect(px, pipY, pipSize, pipSize);
+      }
+    }
+
+    const targets = [bg, label, pipG];
+    this.yourTurnContainer = targets;
+
+    this.tweens.add({
+      targets,
+      alpha: 1,
+      duration: 200,
+      ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(400, () => {
+          this.tweens.add({
+            targets,
+            alpha: 0,
+            duration: 300,
+            ease: 'Sine.easeIn',
+            onComplete: () => {
+              targets.forEach((g) => g.destroy());
+              this.yourTurnContainer = [];
+            },
+          });
+        });
+      },
+    });
+  }
+
   // ── S040 Enemy reveal animation ───────────────────────────────────────────
 
   /** Fades each enemy in one-by-one (150ms stagger) over the already-rendered
@@ -455,6 +521,11 @@ export class GameScene extends Phaser.Scene {
         playSfx(this, 'sfx_enemy_death');
       }
       if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
+      // S041: fire the "YOUR TURN" banner the moment the player phase begins.
+      if (fx.type === 'phaseChanged' && fx.to === 'player' && this.combat !== null) {
+        const { ap, maxAp } = this.combat.player;
+        this.playYourTurnFlash(ap, maxAp);
+      }
     }
     if (playerHurt) playSfx(this, 'sfx_player_hurt');
   }
