@@ -130,6 +130,8 @@ export class GameScene extends Phaser.Scene {
   private attackHoverEnemyId: string | null = null;
   /** S044: tile currently hovered during ability targeting — drives AoE circle preview. */
   private abilityHoverTile: { col: number; row: number } | null = null;
+  /** S045: item pending single-tap confirmation (heal items only; AoE items use tile-targeting). */
+  private itemConfirmPending: ItemDef | null = null;
 
   private stage!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
@@ -524,15 +526,22 @@ export class GameScene extends Phaser.Scene {
   private onItemButton(item: ItemDef): void {
     const state = this.combat;
     if (state === null || state.phase !== 'player' || state.player.ap < 1) return;
+    // Toggle off if already selected
     if (this.targeting?.kind === 'item' && this.targeting.item.id === item.id) {
       this.targeting = null; this.renderAll(); return;
     }
+    if (this.itemConfirmPending?.id === item.id) {
+      this.itemConfirmPending = null; this.renderAll(); return;
+    }
     if (item.effect?.kind === 'heal') {
+      // S045: require a confirmation tap before consuming a heal item
+      this.itemConfirmPending = item;
       this.targeting = null;
-      this.combatAction({ type: 'useItem', itemId: item.id });
+      this.renderAll();
       return;
     }
     this.targeting = { kind: 'item', item };
+    this.itemConfirmPending = null;
     this.renderAll();
   }
 
@@ -607,6 +616,7 @@ export class GameScene extends Phaser.Scene {
     this.movePending = null;
     this.attackHoverEnemyId = null;
     this.abilityHoverTile = null;
+    this.itemConfirmPending = null;
     const status = this.session.snapshot.status;
 
     if (status === 'defeat') {
@@ -854,6 +864,11 @@ export class GameScene extends Phaser.Scene {
     else if (this.view === 'inventory') this.renderInventory();
     else this.renderOver();
 
+    // S045: item confirmation prompt renders above everything (depth 4)
+    if (this.itemConfirmPending !== null && this.view === 'combat') {
+      this.renderItemConfirm(this.itemConfirmPending);
+    }
+
     this.renderButtons();
     this.updateHud();
   }
@@ -1049,6 +1064,67 @@ export class GameScene extends Phaser.Scene {
     this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, GC.hpGreen);
     addLabel(pcx, STAGE_Y + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
+  }
+
+  /** S045: floating confirm prompt for instant-use (heal) items.
+   *  Two tappable buttons: USE (fires the action) and CANCEL. */
+  private renderItemConfirm(item: ItemDef): void {
+    const effect = item.effect?.kind === 'heal' ? `+${item.effect.amount} HP` : '';
+    const bw = 260;
+    const bh = 72;
+    const bx = (W - bw) / 2;
+    const by = ITEM_Y - bh - 12;
+
+    const bg = this.add.graphics().setDepth(4);
+    bg.fillStyle(0x0a0e1a, 0.92).fillRoundedRect(bx, by, bw, bh, 10);
+    bg.lineStyle(2, 0xffdd44, 0.85).strokeRoundedRect(bx, by, bw, bh, 10);
+
+    this.transient.push(bg);
+    this.transient.push(
+      this.add.text(W / 2, by + 14, `USE ${item.name}?`, {
+        fontFamily: 'monospace', fontSize: '12px', color: '#ffdd44',
+      }).setOrigin(0.5, 0).setDepth(4),
+    );
+    if (effect) {
+      this.transient.push(
+        this.add.text(W / 2, by + 32, effect, {
+          fontFamily: 'monospace', fontSize: '10px', color: '#a0ffdc',
+        }).setOrigin(0.5, 0).setDepth(4),
+      );
+    }
+
+    // USE button
+    const useX = bx + 12;
+    const useW = (bw - 36) / 2;
+    const useG = this.add.graphics().setDepth(4);
+    useG.fillStyle(0x1a3028).fillRoundedRect(useX, by + 46, useW, 18, 4);
+    useG.lineStyle(1, 0xa0ffdc).strokeRoundedRect(useX, by + 46, useW, 18, 4);
+    this.transient.push(useG,
+      this.add.text(useX + useW / 2, by + 55, 'USE  1AP', {
+        fontFamily: 'monospace', fontSize: '9px', color: '#a0ffdc',
+      }).setOrigin(0.5).setDepth(4),
+    );
+    const useZone = this.add.zone(useX, by + 46, useW, 18).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(4);
+    useZone.on('pointerdown', () => {
+      const pending = this.itemConfirmPending;
+      this.itemConfirmPending = null;
+      if (pending !== null) this.combatAction({ type: 'useItem', itemId: pending.id });
+    });
+    this.buttonZones.push(useZone);
+
+    // CANCEL button
+    const cancelX = bx + bw / 2 + 6;
+    const cancelG = this.add.graphics().setDepth(4);
+    cancelG.fillStyle(0x1a1a2e).fillRoundedRect(cancelX, by + 46, useW, 18, 4);
+    cancelG.lineStyle(1, 0x3a3a55).strokeRoundedRect(cancelX, by + 46, useW, 18, 4);
+    this.transient.push(cancelG,
+      this.add.text(cancelX + useW / 2, by + 55, 'CANCEL', {
+        fontFamily: 'monospace', fontSize: '9px', color: '#7a8fad',
+      }).setOrigin(0.5).setDepth(4),
+    );
+    const cancelZone = this.add.zone(cancelX, by + 46, useW, 18).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(4);
+    cancelZone.on('pointerdown', () => { this.itemConfirmPending = null; this.renderAll(); });
+    this.buttonZones.push(cancelZone);
   }
 
   private renderAbilityBar(): void {
