@@ -1047,13 +1047,61 @@ export class GameScene extends Phaser.Scene {
 
   // ── Floor descent ─────────────────────────────────────────────────────────
 
+  /** S029: brief LACE narration overlay (1.5s) before advancing to the next floor.
+   *  The current map stays visible beneath the card so the player knows where they are. */
   private descendFloor(): void {
-    this.session.descend();
-    this.say('floor_enter');
+    const nextFloor = this.session.snapshot.floorNumber + 1;
+    this.playDescentNarration(nextFloor, () => {
+      this.session.descend();
+      this.say('floor_enter');
+      playSfx(this, 'sfx_descend');
+      this.playFloorMusic();
+      this.persist();
+      this.renderAll();
+    });
+  }
+
+  private playDescentNarration(nextFloor: number, onDone: () => void): void {
     playSfx(this, 'sfx_descend');
-    this.playFloorMusic();
-    this.persist();
-    this.renderAll();
+
+    const bw = W - 48;
+    const bh = 110;
+    const bx = 24;
+    const by = STAGE_Y + (STAGE_H - bh) / 2;
+
+    const card = this.add.graphics().setDepth(4).setAlpha(0);
+    card.fillStyle(0x000000, 0.82).fillRoundedRect(bx, by, bw, bh, 12);
+    card.lineStyle(2, GC.start, 0.6).strokeRoundedRect(bx, by, bw, bh, 12);
+
+    const floorLabel = this.add.text(W / 2, by + 22, `DESCENDING TO FLOOR ${nextFloor}`, {
+      fontFamily: 'monospace', fontSize: '13px', color: C.green, letterSpacing: 3,
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+
+    // Use the most recent LACE line that's already in the text field — it's
+    // fresh from `floor_complete` / `boss_killed` so it's contextually correct.
+    const laceLine = this.laceText.text.replace(/^LACE:\s*/, '');
+    const narration = this.add.text(W / 2, by + 52, laceLine, {
+      fontFamily: 'monospace', fontSize: '11px', color: C.dim, fontStyle: 'italic',
+      wordWrap: { width: bw - 32 }, align: 'center', lineSpacing: 3,
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+
+    const objs = [card, floorLabel, narration];
+
+    // Fade in (250ms) → hold (1000ms) → fade out (250ms) → advance.
+    this.tweens.add({
+      targets: objs, alpha: 1, duration: 250, ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(1000, () => {
+          this.tweens.add({
+            targets: objs, alpha: 0, duration: 250, ease: 'Sine.easeIn',
+            onComplete: () => {
+              objs.forEach((o) => o.destroy());
+              onDone();
+            },
+          });
+        });
+      },
+    });
   }
 
   // ── Strand Event ──────────────────────────────────────────────────────────
