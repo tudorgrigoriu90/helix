@@ -76,7 +76,7 @@ const GC = {
 const FINAL_FLOOR = 20;
 const STRAND_INTERVAL = 5;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory' | 'event';
 
 /**
  * S040+ Production game scene — T-161.
@@ -334,11 +334,13 @@ export class GameScene extends Phaser.Scene {
     const room = this.session.currentRoom();
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
-      if (room.type === 'lace_event') this.say('generic');
+      if (room.type === 'lace_event') this.openEventRoom();
       else if (room.type === 'merchant') this.openDispenser();
-      this.maybeShowLoot();
-      this.persist();
-      this.renderAll();
+      if (this.view !== 'event') {
+        this.maybeShowLoot();
+        this.persist();
+        this.renderAll();
+      }
       return;
     }
     this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
@@ -1034,6 +1036,121 @@ export class GameScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  // ── S024 Event Room ───────────────────────────────────────────────────────
+
+  /**
+   * In-world lore choices surfaced when the player enters a `lace_event` room.
+   * Three event sets are embedded here; the active set is picked deterministically
+   * from the current room id so the same run always shows the same event.
+   * Mechanical rewards are intentionally minimal for v0.1 — authored event
+   * content and richer outcomes land with the content system (T-282+).
+   */
+  private static readonly EVENT_SETS: ReadonlyArray<{
+    title: string;
+    sub: string;
+    choices: ReadonlyArray<{ label: string; desc: string; reward: 'vein' | 'heal' | 'sig' }>;
+  }> = [
+    {
+      title: 'ANOMALOUS SIGNAL',
+      sub: 'LACE detects a residual broadcast from before the first descent.',
+      choices: [
+        { label: 'TAP THE FREQUENCY', desc: '+20 VEIN Crystals — the signal rewards contact.', reward: 'vein' },
+        { label: 'FILTER THE NOISE', desc: 'Recover 25% HP — discipline has its own dividend.', reward: 'heal' },
+        { label: 'LOG AND LEAVE', desc: '+15 VEIN — prudence over curiosity.', reward: 'sig' },
+      ],
+    },
+    {
+      title: 'SEALED ALCOVE',
+      sub: 'A recess in the wall, untouched. LACE cannot read what is inside.',
+      choices: [
+        { label: 'FORCE IT OPEN', desc: '+20 VEIN — whatever was sealed is now yours.', reward: 'vein' },
+        { label: 'LISTEN FIRST', desc: 'Recover 25% HP — patience costs nothing here.', reward: 'heal' },
+        { label: 'LEAVE IT SEALED', desc: '+15 VEIN — some debts stay closed.', reward: 'sig' },
+      ],
+    },
+    {
+      title: 'STRAND ECHO',
+      sub: 'A previous Sigma-carrier\'s mutation left an imprint in the floor.',
+      choices: [
+        { label: 'ABSORB THE ECHO', desc: '+20 VEIN — borrowed memory, real reward.', reward: 'vein' },
+        { label: 'REINFORCE YOUR CELLS', desc: 'Recover 25% HP — your biology asserts itself.', reward: 'heal' },
+        { label: 'PASS THROUGH QUICKLY', desc: '+15 VEIN — no inheritance today.', reward: 'sig' },
+      ],
+    },
+  ];
+
+  private openEventRoom(): void {
+    this.view = 'event';
+    this.say('generic');
+    this.persist();
+    this.renderAll();
+  }
+
+  private resolveEventChoice(reward: 'vein' | 'heal' | 'sig'): void {
+    const snap = this.session.snapshot;
+    if (reward === 'vein') {
+      this.session.grantVein(20);
+    } else if (reward === 'heal') {
+      const amount = Math.floor(snap.player.maxHp * 0.25);
+      this.session.healPlayer(amount);
+    } else {
+      // 'sig' — the lesser VEIN grant; a richer SIG system comes with T-282+.
+      this.session.grantVein(15);
+    }
+    playSfx(this, 'ui_click');
+    this.persist();
+    this.view = 'map';
+    this.maybeShowLoot();
+    this.renderAll();
+  }
+
+  private renderEvent(): void {
+    const roomId = this.session.snapshot.currentRoomId;
+    // Pick event set deterministically from the room id's character codes.
+    const setIndex = roomId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % GameScene.EVENT_SETS.length;
+    const evt = GameScene.EVENT_SETS[setIndex];
+    if (evt === undefined) return;
+
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 10, evt.title, {
+        fontFamily: 'monospace', fontSize: '14px', color: C.yellow, letterSpacing: 2,
+      }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 34, evt.sub, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+        wordWrap: { width: W - 40 }, align: 'center',
+      }).setOrigin(0.5, 0),
+    );
+
+    const cardTop = STAGE_Y + 76;
+    const cardH = 78;
+    const cardGap = 10;
+
+    evt.choices.forEach((choice, i) => {
+      const x = 16;
+      const y = cardTop + i * (cardH + cardGap);
+      const w = W - 32;
+
+      this.stage.fillStyle(0x0e1830).fillRoundedRect(x, y, w, cardH, 8);
+      this.stage.lineStyle(1, GC.edge).strokeRoundedRect(x, y, w, cardH, 8);
+
+      this.transient.push(
+        this.add.text(x + 14, y + 14, choice.label, { fontFamily: 'monospace', fontSize: '12px', color: C.text }),
+        this.add.text(x + 14, y + 38, choice.desc, {
+          fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+          wordWrap: { width: w - 28 },
+        }),
+      );
+
+      const z = this.add.zone(x, y, w, cardH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.resolveEventChoice(choice.reward));
+      z.on('pointerover', () => {
+        this.stage.fillStyle(0x162040).fillRoundedRect(x, y, w, cardH, 8);
+        this.stage.lineStyle(1, GC.start).strokeRoundedRect(x, y, w, cardH, 8);
+      });
+      this.buttonZones.push(z);
+    });
+  }
+
   // ── Stat allocation ───────────────────────────────────────────────────────
 
   private allocateStat(stat: keyof EntityStats): void {
@@ -1047,13 +1164,61 @@ export class GameScene extends Phaser.Scene {
 
   // ── Floor descent ─────────────────────────────────────────────────────────
 
+  /** S029: brief LACE narration overlay (1.5s) before advancing to the next floor.
+   *  The current map stays visible beneath the card so the player knows where they are. */
   private descendFloor(): void {
-    this.session.descend();
-    this.say('floor_enter');
+    const nextFloor = this.session.snapshot.floorNumber + 1;
+    this.playDescentNarration(nextFloor, () => {
+      this.session.descend();
+      this.say('floor_enter');
+      playSfx(this, 'sfx_descend');
+      this.playFloorMusic();
+      this.persist();
+      this.renderAll();
+    });
+  }
+
+  private playDescentNarration(nextFloor: number, onDone: () => void): void {
     playSfx(this, 'sfx_descend');
-    this.playFloorMusic();
-    this.persist();
-    this.renderAll();
+
+    const bw = W - 48;
+    const bh = 110;
+    const bx = 24;
+    const by = STAGE_Y + (STAGE_H - bh) / 2;
+
+    const card = this.add.graphics().setDepth(4).setAlpha(0);
+    card.fillStyle(0x000000, 0.82).fillRoundedRect(bx, by, bw, bh, 12);
+    card.lineStyle(2, GC.start, 0.6).strokeRoundedRect(bx, by, bw, bh, 12);
+
+    const floorLabel = this.add.text(W / 2, by + 22, `DESCENDING TO FLOOR ${nextFloor}`, {
+      fontFamily: 'monospace', fontSize: '13px', color: C.green, letterSpacing: 3,
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+
+    // Use the most recent LACE line that's already in the text field — it's
+    // fresh from `floor_complete` / `boss_killed` so it's contextually correct.
+    const laceLine = this.laceText.text.replace(/^LACE:\s*/, '');
+    const narration = this.add.text(W / 2, by + 52, laceLine, {
+      fontFamily: 'monospace', fontSize: '11px', color: C.dim, fontStyle: 'italic',
+      wordWrap: { width: bw - 32 }, align: 'center', lineSpacing: 3,
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+
+    const objs = [card, floorLabel, narration];
+
+    // Fade in (250ms) → hold (1000ms) → fade out (250ms) → advance.
+    this.tweens.add({
+      targets: objs, alpha: 1, duration: 250, ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(1000, () => {
+          this.tweens.add({
+            targets: objs, alpha: 0, duration: 250, ease: 'Sine.easeIn',
+            onComplete: () => {
+              objs.forEach((o) => o.destroy());
+              onDone();
+            },
+          });
+        });
+      },
+    });
   }
 
   // ── Strand Event ──────────────────────────────────────────────────────────
@@ -1189,6 +1354,7 @@ export class GameScene extends Phaser.Scene {
     else if (this.view === 'combat') { this.renderCombat(); this.renderAbilityBar(); this.renderItemBar(); }
     else if (this.view === 'strand') this.renderStrand();
     else if (this.view === 'shop') this.renderShop();
+    else if (this.view === 'event') this.renderEvent();
     else if (this.view === 'levelup') this.renderLevelUp();
     else if (this.view === 'loot') this.renderLoot();
     else if (this.view === 'swap') this.renderSwap();
@@ -1727,11 +1893,42 @@ export class GameScene extends Phaser.Scene {
 
   private renderLoot(): void {
     const pending = this.session.lootPending();
-    this.transient.push(
-      this.add.text(W / 2, STAGE_Y + 12, 'LOOT FOUND', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0),
-      this.add.text(W / 2, STAGE_Y + 34, 'tap to take · LEAVE drops the rest', { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0),
-    );
-    pending.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 60, () => this.onTakeLoot(item)));
+    const hdr = this.add.text(W / 2, STAGE_Y + 12, 'LOOT FOUND', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0).setAlpha(0);
+    const sub = this.add.text(W / 2, STAGE_Y + 34, 'tap to take · LEAVE drops the rest', { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0).setAlpha(0);
+    this.transient.push(hdr, sub);
+    this.tweens.add({ targets: [hdr, sub], alpha: 1, duration: 200, ease: 'Sine.easeOut' });
+
+    // S027: stagger each item card in with an 80ms offset, creating per-item
+    // Graphics objects so each can be tweened independently.
+    pending.forEach((item, i) => {
+      const x = 16;
+      const y = STAGE_Y + 60 + i * 60;
+      const w = W - 32;
+      const cursed = item.cursed === true;
+
+      // Per-item card background (own Graphics so alpha can be tweened).
+      const card = this.add.graphics().setAlpha(0);
+      card.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(x, y, w, 52, 8);
+      card.lineStyle(1, cursed ? GC.boss : GC.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
+
+      const nameT = this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setAlpha(0);
+      const tagT = this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}${cursed ? ' · CURSED' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }).setAlpha(0);
+      const modT = this.add.text(x + w - 12, y + 26, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5).setAlpha(0);
+
+      this.transient.push(card, nameT, tagT, modT);
+
+      this.tweens.add({
+        targets: [card, nameT, tagT, modT],
+        alpha: 1,
+        duration: 220,
+        delay: i * 80,
+        ease: 'Sine.easeOut',
+      });
+
+      const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      z.on('pointerdown', () => this.onTakeLoot(item));
+      this.buttonZones.push(z);
+    });
   }
 
   private renderSwap(): void {

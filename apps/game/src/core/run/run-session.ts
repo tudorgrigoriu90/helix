@@ -825,4 +825,15 @@ export class RunSession {
       this.player = { ...this.player, hp: this.player.maxHp };
     }
   }
+
+  /** T-176: grant VEIN Crystals as an event-room reward.
+   *  Updates both the spendable balance and the lifetime-earned total. */
+  grantVein(amount: number): void { this.bankVein(amount); }
+
+  /** T-176 / T-178: restore HP by `amount`, capped at maxHp.
+   *  Used by event-room choices and safe-room UI confirms. */
+  healPlayer(amount: number): void {
+    const hp = Math.min(this.player.hp + amount, this.player.maxHp);
+    this.player = { ...this.player, hp };
+  }
 }
