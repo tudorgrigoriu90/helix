@@ -6,9 +6,9 @@ import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { AbilitySlot } from '@shared-types/ability';
 import type { ItemDef } from '@shared-types/item';
-import type { EntityStats } from '@shared-types/run-state';
+import type { EntityStats, DeathCause } from '@shared-types/run-state';
 import type { MetaState } from '@shared-types/meta-state';
-import type { MutationDef } from '@shared-types/mutation';
+import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
@@ -29,6 +29,7 @@ import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState, recordRunOutcome } from '../core/save';
 import { createWebStorageAdapter } from '../platform/storage-web';
 import { LaceNarrator } from '../core/lace';
+import type { RunSummaryData } from './PostRunScene';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
@@ -75,7 +76,7 @@ const GC = {
 const FINAL_FLOOR = 20;
 const STRAND_INTERVAL = 5;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'over' | 'loot' | 'swap' | 'inventory';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory';
 
 /**
  * S040+ Production game scene — T-161.
@@ -110,6 +111,10 @@ export class GameScene extends Phaser.Scene {
   private runStartMs = 0;
   private runRecorded = false;
   private lastRunShards = 0;
+  /** T-195: cause of the player's death this run, captured from the engine's `defeat` effect. */
+  private deathCause: DeathCause = 'enemy_kill';
+  /** T-197: achievement ids newly earned this run, surfaced on the post-run rewards strip. */
+  private achievementsEarned: string[] = [];
 
   private view: View = 'map';
   private combat: RunState | null = null;
@@ -243,6 +248,8 @@ export class GameScene extends Phaser.Scene {
     this.runStartMs = Date.now();
     this.runRecorded = false;
     this.lastRunShards = 0;
+    this.deathCause = 'enemy_kill';
+    this.achievementsEarned = [];
     this.revealingEnemies = false;
     this.say('run_start');
     this.playFloorMusic();
@@ -485,20 +492,27 @@ export class GameScene extends Phaser.Scene {
           targets: vignette, alpha: 0.88, duration: 600, ease: 'Sine.easeIn',
           onComplete: () => {
             // Phase 3: "YOU DIED" text appears (300ms)
-            const diedLabel = this.add.text(W / 2, H / 2 - 20, 'YOU DIED', {
+            const diedLabel = this.add.text(W / 2, H / 2 - 24, 'YOU DIED', {
               fontFamily: 'monospace', fontSize: '32px', color: '#ff4444',
               stroke: '#000000', strokeThickness: 4, letterSpacing: 8,
             }).setOrigin(0.5).setDepth(11).setAlpha(0);
 
+            // T-195: death_cause readout beneath the headline.
+            const causeLabel = this.add.text(W / 2, H / 2 + 14, GameScene.deathCauseLabel(this.deathCause), {
+              fontFamily: 'monospace', fontSize: '12px', color: '#7a8fad',
+              stroke: '#000000', strokeThickness: 3, letterSpacing: 2,
+            }).setOrigin(0.5).setDepth(11).setAlpha(0);
+
             this.tweens.add({
-              targets: diedLabel, alpha: 1, duration: 300, ease: 'Sine.easeOut',
+              targets: [diedLabel, causeLabel], alpha: 1, duration: 300, ease: 'Sine.easeOut',
               onComplete: () => {
                 // Phase 4: hold 700ms then transition to game-over
                 this.time.delayedCall(700, () => {
                   vignette.destroy();
                   diedLabel.destroy();
-                  this.view = 'over';
-                  this.renderAll();
+                  causeLabel.destroy();
+                  // S030 → S031/S032: hand off to the run summary + meta rewards.
+                  this.goToPostRun(false);
                 });
               },
             });
@@ -861,6 +875,8 @@ export class GameScene extends Phaser.Scene {
         this.say('enemy_killed');
         playSfx(this, 'sfx_enemy_death');
       }
+      // T-195: capture the death cause for the post-run summary.
+      if (fx.type === 'defeat') this.deathCause = fx.cause;
       if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
       // S048: flash the hit entity's tile
       if (fx.type === 'damageDealt') {
@@ -917,9 +933,11 @@ export class GameScene extends Phaser.Scene {
       this.say('boss_killed');
       playSfx(this, 'sfx_victory');
       playMusic(this, 'music_menu');
-      this.view = 'over';
       this.recordRun(true);
       void this.saves.clear();
+      // S031/S032: route to the run summary + meta rewards.
+      this.goToPostRun(true);
+      return;
     } else if (status === 'strand_event') {
       this.say('boss_killed');
       this.openStrandEvent();
@@ -957,6 +975,30 @@ export class GameScene extends Phaser.Scene {
     });
     this.lastRunShards = this.meta.shardCrystals - before;
     void this.metaSaves.save(this.meta);
+  }
+
+  /** T-196/T-197: hand off to the "What You Became" + meta-rewards summary. */
+  private goToPostRun(won: boolean): void {
+    const snap = this.session.snapshot;
+    const names = snap.player.mutations.map((id) => {
+      const def = this.mutationPool.find((m) => m.id === id);
+      return def?.name ?? id;
+    });
+    const summary: RunSummaryData = {
+      meta: this.meta,
+      won,
+      floorReached: snap.floorNumber,
+      finalFloor: FINAL_FLOOR,
+      enemiesKilled: this.enemiesKilled,
+      shardsEarned: this.lastRunShards,
+      veinEarned: snap.veinEarned,
+      mutations: names,
+      dominantTraits: (snap.player.dominantTraits ?? []) as MutationFamily[],
+      playtimeMs: Date.now() - this.runStartMs,
+      deathCause: won ? null : this.deathCause,
+      achievementsEarned: this.achievementsEarned,
+    };
+    this.scene.start('PostRunScene', summary as unknown as Record<string, unknown>);
   }
 
   // ── Dispenser ─────────────────────────────────────────────────────────────
@@ -1151,7 +1193,6 @@ export class GameScene extends Phaser.Scene {
     else if (this.view === 'loot') this.renderLoot();
     else if (this.view === 'swap') this.renderSwap();
     else if (this.view === 'inventory') this.renderInventory();
-    else this.renderOver();
 
     // S045: item confirmation prompt renders above everything (depth 4)
     if (this.itemConfirmPending !== null && this.view === 'combat') {
@@ -1416,15 +1457,18 @@ export class GameScene extends Phaser.Scene {
         this.surrenderConfirmPending = true;
         this.renderAll();
       } else {
-        // Second tap confirms: force a defeat
+        // Second tap confirms: forfeit the run outright.
         this.combatMenuOpen = false;
         this.surrenderConfirmPending = false;
-        this.combatAction({ type: 'endTurn' }); // exhaust player turn to trigger enemy win
-        // The actual surrender is handled by routing to 'over' below
-        this.view = 'over';
+        this.combat = null;
+        this.deathCause = 'surrender';
+        this.say('player_death');
+        playSfx(this, 'sfx_defeat');
+        playMusic(this, 'music_menu');
         this.recordRun(false);
         void this.saves.clear();
-        this.renderAll();
+        // S030 → S031/S032 via the shared death sequence.
+        this.playDeathSequence();
       }
     });
     this.buttonZones.push(surrZ);
@@ -1756,24 +1800,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private renderOver(): void {
-    const status = this.session.snapshot.status;
-    this.overlay.fillStyle(0x000000, 0.72).fillRect(0, STAGE_Y, W, STAGE_H + 120);
-    const label = status === 'victory' ? 'VICTORY' : 'DEFEAT';
-    const cy = STAGE_Y + STAGE_H / 2;
-    this.transient.push(
-      this.add.text(W / 2, cy - 48, label, {
-        fontFamily: 'monospace', fontSize: '34px', color: status === 'victory' ? C.yellow : C.red,
-        stroke: '#000000', strokeThickness: 4,
-      }).setOrigin(0.5),
-      this.add.text(W / 2, cy + 8, `+${this.lastRunShards.toFixed(2)} Shards earned`, {
-        fontFamily: 'monospace', fontSize: '13px', color: C.green,
-      }).setOrigin(0.5),
-      this.add.text(W / 2, cy + 30, `balance: ${this.meta.shardCrystals.toFixed(2)} SC`, {
-        fontFamily: 'monospace', fontSize: '11px', color: C.dim,
-      }).setOrigin(0.5),
-    );
-  }
 
   // ── Buttons ───────────────────────────────────────────────────────────────
 
@@ -1812,10 +1838,6 @@ export class GameScene extends Phaser.Scene {
     if (this.view === 'swap') { this.button(20, 'LEAVE IT', C.dim, () => this.leaveSwap()); return; }
     if (this.view === 'inventory') { this.button(20, 'CLOSE', C.green, () => this.closeInventory()); return; }
     if (this.view === 'levelup') return;
-    if (this.view === 'over') {
-      this.button(20, 'RETURN TO HUB', C.green, () => this.scene.start('HubScene', { meta: this.meta }));
-      return;
-    }
     if (this.view === 'map' && this.session.snapshot.status === 'floor_complete') {
       this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
       return;
@@ -1860,6 +1882,18 @@ export class GameScene extends Phaser.Scene {
     const normalDmg = damageTo(enemy, baseDmg, 'physical');
     const critDmg = damageTo(enemy, Math.floor(baseDmg * CRIT_MULTIPLIER), 'physical');
     return normalDmg === critDmg ? `${normalDmg}` : `${normalDmg}–${critDmg}`;
+  }
+
+  /** T-195: short in-animation phrasing for each death cause. */
+  private static deathCauseLabel(cause: DeathCause): string {
+    switch (cause) {
+      case 'enemy_kill': return 'slain in the dark';
+      case 'boss_kill': return 'broken by a Warden';
+      case 'hazard': return 'claimed by the VEIN';
+      case 'status_tick': return 'withered away';
+      case 'surrender': return 'you gave in';
+      case 'mutation_backfire': return 'undone by your own strands';
+    }
   }
 
   private static statBlurb(stat: keyof EntityStats): string {
