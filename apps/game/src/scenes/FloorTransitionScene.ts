@@ -27,9 +27,6 @@ const C = {
   text: '#e8edf5',
 };
 
-// Total duration of the transition animation before handing off.
-const TRANSITION_MS = 1400;
-
 export class FloorTransitionScene extends Phaser.Scene {
   private meta: MetaState = newMetaState();
   private originId = 'void_diver';

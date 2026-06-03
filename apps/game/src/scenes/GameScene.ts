@@ -1017,7 +1017,7 @@ export class GameScene extends Phaser.Scene {
   // ── Strand Event ──────────────────────────────────────────────────────────
 
   private openStrandEvent(): void {
-    const _outcome = this.session.beginStrandEvent();
+    this.session.beginStrandEvent();
     this.strandSelected = null;
     this.strandRerollUsed = false;
     this.view = 'strand';
