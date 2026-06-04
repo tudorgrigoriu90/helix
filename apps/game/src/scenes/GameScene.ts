@@ -6,7 +6,7 @@ import type { RunState } from '@shared-types/run-state';
 import type { Action } from '@shared-types/action';
 import type { AbilitySlot } from '@shared-types/ability';
 import type { ItemDef } from '@shared-types/item';
-import type { EntityStats, DeathCause } from '@shared-types/run-state';
+import type { EntityStats, DeathCause, StatusEffect } from '@shared-types/run-state';
 import type { MetaState } from '@shared-types/meta-state';
 import type { MutationDef, MutationFamily } from '@shared-types/mutation';
 import type { Effect } from '../core/turn-engine/effect';
@@ -33,6 +33,7 @@ import { LaceNarrator } from '../core/lace';
 import type { RunSummaryData } from './PostRunScene';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
 import { threatenedTiles, enemyInReach } from './combat-threat';
+import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 import { queueAudioLoads, playSfx, playMusic } from './audio/audio-registry';
@@ -818,17 +819,10 @@ export class GameScene extends Phaser.Scene {
 
   /** Flash the entity's tile and show a brief status icon/label when a status
    *  is applied (bright tint) or expires (fading grey). */
-  private playStatusFlash(entityId: string, status: string, applied: boolean): void {
+  private playStatusFlash(entityId: string, status: StatusEffect, applied: boolean): void {
     const state = this.combat;
     if (state === null) return;
-
-    let tilePos: { x: number; y: number } | null = null;
-    if (entityId === 'player') {
-      tilePos = state.player.pos;
-    } else {
-      const enemy = state.enemies.find((e) => e.id === entityId);
-      if (enemy !== undefined) tilePos = enemy.pos;
-    }
+    const tilePos = this.entityPos(entityId);
     if (tilePos === null) return;
 
     const tile = this.tileSize(state);
@@ -836,7 +830,7 @@ export class GameScene extends Phaser.Scene {
     const px = gx + tilePos.x * tile;
     const py = STAGE_Y + tilePos.y * tile;
 
-    const color = applied ? this.statusColor(status) : 0x888888;
+    const color = applied ? statusHex(status) : 0x888888;
     const flash = this.add.graphics().setDepth(3).setAlpha(applied ? 0.55 : 0.4);
     flash.fillStyle(color, 1).fillRect(px, py, tile, tile);
 
@@ -851,17 +845,6 @@ export class GameScene extends Phaser.Scene {
       ease: applied ? 'Sine.easeOut' : 'Sine.easeIn',
       onComplete: () => { flash.destroy(); icon.destroy(); },
     });
-  }
-
-  /** A status-specific colour for the tile flash. */
-  private statusColor(status: string): number {
-    switch (status) {
-      case 'burn': return 0xff6600;
-      case 'infected': return 0x44cc44;
-      case 'crushed': return 0xcc8844;
-      case 'frozen': return 0x44ccff;
-      default: return 0xaa44ff;
-    }
   }
 
   // ── S040 Enemy reveal animation ───────────────────────────────────────────
@@ -1812,6 +1795,9 @@ export class GameScene extends Phaser.Scene {
           }).setOrigin(0.5, 1).setDepth(3);
           this.transient.push(tg);
         }
+
+        // T-172: persistent active-status badges below the enemy.
+        this.drawStatusBadges(cx, STAGE_Y + e.pos.y * tile + tile, e.statuses);
       }
     }
 
@@ -1892,6 +1878,29 @@ export class GameScene extends Phaser.Scene {
     this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, GC.hpGreen);
     addLabel(pcx, STAGE_Y + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
+    // T-172: persistent active-status badges below the player.
+    this.drawStatusBadges(pcx, STAGE_Y + pp.pos.y * tile + tile, pp.statuses);
+  }
+
+  /** T-172: renders a centred row of active-status badges (glyph + turns) just
+   *  below a combatant, so ongoing DoTs and debuffs stay visible between ticks. */
+  private drawStatusBadges(
+    cx: number,
+    topY: number,
+    statuses: readonly { readonly effect: StatusEffect; readonly turnsRemaining: number }[],
+  ): void {
+    const badges = statusBadges(statuses);
+    if (badges.length === 0) return;
+    const cellW = 15;
+    const rowW = badges.length * cellW;
+    let x = cx - rowW / 2 + cellW / 2;
+    for (const b of badges) {
+      const t = this.add.text(x, topY + 1, `${b.glyph}${b.turns}`, {
+        fontFamily: 'monospace', fontSize: '9px', color: b.color,
+      }).setOrigin(0.5, 0).setDepth(2);
+      this.transient.push(t);
+      x += cellW;
+    }
   }
 
   /** S047: in-combat pause menu overlay with RESUME and double-confirm SURRENDER. */
