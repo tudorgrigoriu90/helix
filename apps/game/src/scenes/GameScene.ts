@@ -115,6 +115,10 @@ export class GameScene extends Phaser.Scene {
   private deathCause: DeathCause = 'enemy_kill';
   /** T-197: achievement ids newly earned this run, surfaced on the post-run rewards strip. */
   private achievementsEarned: string[] = [];
+  /** T-198: true once the one-per-run revive has been consumed. */
+  private reviveUsed = false;
+  /** T-198: set by init() when this scene restart is a post-death revive. */
+  private pendingRevive = false;
 
   private view: View = 'map';
   private combat: RunState | null = null;
@@ -165,6 +169,7 @@ export class GameScene extends Phaser.Scene {
     if (data['meta'] !== undefined) this.meta = data['meta'] as MetaState;
     if (typeof data['originId'] === 'string') this.originId = data['originId'];
     if (typeof data['seed'] === 'number') this.seed = data['seed'];
+    this.pendingRevive = data['revive'] === true;
   }
 
   create(): void {
@@ -190,7 +195,11 @@ export class GameScene extends Phaser.Scene {
     this.metaSaves = new SaveManager(adapter, metaCodec, 'helix.meta');
 
     this.loadContent();
-    this.startRun();
+    if (this.pendingRevive) {
+      void this.resumeWithRevive();
+    } else {
+      this.startRun();
+    }
   }
 
   // ── Content loading ────────────────────────────────────────────────────────
@@ -250,10 +259,48 @@ export class GameScene extends Phaser.Scene {
     this.lastRunShards = 0;
     this.deathCause = 'enemy_kill';
     this.achievementsEarned = [];
+    this.reviveUsed = false;
     this.revealingEnemies = false;
     this.say('run_start');
     this.playFloorMusic();
     this.persist();
+    this.renderAll();
+  }
+
+  /** T-198: load the persisted run, apply the revive mutation, and re-enter. */
+  private async resumeWithRevive(): Promise<void> {
+    const result = await this.saves.load();
+    if (result === null || !result.ok) {
+      // Corrupt / missing save — fall back to a fresh run rather than crashing.
+      this.startRun();
+      return;
+    }
+    this.session = new RunSession({
+      seed: this.seed,
+      template: this.template,
+      registry: this.enemyRegistry,
+      finalFloor: FINAL_FLOOR,
+      mutations: this.mutationPool,
+      strandEventEveryNFloors: STRAND_INTERVAL,
+      itemPool: this.itemPool,
+    });
+    this.session.applySave(result.value);
+    this.session.revive();
+    this.persist();
+    this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
+    this.view = 'map';
+    this.combat = null;
+    this.targeting = null;
+    this.enemiesKilled = 0;
+    this.runStartMs = Date.now();
+    this.runRecorded = false;
+    this.lastRunShards = 0;
+    this.deathCause = 'enemy_kill';
+    this.achievementsEarned = [];
+    this.reviveUsed = true;
+    this.revealingEnemies = false;
+    this.say('generic');
+    this.playFloorMusic();
     this.renderAll();
   }
 
@@ -999,6 +1046,7 @@ export class GameScene extends Phaser.Scene {
       playtimeMs: Date.now() - this.runStartMs,
       deathCause: won ? null : this.deathCause,
       achievementsEarned: this.achievementsEarned,
+      reviveAvailable: !won && !this.reviveUsed,
     };
     this.scene.start('PostRunScene', summary as unknown as Record<string, unknown>);
   }

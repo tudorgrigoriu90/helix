@@ -836,4 +836,17 @@ export class RunSession {
     const hp = Math.min(this.player.hp + amount, this.player.maxHp);
     this.player = { ...this.player, hp };
   }
+
+  /** T-198: apply the one-per-run revive — set player HP to 50 % maxHp and
+   *  reset all enemies in the active combat state to their maxHp so the
+   *  room fight restarts cleanly. */
+  revive(): void {
+    this.player = { ...this.player, hp: Math.ceil(this.player.maxHp * 0.5) };
+    if (this.combatState !== null) {
+      this.combatState = {
+        ...this.combatState,
+        enemies: this.combatState.enemies.map((e) => ({ ...e, hp: e.maxHp })),
+      };
+    }
+  }
 }
