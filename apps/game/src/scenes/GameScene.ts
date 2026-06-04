@@ -35,6 +35,7 @@ import { computeBounds, computeLayout, project } from './floor-graph-layout';
 import type { Viewport } from './floor-graph-layout';
 import { computeFogReveal, edgeVisible } from './map-fog';
 import { floorProgress, compactMinimapRect } from './minimap';
+import { roomGlyph } from './room-glyph';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -1773,10 +1774,14 @@ export class GameScene extends Phaser.Scene {
         iconImg.setDepth(opts.textDepth);
         this.transient.push(iconImg);
       } else {
-        const label = this.add.text(p.x, p.y, room.type[0]!.toUpperCase(), {
-          fontFamily: 'monospace', fontSize: '11px', color: C.dark,
+        // T-156: a distinct *shape* glyph per room type so the map never relies
+        // on colour alone (a11y). A dark stroke keeps it legible on both the
+        // bright (start/boss) and dark (combat/loot) node fills.
+        const glyph = this.add.text(p.x, p.y, roomGlyph(room.type), {
+          fontFamily: 'monospace', fontSize: `${Math.round(r * 0.9)}px`, color: C.text,
+          stroke: C.dark, strokeThickness: 3,
         }).setOrigin(0.5).setDepth(opts.textDepth);
-        this.transient.push(label);
+        this.transient.push(glyph);
       }
     }
   }
