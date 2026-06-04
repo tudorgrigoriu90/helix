@@ -141,6 +141,10 @@ export class GameScene extends Phaser.Scene {
   private yourTurnContainer: Phaser.GameObjects.GameObject[] = [];
   /** S046: transient "ENEMY PHASE" overlay container — destroyed after its tween completes. */
   private enemyPhaseContainer: Phaser.GameObjects.GameObject[] = [];
+  /** S049/T-170: true while the enemy phase is animating beat-by-beat. */
+  private enemySeqActive = false;
+  /** T-170: enemy-phase playback speed — 1 normally, 2 after a fast-forward tap. */
+  private enemySeqSpeed = 1;
   /** S047: whether the in-combat pause menu is open. */
   private combatMenuOpen = false;
   /** S047: whether the player has already confirmed once for surrender (double-confirm). */
@@ -335,6 +339,8 @@ export class GameScene extends Phaser.Scene {
 
   private onPointer(x: number, y: number): void {
     if (this.revealingEnemies) return; // block input during S040 reveal
+    // T-170: a tap during the enemy phase fast-forwards playback to 2× (the cap).
+    if (this.enemySeqActive) { this.enemySeqSpeed = 2; return; }
     if (this.combatMenuOpen) return;   // S047: menu zones handle their own input
     if (this.view === 'map') this.onMapPointer(x, y);
     else if (this.view === 'combat') this.onCombatPointer(x, y);
@@ -345,7 +351,7 @@ export class GameScene extends Phaser.Scene {
    *  Re-renders only on change to avoid frame thrash. */
   private onPointerMove(x: number, y: number): void {
     const state = this.combat;
-    if (state === null || state.phase !== 'player' || this.revealingEnemies) return;
+    if (state === null || state.phase !== 'player' || this.revealingEnemies || this.enemySeqActive) return;
     const tile = this.tileSize(state);
     const col = Math.floor((x - this.gridX(state)) / tile);
     const row = Math.floor((y - STAGE_Y) / tile);
@@ -618,27 +624,103 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  // ── S049 Sequential enemy action flashes ─────────────────────────────────
+  // ── S049 Sequential enemy phase ──────────────────────────────────────────
 
-  /** Collects enemy-movement events from the resolved turn effects and
-   *  plays a brief orange tile flash for each enemy in order, 200ms apart.
-   *  This gives the player a readable sequence of "who moved where". */
-  private playEnemyActionsSequential(effects: readonly Effect[], finalState: RunState): void {
-    // Ordered list of unique enemy IDs that moved this phase
-    const actedfrom: string[] = [];
+  /** Base delay between enemy-phase beats; halved while fast-forwarding (T-170). */
+  private static readonly ENEMY_BEAT_MS = 240;
+
+  /**
+   * Plays the enemy phase one readable beat at a time (T-170). The resolved
+   * effects are grouped into beats — one per enemy move/attack and per status
+   * tick — and each beat's visuals (move flash, hit flash + damage number,
+   * status pulse, death) play in initiative order. Tapping anywhere during the
+   * sequence fast-forwards it to 2× (the cap). When the last beat finishes,
+   * the "YOUR TURN" banner fires and input resumes.
+   */
+  private playEnemyPhaseSequence(effects: readonly Effect[]): void {
+    const beats = this.buildEnemyBeats(effects);
+    if (beats.length === 0) { this.finishEnemyPhase(); return; }
+
+    this.enemySeqActive = true;
+    this.enemySeqSpeed = 1;
+
+    const runBeat = (i: number): void => {
+      // Combat may have ended mid-sequence (player died on a tick) — bail out.
+      if (this.combat === null) { this.enemySeqActive = false; return; }
+      if (i >= beats.length) { this.enemySeqActive = false; this.finishEnemyPhase(); return; }
+      this.playBeat(beats[i]!);
+      this.time.delayedCall(GameScene.ENEMY_BEAT_MS / this.enemySeqSpeed, () => runBeat(i + 1));
+    };
+    runBeat(0);
+  }
+
+  /** Splits an enemy-phase effect list into ordered beats. A new beat starts on
+   *  each enemy move / damage / heal; status and death effects fold into the
+   *  beat they accompany so an on-hit status reads as one moment. */
+  private buildEnemyBeats(effects: readonly Effect[]): Effect[][] {
+    const beats: Effect[][] = [];
+    let current: Effect[] | null = null;
     for (const fx of effects) {
-      if (fx.type === 'entityMoved' && fx.entityId !== 'player' && !actedfrom.includes(fx.entityId)) {
-        actedfrom.push(fx.entityId);
+      switch (fx.type) {
+        case 'entityMoved':
+          if (fx.entityId === 'player') break; // enemy phase only
+          current = [fx]; beats.push(current); break;
+        case 'damageDealt':
+        case 'healingApplied':
+          current = [fx]; beats.push(current); break;
+        case 'statusApplied':
+        case 'statusExpired':
+        case 'entityDied':
+          if (current !== null) current.push(fx);
+          else { current = [fx]; beats.push(current); }
+          break;
+        default: break; // phaseChanged / outcome effects are handled outside the sequence
       }
     }
+    return beats;
+  }
 
-    actedfrom.forEach((enemyId, i) => {
-      this.time.delayedCall(i * 200, () => {
-        const enemy = finalState.enemies.find((e) => e.id === enemyId);
-        if (enemy === undefined || enemy.hp <= 0) return;
-        this.playEnemyActionFlash(enemy.pos);
-      });
-    });
+  /** Plays the visuals for a single enemy-phase beat. */
+  private playBeat(beat: readonly Effect[]): void {
+    for (const fx of beat) {
+      if (fx.type === 'entityMoved') {
+        this.playEnemyActionFlash(fx.to);
+      } else if (fx.type === 'damageDealt') {
+        this.playHitFlash(fx.targetId);
+        this.floatForEffect(fx);
+      } else if (fx.type === 'healingApplied') {
+        this.floatForEffect(fx);
+      } else if (fx.type === 'statusApplied') {
+        this.playStatusFlash(fx.targetId, fx.status, true);
+      } else if (fx.type === 'statusExpired') {
+        this.playStatusFlash(fx.targetId, fx.status, false);
+      } else if (fx.type === 'entityDied' && fx.entityId !== 'player') {
+        this.say('enemy_killed');
+        playSfx(this, 'sfx_enemy_death');
+      }
+    }
+  }
+
+  /** Fires the "YOUR TURN" banner once the enemy sequence has fully played out. */
+  private finishEnemyPhase(): void {
+    if (this.combat !== null && this.combat.phase === 'player') {
+      const { ap, maxAp } = this.combat.player;
+      this.playYourTurnFlash(ap, maxAp);
+    }
+  }
+
+  /** S046/T-170: enemy-phase bookkeeping that must happen immediately (counts,
+   *  death cause, the ENEMY PHASE banner) — the readable visuals are deferred to
+   *  {@link playEnemyPhaseSequence}. */
+  private applyEnemyPhaseBookkeeping(effects: readonly Effect[]): void {
+    let playerHurt = false;
+    for (const fx of effects) {
+      if (fx.type === 'entityDied' && fx.entityId !== 'player') this.enemiesKilled += 1;
+      if (fx.type === 'defeat') this.deathCause = fx.cause;
+      if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
+      if (fx.type === 'phaseChanged' && fx.to === 'enemy') this.playEnemyPhaseFlash();
+    }
+    if (playerHurt) playSfx(this, 'sfx_player_hurt');
   }
 
   /** A brief orange/amber tile flash at `pos` to indicate an enemy just acted there. */
@@ -691,6 +773,17 @@ export class GameScene extends Phaser.Scene {
       ease: 'Sine.easeOut',
       onComplete: () => flash.destroy(),
     });
+  }
+
+  /** T-169: float the damage / heal number carried by an effect, if any. */
+  private floatForEffect(fx: Effect): void {
+    if (fx.type === 'damageDealt' && fx.amount > 0) {
+      const toPlayer = fx.targetId === 'player';
+      const color = fx.isCrit ? '#ffdd44' : toPlayer ? '#ff6644' : '#ffffff';
+      this.floatCombatNumber(fx.targetId, fx.isCrit ? `${fx.amount}!` : `${fx.amount}`, color, fx.isCrit);
+    } else if (fx.type === 'healingApplied' && fx.amount > 0) {
+      this.floatCombatNumber(fx.targetId, `+${fx.amount}`, '#a0ffdc', false);
+    }
   }
 
   /** T-169: a combat number (damage / heal) that rises from an entity's tile and
@@ -873,7 +966,7 @@ export class GameScene extends Phaser.Scene {
 
   private onAbilityButton(slot: AbilitySlot): void {
     const state = this.combat;
-    if (state === null || state.phase !== 'player') return;
+    if (state === null || state.phase !== 'player' || this.enemySeqActive) return;
     if (slot.cooldownRemaining > 0 || state.player.ap < slot.def.apCost) return;
     if (this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id) {
       this.targeting = null; this.abilityHoverTile = null; this.renderAll(); return;
@@ -890,7 +983,7 @@ export class GameScene extends Phaser.Scene {
 
   private onItemButton(item: ItemDef): void {
     const state = this.combat;
-    if (state === null || state.phase !== 'player' || state.player.ap < 1) return;
+    if (state === null || state.phase !== 'player' || state.player.ap < 1 || this.enemySeqActive) return;
     // Toggle off if already selected
     if (this.targeting?.kind === 'item' && this.targeting.item.id === item.id) {
       this.targeting = null; this.renderAll(); return;
@@ -944,13 +1037,23 @@ export class GameScene extends Phaser.Scene {
       else if (action.type === 'useItem') playSfx(this, 'sfx_item');
       this.combat = result.state;
       this.session.syncCombat(result.state, this.combatRng.state);
-      this.reactToCombatEffects(result.effects);
-      // S049: for endTurn, schedule per-enemy action flashes at 200ms stagger
+
+      // S049/T-170: an ended turn runs the enemy phase as a readable, tappable
+      // sequence; all other actions resolve their visuals immediately.
       if (action.type === 'endTurn') {
-        this.playEnemyActionsSequential(result.effects, result.state);
+        this.applyEnemyPhaseBookkeeping(result.effects);
+        this.maybeEndCombat();
+        if (this.combat !== null) {
+          this.persist();
+          this.renderAll();            // show the post-phase board, then play beats over it
+          this.playEnemyPhaseSequence(result.effects);
+          return;
+        }
+      } else {
+        this.reactToCombatEffects(result.effects);
+        this.maybeEndCombat();
+        if (this.combat !== null) this.persist();
       }
-      this.maybeEndCombat();
-      if (this.combat !== null) this.persist();
     }
     this.renderAll();
   }
@@ -966,19 +1069,9 @@ export class GameScene extends Phaser.Scene {
       // T-195: capture the death cause for the post-run summary.
       if (fx.type === 'defeat') this.deathCause = fx.cause;
       if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
-      // S048: flash the hit entity's tile + float the damage number (T-169).
-      if (fx.type === 'damageDealt') {
-        this.playHitFlash(fx.targetId);
-        if (fx.amount > 0) {
-          const toPlayer = fx.targetId === 'player';
-          const color = fx.isCrit ? '#ffdd44' : toPlayer ? '#ff6644' : '#ffffff';
-          this.floatCombatNumber(fx.targetId, fx.isCrit ? `${fx.amount}!` : `${fx.amount}`, color, fx.isCrit);
-        }
-      }
-      // T-169: float a green heal number when an entity is healed.
-      if (fx.type === 'healingApplied' && fx.amount > 0) {
-        this.floatCombatNumber(fx.targetId, `+${fx.amount}`, '#a0ffdc', false);
-      }
+      // S048/T-169: flash the hit entity's tile + float the damage/heal number.
+      if (fx.type === 'damageDealt') this.playHitFlash(fx.targetId);
+      this.floatForEffect(fx);
       // S050: flash + icon when a status is applied or expires
       if (fx.type === 'statusApplied') {
         this.playStatusFlash(fx.targetId, fx.status, true);
@@ -2245,7 +2338,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.view === 'combat') {
-      if (this.combat?.phase === 'player' && !this.revealingEnemies && !this.combatMenuOpen) {
+      if (this.combat?.phase === 'player' && !this.revealingEnemies && !this.combatMenuOpen && !this.enemySeqActive) {
         this.button(20, 'END TURN', C.green, () => this.combatAction({ type: 'endTurn' }));
       }
       // Pause/menu button — always available during combat (top-right corner)
