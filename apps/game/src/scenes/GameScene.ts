@@ -1056,7 +1056,8 @@ export class GameScene extends Phaser.Scene {
       playtimeMs: Date.now() - this.runStartMs,
       deathCause: won ? null : this.deathCause,
       achievementsEarned: this.achievementsEarned,
-      reviveAvailable: !won && !this.reviveUsed,
+      // Surrender is a deliberate forfeit — never offer the revive ad for it.
+      reviveAvailable: !won && !this.reviveUsed && this.deathCause !== 'surrender',
     };
     this.scene.start('PostRunScene', summary as unknown as Record<string, unknown>);
   }
