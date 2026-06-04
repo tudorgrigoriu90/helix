@@ -591,10 +591,13 @@ export class GameScene extends Phaser.Scene {
 
   // ── S051 Combat victory flash + XP readout ────────────────────────────────
 
-  /** Brief centred overlay: green "CLEARED" with XP gained. Auto-dismisses after 1.5s. */
+  /** S051/T-173: brief centred "CLEARED" flash with the XP gained, dismissing
+   *  itself after ~1.5s total (180ms in · 1050ms hold · 270ms out). The label
+   *  does a small scale pop for a beat of juice; the XP line only shows when XP
+   *  was actually earned. */
   private playCombatVictoryFlash(xpGained: number): void {
     const bw = 220;
-    const bh = 60;
+    const bh = xpGained > 0 ? 60 : 44;
     const bx = (W - bw) / 2;
     const by = STAGE_Y + (STAGE_H - bh) / 2;
 
@@ -604,20 +607,24 @@ export class GameScene extends Phaser.Scene {
 
     const label = this.add.text(W / 2, by + 16, 'CLEARED', {
       fontFamily: 'monospace', fontSize: '18px', color: '#a0ffdc', letterSpacing: 5,
-    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0).setScale(0.8);
 
-    const xpLabel = this.add.text(W / 2, by + 38, `+${xpGained} XP`, {
-      fontFamily: 'monospace', fontSize: '11px', color: '#ffdd44',
-    }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+    const targets: Phaser.GameObjects.GameObject[] = [bg, label];
+    if (xpGained > 0) {
+      const xpLabel = this.add.text(W / 2, by + 38, `+${xpGained} XP`, {
+        fontFamily: 'monospace', fontSize: '11px', color: '#ffdd44',
+      }).setOrigin(0.5, 0).setDepth(4).setAlpha(0);
+      targets.push(xpLabel);
+    }
 
-    const targets = [bg, label, xpLabel];
-
+    // Fade everything in; pop the label scale to 1 on a back-ease for juice.
+    this.tweens.add({ targets, alpha: 1, duration: 180, ease: 'Sine.easeOut' });
     this.tweens.add({
-      targets, alpha: 1, duration: 200, ease: 'Sine.easeOut',
+      targets: label, scale: 1, duration: 240, ease: 'Back.easeOut',
       onComplete: () => {
-        this.time.delayedCall(1100, () => {
+        this.time.delayedCall(1050, () => {
           this.tweens.add({
-            targets, alpha: 0, duration: 300, ease: 'Sine.easeIn',
+            targets, alpha: 0, duration: 270, ease: 'Sine.easeIn',
             onComplete: () => targets.forEach((g) => g.destroy()),
           });
         });
@@ -1119,13 +1126,13 @@ export class GameScene extends Phaser.Scene {
       if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();
-      if (xpGained > 0) this.playCombatVictoryFlash(xpGained);
+      this.playCombatVictoryFlash(xpGained);
     } else {
       this.say(wasBoss ? 'boss_killed' : 'room_cleared');
       if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();
-      if (xpGained > 0) this.playCombatVictoryFlash(xpGained);
+      this.playCombatVictoryFlash(xpGained);
     }
 
     if (this.view === 'map' && this.session.snapshot.pendingStatPoints > 0) {
