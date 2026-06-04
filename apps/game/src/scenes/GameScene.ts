@@ -32,6 +32,7 @@ import { adService } from '../platform/ads-bootstrap';
 import { LaceNarrator } from '../core/lace';
 import type { RunSummaryData } from './PostRunScene';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
+import { computeFogReveal, edgeVisible } from './map-fog';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -71,6 +72,7 @@ const C = {
 const GC = {
   bg: 0x060a12, node: 0x1a2840, nodeCleared: 0x12331f, edge: 0x2a3a55,
   start: 0xa0ffdc, boss: 0xff4444, current: 0xffdd44, adj: 0x44ff88,
+  fog: 0x0e1626, fogEdge: 0x32465f,
   tileBg: 0x0d1220, tileBorder: 0x1e2a40, hazard: 0x4a2030,
   player: 0xa0ffdc, enemy: 0xff6644, dead: 0x1c1c2e, hpBg: 0x333344, hpGreen: 0x44ff88, hpRed: 0xff3333,
   btnBg: 0x1a3028, btnBrd: 0xa0ffdc,
@@ -1668,6 +1670,13 @@ export class GameScene extends Phaser.Scene {
     return { bounds, transform };
   }
 
+  /** Rooms the player has stood in: cleared rooms plus wherever they are now.
+   *  Drives the map-level fog of war (T-154) and survives save/resume. */
+  private visitedRooms(): Set<string> {
+    const snap = this.session.snapshot;
+    return new Set([...snap.clearedRoomIds, snap.currentRoomId]);
+  }
+
   private renderMap(): void {
     const floor = this.session.floor;
     const { bounds, transform } = this.mapTransform();
@@ -1675,14 +1684,36 @@ export class GameScene extends Phaser.Scene {
     const cleared = new Set(snap.clearedRoomIds);
     const adjacent = new Set(this.session.adjacentRooms());
 
+    // T-154: map-level fog of war. Corridors lead outward from explored ground
+    // and unvisited rooms read as bare "?" outlines until entered (safe rooms
+    // excepted — always shown), so descending a floor stays a discovery.
+    const visited = this.visitedRooms();
+    const reveal = computeFogReveal(floor, visited);
+
     for (const e of floor.edges) {
+      if (!edgeVisible(e, visited)) continue;
       const a = project(this.roomById(e.from).pos, bounds, transform);
       const b = project(this.roomById(e.to).pos, bounds, transform);
       this.stage.lineStyle(2, GC.edge).lineBetween(a.x, a.y, b.x, b.y);
     }
 
     for (const room of floor.rooms) {
+      const rev = reveal.get(room.id);
+      if (rev === undefined || rev.level === 'hidden') continue;
       const p = project(room.pos, bounds, transform);
+
+      // Discovered-but-unknown rooms render as a hollow outline with a "?".
+      if (rev.level === 'discovered' && !rev.typeKnown) {
+        this.stage.fillStyle(GC.fog, 0.55).fillCircle(p.x, p.y, 14);
+        this.stage.lineStyle(2, GC.fogEdge).strokeCircle(p.x, p.y, 14);
+        if (adjacent.has(room.id)) this.stage.lineStyle(3, GC.adj).strokeCircle(p.x, p.y, 17);
+        const q = this.add.text(p.x, p.y, '?', {
+          fontFamily: 'monospace', fontSize: '13px', color: C.dim,
+        }).setOrigin(0.5);
+        this.transient.push(q);
+        continue;
+      }
+
       const isCurrent = room.id === snap.currentRoomId;
       let fill = cleared.has(room.id) ? GC.nodeCleared : GC.node;
       if (room.id === floor.bossRoomId) fill = GC.boss;
