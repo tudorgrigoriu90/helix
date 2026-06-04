@@ -423,7 +423,7 @@ slots — over the cap you drop-to-swap by count. This story closes that loop.
 | T-156 | Color-blind friendly minimap (shape glyphs)            | Frontend | P1       | GDD §17    | NFR a11y |
 | T-157 | Player movement input handling                         | Frontend | P0       | UFD 02     | |
 | T-158 | Camera tracking                                        | Frontend | P0       | —          | |
-| T-159 | Enemy threat indicators above heads (in-reach marker + reach overlay; scripted-wind-up icon only for bosses) | Frontend | P0 | GDD §6.2, §6.2.1 | Replaces baseline telegraph icons (cut — see T-64/T-67) |
+| T-159 | ~~Enemy threat indicators above heads (in-reach marker + reach overlay; scripted-wind-up icon only for bosses)~~ — **DONE 2026-06-04.** New pure `scenes/combat-threat.ts` (`threatenedTiles`, `enemyInReach`, 12 tests): during the player phase `GameScene.renderCombat` faintly shades every tile a living enemy can strike this turn (reach overlay, GDD §6.2.1), a red caret sits over any enemy already in reach of the player, and scripted boss telegraphs (`telegraph !== null`) get a glyph icon — baseline enemies are read purely from their threat range, per the cut-telegraph decision (T-64/T-67). | Frontend | P0 | GDD §6.2, §6.2.1 | Replaces baseline telegraph icons (cut — see T-64/T-67) — DONE |
 | T-160 | Particle effects (ambient per family)                  | Frontend | P1       | GDD §13.3  | |
 
 #### Large rooms & in-room vision (toward 100×100 — GDD §6.1/§6.1a, TDD §7.2)

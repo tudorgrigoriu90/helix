@@ -32,6 +32,7 @@ import { adService } from '../platform/ads-bootstrap';
 import { LaceNarrator } from '../core/lace';
 import type { RunSummaryData } from './PostRunScene';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
+import { threatenedTiles, enemyInReach } from './combat-threat';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 import { queueAudioLoads, playSfx, playMusic } from './audio/audio-registry';
@@ -1628,6 +1629,19 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // T-159: threat / reach overlay. During the player's planning phase, faintly
+    // shade every tile a living enemy can strike this turn, so the player can see
+    // where it is unsafe to stand before committing a move (GDD §6.2.1). Hidden
+    // during the enemy phase and the reveal so it doesn't fight the action.
+    if (state.phase === 'player' && !this.revealingEnemies) {
+      const threatened = threatenedTiles(state);
+      for (const key of threatened) {
+        const [tc, tr] = key.split(',').map(Number) as [number, number];
+        this.topGfx.fillStyle(0xff4444, 0.1).fillRect(gx + tc * tile, STAGE_Y + tr * tile, tile, tile);
+        this.topGfx.lineStyle(1, 0xff4444, 0.18).strokeRect(gx + tc * tile + 0.5, STAGE_Y + tr * tile + 0.5, tile - 1, tile - 1);
+      }
+    }
+
     const drawHp = (cx: number, cy: number, frac: number, color: number): void => {
       this.topGfx.fillStyle(GC.hpBg).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, tile - 4, 3);
       if (frac > 0) this.topGfx.fillStyle(color).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, Math.round((tile - 4) * frac), 3);
@@ -1651,6 +1665,23 @@ export class GameScene extends Phaser.Scene {
         const def = this.enemyRegistry.get(e.enemyDefId);
         const name = def ? def.name : e.enemyDefId;
         addLabel(cx, STAGE_Y + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def?.tier === 'boss' ? C.red : C.yellow);
+
+        // T-159: in-reach marker — a red caret over any enemy that can strike the
+        // player from where it stands right now (player phase only).
+        if (state.phase === 'player' && enemyInReach(e, state.player.pos)) {
+          const markerY = STAGE_Y + e.pos.y * tile + 1;
+          this.topGfx.fillStyle(0xff4444, 0.95);
+          this.topGfx.fillTriangle(cx - 5, markerY, cx + 5, markerY, cx, markerY + 6);
+        }
+
+        // T-159: boss wind-up tell. Baseline enemies are read from their threat
+        // range (above); only scripted boss telegraphs get an explicit icon.
+        if (def?.tier === 'boss' && e.telegraph !== null && e.telegraph !== 'idle') {
+          const tg = this.add.text(cx, STAGE_Y + e.pos.y * tile - 12, this.telegraphIcon(e.telegraph), {
+            fontFamily: 'monospace', fontSize: '13px', color: '#ff4444',
+          }).setOrigin(0.5, 1).setDepth(3);
+          this.transient.push(tg);
+        }
       }
     }
 
@@ -2238,6 +2269,18 @@ export class GameScene extends Phaser.Scene {
     const room = this.session.floor.rooms.find((r) => r.id === id);
     if (room === undefined) throw new Error(`GameScene: no room ${id}`);
     return room;
+  }
+
+  /** T-159: glyph for a scripted boss wind-up telegraph. */
+  private telegraphIcon(telegraph: NonNullable<RunState['enemies'][number]['telegraph']>): string {
+    switch (telegraph) {
+      case 'melee': return '⚔';
+      case 'ranged': return '➹';
+      case 'defense': return '◈';
+      case 'move': return '»';
+      case 'special': return '✦';
+      default: return '!';
+    }
   }
 
   /** Returns a "min–max" or single value attack damage range string for the preview. */
