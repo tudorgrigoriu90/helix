@@ -4,7 +4,7 @@ import type { RunSessionSave } from '../core/run/run-session';
 import type { ResumeDecision, ResumeSummary } from '../core/run/resume-decision';
 import type { LoadResult } from '../core/save/save-manager';
 import { SaveManager } from '../core/save/save-manager';
-import { metaCodec, newMetaState, shouldShowTutorial } from '../core/save';
+import { metaCodec, newMetaState } from '../core/save';
 import { runSessionCodec } from '../core/run/run-session-save';
 import { decideResume } from '../core/run/resume-decision';
 import { createWebStorageAdapter } from '../platform/storage-web';
@@ -17,9 +17,8 @@ import { createWebStorageAdapter } from '../platform/storage-web';
  * either routes silently or surfaces the S100 Resume Run? modal.
  *
  * Route map:
- *  ┌─ first-time player   → TutorialIntroScene (T-135)
- *  ├─ resumable run found → S100 modal → RESUME → GameScene / NEW RUN → HubScene
- *  └─ returning, no run  → HubScene (T-144)
+ *  ┌─ resumable run found → S100 modal → RESUME → GameScene / NEW RUN → HubScene
+ *  └─ no in-progress run → HubScene (T-144)
  *
  * The MetaState and run save are loaded here once and forwarded as scene
  * data to downstream scenes so they don't reload storage.
@@ -66,12 +65,6 @@ export class GameBootScene extends Phaser.Scene {
   }
 
   private route(decision: ResumeDecision): void {
-    // First-time players go straight to the tutorial (T-135).
-    if (shouldShowTutorial(this.meta)) {
-      this.scene.start('TutorialIntroScene', { meta: this.meta });
-      return;
-    }
-
     if (decision.kind === 'prompt') {
       this.showResumeModal(decision.summary);
     } else {
