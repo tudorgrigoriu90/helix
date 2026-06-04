@@ -13,12 +13,11 @@ import { resolveAdIds } from './ad-config';
  */
 async function buildAdService(): Promise<AdService> {
   const isNative = Capacitor.isNativePlatform();
-  const isProd = !import.meta.env.DEV;
-  const useTesting = !isProd;
+  const useTesting = (import.meta.env as Record<string, unknown>)['DEV'] === true;
 
   if (isNative) {
     const { AdMob } = await import('@capacitor-community/admob');
-    const ids = resolveAdIds(useTesting);
+    const ids = resolveAdIds(!useTesting);
     const platform = Capacitor.getPlatform() as 'ios' | 'android';
     const adapter = new CapacitorAdsAdapter(AdMob, ids[platform], { testing: useTesting });
     return new AdService(adapter);
@@ -34,6 +33,6 @@ export const adServiceReady: Promise<AdService> = buildAdService();
 /** Resolved AdService — safe to call once the app has booted. */
 export let adService: AdService = new AdService(new WebAdsAdapter());
 
-adServiceReady.then((svc) => {
+void adServiceReady.then((svc) => {
   adService = svc;
 });
