@@ -657,24 +657,24 @@ export class GameScene extends Phaser.Scene {
 
   // ── S048 Hit flash ────────────────────────────────────────────────────────
 
+  /** Current tile position of an entity in the live combat state, or null if
+   *  it is gone (e.g. an enemy removed between effect and animation). */
+  private entityPos(entityId: string): { x: number; y: number } | null {
+    const state = this.combat;
+    if (state === null) return null;
+    if (entityId === 'player') return state.player.pos;
+    const enemy = state.enemies.find((e) => e.id === entityId);
+    return enemy?.pos ?? null;
+  }
+
   /** Briefly flashes a bright overlay rect at the entity's tile position.
    *  Red for enemies, white for the player (damage taken). */
   private playHitFlash(entityId: string): void {
     const state = this.combat;
     if (state === null) return;
-
-    let tilePos: { x: number; y: number } | null = null;
-    let flashColor = 0xff4444;
-
-    if (entityId === 'player') {
-      tilePos = state.player.pos;
-      flashColor = 0xffffff;
-    } else {
-      const enemy = state.enemies.find((e) => e.id === entityId);
-      if (enemy !== undefined) tilePos = enemy.pos;
-    }
-
+    const tilePos = this.entityPos(entityId);
     if (tilePos === null) return;
+    const flashColor = entityId === 'player' ? 0xffffff : 0xff4444;
 
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
@@ -690,6 +690,34 @@ export class GameScene extends Phaser.Scene {
       duration: 220,
       ease: 'Sine.easeOut',
       onComplete: () => flash.destroy(),
+    });
+  }
+
+  /** T-169: a combat number (damage / heal) that rises from an entity's tile and
+   *  fades. Crits render larger and bold so big hits read at a glance. */
+  private floatCombatNumber(entityId: string, text: string, color: string, big: boolean): void {
+    const state = this.combat;
+    if (state === null) return;
+    const pos = this.entityPos(entityId);
+    if (pos === null) return;
+
+    const tile = this.tileSize(state);
+    const gx = this.gridX(state);
+    const cx = gx + pos.x * tile + tile / 2;
+    const cy = STAGE_Y + pos.y * tile + tile / 2;
+
+    const label = this.add.text(cx, cy - tile * 0.15, text, {
+      fontFamily: 'monospace', fontSize: big ? '15px' : '11px', color,
+      fontStyle: big ? 'bold' : 'normal',
+    }).setOrigin(0.5).setDepth(4);
+
+    this.tweens.add({
+      targets: label,
+      y: cy - tile * 0.95,
+      alpha: 0,
+      duration: 650,
+      ease: 'Sine.easeOut',
+      onComplete: () => label.destroy(),
     });
   }
 
@@ -938,9 +966,18 @@ export class GameScene extends Phaser.Scene {
       // T-195: capture the death cause for the post-run summary.
       if (fx.type === 'defeat') this.deathCause = fx.cause;
       if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
-      // S048: flash the hit entity's tile
+      // S048: flash the hit entity's tile + float the damage number (T-169).
       if (fx.type === 'damageDealt') {
         this.playHitFlash(fx.targetId);
+        if (fx.amount > 0) {
+          const toPlayer = fx.targetId === 'player';
+          const color = fx.isCrit ? '#ffdd44' : toPlayer ? '#ff6644' : '#ffffff';
+          this.floatCombatNumber(fx.targetId, fx.isCrit ? `${fx.amount}!` : `${fx.amount}`, color, fx.isCrit);
+        }
+      }
+      // T-169: float a green heal number when an entity is healed.
+      if (fx.type === 'healingApplied' && fx.amount > 0) {
+        this.floatCombatNumber(fx.targetId, `+${fx.amount}`, '#a0ffdc', false);
       }
       // S050: flash + icon when a status is applied or expires
       if (fx.type === 'statusApplied') {
