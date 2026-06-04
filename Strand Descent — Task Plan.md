@@ -576,7 +576,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-238 | ~~3-ads-per-run hard cap~~ — **DONE 2026-06-04.** `AdGatekeeper` in `core/ads/ad-gatekeeper.ts`: MAX_ADS_PER_RUN=3, canShowAd(), recordAdAttempt(), isAdCapReached(). 7 tests. | Game Engineer | P1 | GDD §15.2  | DONE |
 | T-239 | ~~60s cooldown between ads~~ — **DONE 2026-06-04.** AD_COOLDOWN_MS=60000 in AdGatekeeper; enforced by canShowAd(). | Game Engineer | P1 | GDD §15.2  | DONE |
 | T-240 | ~~10s timeout with graceful degradation (no retry, no goodwill grant)~~ — **DONE 2026-06-04.** `withAdTimeout` in `core/ads/ad-timeout.ts`; AD_TIMEOUT_MS=10000; resolves `'timed_out'` on deadline. 5 tests. | Game Engineer | P1 | UFD 06 (E030/S135) | DONE |
-| T-241 | E030 ad load timeout → null reward + S135                              | Game Engineer | P1 | UFD 07 | |
+| T-241 | ~~E030 ad load timeout → null reward + S135~~ — **DONE 2026-06-04.** Pure `classifyRewardOutcome` (core/ads/reward-outcome.ts) maps RewardOutcome → UI action; timeout/no-fill/error → `ad_failed`. PostRunScene shows the S135 "AD UNAVAILABLE" modal (no reward, single DISMISS, no retry button — graceful degradation). 5 classifier tests. | Game Engineer | P1 | UFD 07 | DONE |
 | T-242 | E031 ad cancelled mid-watch → null reward                              | Game Engineer | P1 | UFD 07 | |
 | T-243 | E032 ad cap reached → hide ad buttons, show SC alternative             | Frontend | P1 | UFD 07 | |
 

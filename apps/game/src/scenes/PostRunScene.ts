@@ -4,6 +4,7 @@ import type { MutationFamily } from '@shared-types/mutation';
 import type { DeathCause } from '@shared-types/run-state';
 import { newMetaState } from '../core/save';
 import { adService } from '../platform/ads-bootstrap';
+import { classifyRewardOutcome } from '../core/ads';
 
 /**
  * S031 "What You Became" + S032 Meta rewards — T-196 / T-197.
@@ -415,14 +416,66 @@ export class PostRunScene extends Phaser.Scene {
   }
 
   private async tryAdRevive(): Promise<void> {
-    const outcome = await adService.requestReward('revive');
-    if (outcome.granted) {
-      this.doRevive();
-    } else if (outcome.result === 'blocked') {
-      // Cap reached — shouldn't happen since reviveAvailable guards this, but handle gracefully.
-      this.scene.start('HubScene', { meta: this.summary.meta });
+    const action = classifyRewardOutcome(await adService.requestReward('revive'));
+    switch (action) {
+      case 'grant':
+        this.doRevive();
+        return;
+      case 'ad_failed':
+        // E030: load timeout / no fill / error — show S135, no reward, no retry.
+        this.showAdFailedModal();
+        return;
+      case 'capped':
+      case 'cooldown':
+      case 'silent':
+        // E031 / gate refusals: null reward, no popup — the player can still use
+        // the SC path or decline. Stay on the revive panel.
+        return;
     }
-    // dismissed / timed_out / error — stay on panel so player can try SC or decline.
+  }
+
+  /** S135 ad-failed modal (T-241 / UFD E030). No reward, no retry button —
+   *  graceful degradation. DISMISS returns to the revive panel. */
+  private showAdFailedModal(): void {
+    const overlay = this.add.graphics().setDepth(20);
+    overlay.fillStyle(0x000000, 0.78).fillRect(0, 0, W, H);
+
+    const mw = W - 72;
+    const mh = 180;
+    const mx = (W - mw) / 2;
+    const my = H / 2 - mh / 2;
+
+    const mg = this.add.graphics().setDepth(21);
+    mg.fillStyle(C.surfaceHi).fillRoundedRect(mx, my, mw, mh, 14);
+    mg.lineStyle(2, C.dangerN, 0.55).strokeRoundedRect(mx, my, mw, mh, 14);
+
+    const title = this.add.text(CX, my + 28, 'AD UNAVAILABLE', {
+      fontFamily: 'monospace', fontSize: '14px', color: C.text, letterSpacing: 2,
+    }).setOrigin(0.5).setDepth(22);
+
+    const body = this.add.text(CX, my + 64, 'The ad could not be shown.\nNo reward this time.', {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+      align: 'center', lineSpacing: 4,
+    }).setOrigin(0.5, 0).setDepth(22);
+
+    // DISMISS — single CTA, no retry (graceful degradation per S135).
+    const bw = mw - 48;
+    const bx = mx + 24;
+    const by = my + mh - 50;
+    const bg = this.add.graphics().setDepth(22);
+    bg.fillStyle(0x1a2840).fillRoundedRect(bx, by, bw, 34, 8);
+    bg.lineStyle(1, C.borderHi).strokeRoundedRect(bx, by, bw, 34, 8);
+    const label = this.add.text(CX, by + 17, 'DISMISS', {
+      fontFamily: 'monospace', fontSize: '12px', color: C.text,
+    }).setOrigin(0.5).setDepth(23);
+
+    const dismiss = (): void => {
+      overlay.destroy(); mg.destroy(); title.destroy(); body.destroy(); bg.destroy(); label.destroy();
+      zone.destroy();
+    };
+    const zone = this.add.zone(bx, by, bw, 34).setOrigin(0, 0)
+      .setInteractive({ useHandCursor: true }).setDepth(23);
+    zone.on('pointerdown', dismiss);
   }
 
   private doScRevive(): void {
