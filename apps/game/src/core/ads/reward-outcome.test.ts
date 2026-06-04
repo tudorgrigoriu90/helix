@@ -28,3 +28,18 @@ describe('classifyRewardOutcome — T-241 (E030 ad-failed mapping)', () => {
     expect(classifyRewardOutcome(o)).toBe('capped');
   });
 });
+
+describe('classifyRewardOutcome — T-242 (E031 cancelled mid-watch)', () => {
+  it('maps a user-dismissed ad to silent — null reward, no popup', () => {
+    const o: RewardOutcome = { granted: false, result: 'dismissed' };
+    expect(classifyRewardOutcome(o)).toBe('silent');
+  });
+
+  it('keeps cancellation distinct from the ad_failed (S135) path', () => {
+    // A cancelled ad must NOT be treated as a load failure — no S135 modal.
+    const cancelled: RewardOutcome = { granted: false, result: 'dismissed' };
+    const failed: RewardOutcome = { granted: false, result: 'timed_out' };
+    expect(classifyRewardOutcome(cancelled)).not.toBe('ad_failed');
+    expect(classifyRewardOutcome(failed)).toBe('ad_failed');
+  });
+});
