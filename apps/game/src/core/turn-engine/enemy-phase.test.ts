@@ -102,14 +102,16 @@ describe('resolveEnemyPhase — T-64 (decide-and-act)', () => {
     expect(result.state.player.hp).toBe(82);
   });
 
-  it('damage is clamped to zero when RES exceeds STR', () => {
+  it('still lands the 1-point chip floor when RES exceeds STR', () => {
+    // Flat mitigation would zero this out (RES 50 ≫ STR 12); the chip floor keeps
+    // a connecting hit from being a complete no-op so grunts can always threaten.
     const state = baseState({
       player: { ...baseState().player, stats: { ...STATS, res: 50 } },
       enemies: [enemy('e1', { x: 3, y: 2 })],
     });
     const result = resolveEnemyPhase(state, rng());
-    expect(result.state.player.hp).toBe(100);
-    expect(result.effects).toContainEqual({ type: 'damageDealt', targetId: 'player', amount: 0, isCrit: false, damageType: 'physical' });
+    expect(result.state.player.hp).toBe(99);
+    expect(result.effects).toContainEqual({ type: 'damageDealt', targetId: 'player', amount: 1, isCrit: false, damageType: 'physical' });
   });
 
   // ── Moving ─────────────────────────────────────────────────────────────────
@@ -121,22 +123,48 @@ describe('resolveEnemyPhase — T-64 (decide-and-act)', () => {
     expect(result.effects).toContainEqual({ type: 'entityMoved', entityId: 'e1', from: { x: 1, y: 1 }, to: { x: 2, y: 2 } });
   });
 
-  it('does not move onto a wall', () => {
+  it('routes around a wall instead of stepping onto it', () => {
+    // The straight step (2,2) toward the player is a wall; the enemy flanks
+    // around it via (2,1) rather than stalling in place.
     const state = baseState({
       grid: gridWithWall(2, 2),
       enemies: [enemy('e1', { x: 1, y: 1 })],
     });
     const result = resolveEnemyPhase(state, rng());
-    expect(result.state.enemies[0]?.pos).toEqual({ x: 1, y: 1 });
-    expect(result.effects).toEqual([]);
+    expect(result.state.enemies[0]?.pos).not.toEqual({ x: 2, y: 2 }); // never the wall tile
+    expect(result.state.enemies[0]?.pos).toEqual({ x: 2, y: 1 }); // routes around toward a flank
   });
 
-  it('does not move onto another enemy', () => {
+  it('routes around an ally instead of piling onto its tile', () => {
+    // (2,2) is held by e2, so e1 peels to (2,1) to reach an open flank rather
+    // than stacking up behind its ally in a queue.
     const state = baseState({
       enemies: [enemy('e1', { x: 1, y: 1 }), enemy('e2', { x: 2, y: 2 })],
     });
     const result = resolveEnemyPhase(state, rng());
-    expect(result.state.enemies[0]?.pos).toEqual({ x: 1, y: 1 });
+    const e1 = result.state.enemies.find((e) => e.id === 'e1')!;
+    expect(e1.pos).not.toEqual({ x: 2, y: 2 }); // never stacks onto e2
+    expect(e1.pos).toEqual({ x: 2, y: 1 }); // peels off to flank
+  });
+
+  it('surrounds: a held-back enemy peels to an open flank instead of queueing', () => {
+    // Three enemies funnelling straight at the player from one lane:
+    //   a (3,5) is adjacent → attacks and holds.
+    //   b (3,4) flanks to the open left slot (2,5).
+    //   c (3,3) would (under a naive chase) step straight to (3,4) and stall in
+    //   the column; instead it reserves the open right slot and peels to (4,4).
+    const state = baseState({
+      player: { ...baseState().player, pos: { x: 3, y: 6 } },
+      enemies: [enemy('a', { x: 3, y: 5 }), enemy('b', { x: 3, y: 4 }), enemy('c', { x: 3, y: 3 })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    const a = result.state.enemies.find((e) => e.id === 'a')!;
+    const b = result.state.enemies.find((e) => e.id === 'b')!;
+    const c = result.state.enemies.find((e) => e.id === 'c')!;
+    expect(a.pos).toEqual({ x: 3, y: 5 }); // adjacent leader holds to strike
+    expect(b.pos).toEqual({ x: 2, y: 5 }); // peels to the left flank
+    expect(c.pos).toEqual({ x: 4, y: 4 }); // peels off the centre column to the right
+    expect(c.pos.x).not.toBe(3); // the key fix: no single-file queue behind the lead
   });
 
   it('a rooted enemy out of reach cannot move', () => {

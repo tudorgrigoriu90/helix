@@ -85,8 +85,8 @@ type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' |
  * The player-facing run loop. Receives { meta, originId, seed } from
  * FloorTransitionScene; the full 20-floor descent plays out here.
  *
- * Distinct from RunSandboxScene: no dev tab bar, no debug overlays, proper
- * game-over routing back to HubScene, seed sourced from RunPreviewScene.
+ * The production scene: no dev tab bar, no debug overlays, proper game-over
+ * routing back to HubScene, seed sourced from RunPreviewScene.
  *
  * S040 enemy reveal (T-161): on combat entry, enemies fade in one-by-one
  * (staggered 150ms each) before handing control to the player.

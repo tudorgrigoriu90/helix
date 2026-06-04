@@ -67,6 +67,14 @@ The verdict from that slice: the loop holds up — which is why the **Genetic Mu
 
 Status markers in the tables below were reconciled against git history on 2026-05-29; rows that shipped during the vertical-slice push but were left blank have been flipped to DONE with their commit noted.
 
+### Combat & Menu Polish (2026-06-04)
+
+Two playtest bugs fixed and the player-facing shell de-cluttered, one commit:
+
+- **Grunts dealt zero damage.** Flat RES mitigation (`damage = STR − RES`, GDD §6.4) meant any enemy whose STR met or beat the player's RES — e.g. a Floor-1 Filterer (STR 6) vs the default loadout (RES 6) — dealt a literal 0 every turn, so only bosses could threaten the player. Added a `MIN_CONNECT_DAMAGE = 1` chip floor in `damageTo` (effective-stats.ts): a connecting damaging hit now always lands ≥1 while RES still does the heavy lifting; non-damaging effects (rawDamage ≤ 0) stay exempt. Balance guard held (1F 100% · 2F 100% · 3F 13%).
+- **Enemies queued instead of flanking.** The greedy chase homed every enemy on the player's exact tile, so a pack funnelled single-file behind the leader. `enemy-phase.ts` now reserves a distinct open attack-slot around the player per enemy (initiative order) and steps toward it with a lateral (Manhattan) tie-break, so a group fans out and surrounds rather than stacking in a column. Still O(enemies); BFS/A* pathfinding remains future work (T-441e).
+- **Removed the dev tab bar + sandbox scenes.** The `RUN / COMBAT / GRAPH / FLOOR / TUTORIAL` tab bar (`scenes/tab-bar.ts`) and the four dev scenes it was the only entry to (`RunSandboxScene`, `CombatSandboxScene`, `FloorGraphSandboxScene`, `FloorScene` — T-67.5/T-71.5/T-81.5/T-150, now superseded by the production `GameScene`/`TutorialScene`) were deleted as dead code. The Hub menu is now **ENTER THE VEIN** (real run) / **ENTER TUTORIAL** / **SETTINGS**; the tutorial gained an explicit **CONTINUE → Hub** button (the tab bar was previously its only exit). Verified: lint + typecheck + 812 tests + web build green.
+
 ## Epic Index
 
 | Epic   | Title                              | Span                   | Notes                                                       |

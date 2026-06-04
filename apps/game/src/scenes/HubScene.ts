@@ -110,82 +110,63 @@ export class HubScene extends Phaser.Scene {
   private buildMenu(): void {
     const menuTop = 226;
 
-    this.menuButton(menuTop, 'START DESCENT', C.accent, 'The VEIN awaits.', false, () => {
+    this.menuButton(menuTop, 'ENTER THE VEIN', C.accent, 'Begin a real descent.', () => {
       this.scene.start('OriginSelectScene', { meta: this.meta });
     });
 
-    this.menuButton(menuTop + 88, 'CODEX', C.dim, 'Knowledge earned in the dark.', true, null);
-    this.menuButton(menuTop + 168, 'SETTINGS', C.accent, 'Audio, display, accessibility.', false, () => {
+    this.menuButton(menuTop + 88, 'ENTER TUTORIAL', C.accent, 'Learn to move, fight, and mutate.', () => {
+      this.scene.start('TutorialIntroScene', { meta: this.meta });
+    });
+
+    this.menuButton(menuTop + 176, 'SETTINGS', C.accent, 'Audio, display, accessibility.', () => {
       this.scene.start('SettingsScene', { meta: this.meta });
     });
-    this.menuButton(menuTop + 248, 'ABOUT', C.dim, 'Licences and legal.', true, null);
   }
 
-  /** A full-width tappable menu row. `locked` rows show a padlock and are inert. */
+  /** A full-width tappable menu row with a hover highlight. */
   private menuButton(
     y: number,
     label: string,
     labelColor: string,
     subtitle: string,
-    locked: boolean,
-    onTap: (() => void) | null,
+    onTap: () => void,
   ): void {
     const x = 24;
     const btnW = W - 48;
     const btnH = 70;
 
     const g = this.add.graphics();
-    const fillColor = locked ? C.surface : C.surfaceHi;
-    const strokeColor = locked ? C.border : C.borderHi;
-    g.fillStyle(fillColor).fillRoundedRect(x, y, btnW, btnH, 10);
-    g.lineStyle(1, strokeColor).strokeRoundedRect(x, y, btnW, btnH, 10);
-
-    // Right-side accent for the primary action
-    if (!locked) {
-      g.fillStyle(C.accentN, 0.08).fillRoundedRect(x, y, btnW, btnH, 10);
-      g.lineStyle(2, C.accentN, 0.5).strokeRoundedRect(x, y, btnW, btnH, 10);
-    }
+    g.fillStyle(C.surfaceHi).fillRoundedRect(x, y, btnW, btnH, 10);
+    g.lineStyle(1, C.borderHi).strokeRoundedRect(x, y, btnW, btnH, 10);
+    g.fillStyle(C.accentN, 0.08).fillRoundedRect(x, y, btnW, btnH, 10);
+    g.lineStyle(2, C.accentN, 0.5).strokeRoundedRect(x, y, btnW, btnH, 10);
 
     this.add.text(x + 18, y + 18, label, {
-      fontFamily: 'monospace',
-      fontSize: locked ? '14px' : '16px',
-      color: labelColor,
+      fontFamily: 'monospace', fontSize: '16px', color: labelColor,
     });
-
     this.add.text(x + 18, y + 42, subtitle, {
       fontFamily: 'monospace', fontSize: '10px', color: C.dim,
     });
+    // Chevron arrow
+    this.add.text(x + btnW - 18, y + btnH / 2, '›', {
+      fontFamily: 'monospace', fontSize: '20px', color: C.accent,
+    }).setOrigin(1, 0.5);
 
-    if (locked) {
-      this.add.text(x + btnW - 18, y + btnH / 2, '🔒', {
-        fontSize: '14px',
-      }).setOrigin(1, 0.5);
-    } else {
-      // Chevron arrow
-      this.add.text(x + btnW - 18, y + btnH / 2, '›', {
-        fontFamily: 'monospace', fontSize: '20px', color: C.accent,
-      }).setOrigin(1, 0.5);
-    }
-
-    if (onTap !== null) {
-      const zone = this.add
-        .zone(x, y, btnW, btnH)
-        .setOrigin(0, 0)
-        .setInteractive({ useHandCursor: true });
-      zone.on('pointerdown', onTap);
-
-      // Hover highlight
-      zone.on('pointerover', () => {
-        g.clear();
-        g.fillStyle(0x1e3048).fillRoundedRect(x, y, btnW, btnH, 10);
-        g.lineStyle(2, C.accentN, 0.8).strokeRoundedRect(x, y, btnW, btnH, 10);
-      });
-      zone.on('pointerout', () => {
-        g.clear();
-        g.fillStyle(C.surfaceHi).fillRoundedRect(x, y, btnW, btnH, 10);
-        g.lineStyle(2, C.accentN, 0.5).strokeRoundedRect(x, y, btnW, btnH, 10);
-      });
-    }
+    const zone = this.add
+      .zone(x, y, btnW, btnH)
+      .setOrigin(0, 0)
+      .setInteractive({ useHandCursor: true });
+    zone.on('pointerdown', onTap);
+    zone.on('pointerover', () => {
+      g.clear();
+      g.fillStyle(0x1e3048).fillRoundedRect(x, y, btnW, btnH, 10);
+      g.lineStyle(2, C.accentN, 0.8).strokeRoundedRect(x, y, btnW, btnH, 10);
+    });
+    zone.on('pointerout', () => {
+      g.clear();
+      g.fillStyle(C.surfaceHi).fillRoundedRect(x, y, btnW, btnH, 10);
+      g.lineStyle(2, C.accentN, 0.5).strokeRoundedRect(x, y, btnW, btnH, 10);
+    });
   }
 
   // ── Footer ───────────────────────────────────────────────────────────────

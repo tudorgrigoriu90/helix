@@ -11,7 +11,7 @@ import { newMetaState } from '../core/save';
  *
  * Receives: { meta, originId, seed, floorNumber } from RunPreviewScene (or
  *   GameScene on descend).
- * Transitions to: RunSandboxScene (temporary; T-161 will swap to GameScene).
+ * Transitions to: GameScene (the production run loop).
  */
 
 const W = 390;

@@ -18,7 +18,6 @@ import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState, completeTutorial } from '../core/save';
 import { createWebStorageAdapter } from '../platform/storage-web';
 import { computeBounds, computeLayout, project, type Bounds, type LayoutTransform } from './floor-graph-layout';
-import { drawTabBar, TAB_BAR_HEIGHT } from './tab-bar';
 
 import filterer from '@content/enemies/filterer.json';
 import pressureWarden from '@content/enemies/pressure_warden.json';
@@ -44,9 +43,9 @@ import carapace from '@content/mutations/lithic_carapace.json';
  * stubs. Phaser scene — gated by build, not unit tests (repo convention).
  */
 
-const HEADER_Y = TAB_BAR_HEIGHT + 8;
-const GUIDE_Y = TAB_BAR_HEIGHT + 40;
-const VIEWPORT_Y = TAB_BAR_HEIGHT + 130;
+const HEADER_Y = 16;
+const GUIDE_Y = 48;
+const VIEWPORT_Y = 138;
 const VIEWPORT_H = 460;
 const LOG_Y = VIEWPORT_Y + VIEWPORT_H + 20;
 const NODE_RADIUS = 18;
@@ -121,7 +120,6 @@ export class TutorialScene extends Phaser.Scene {
     });
 
     this.add.graphics().fillStyle(H.bg).fillRect(0, 0, this.scale.width, this.scale.height);
-    drawTabBar(this, this.scene.key);
 
     this.add.text(16, HEADER_Y, 'FLOOR 0 — TUTORIAL', { fontFamily: 'monospace', fontSize: '13px', color: C.lace });
 
@@ -384,6 +382,29 @@ export class TutorialScene extends Phaser.Scene {
     }
 
     this.hudText.setText(`here: ${current}   cleared: ${cleared.size}/${floor.rooms.length}`);
+
+    // Once the tutorial is cleared, the only way onward is the Hub — there's no
+    // dev tab bar to leave by anymore, so surface an explicit exit.
+    if (this.tutorialDone) this.renderExitButton();
+  }
+
+  /** "CONTINUE" button shown after the tutorial boss falls — leads to the Hub,
+   *  where the player chooses to enter the VEIN for real or replay the tutorial. */
+  private renderExitButton(): void {
+    const bw = 240;
+    const bh = 52;
+    const bx = (this.scale.width - bw) / 2;
+    const by = 770;
+    this.graphGfx.fillStyle(0x1a3028, 1).fillRoundedRect(bx, by, bw, bh, 8);
+    this.graphGfx.lineStyle(2, H.nodeCurrent, 1).strokeRoundedRect(bx, by, bw, bh, 8);
+    this.dynamic.push(
+      this.add.text(bx + bw / 2, by + bh / 2, 'CONTINUE  ›', {
+        fontFamily: 'monospace', fontSize: '15px', color: C.lace,
+      }).setOrigin(0.5),
+    );
+    const zone = this.add.zone(bx, by, bw, bh).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    zone.on('pointerdown', () => this.scene.start('HubScene', { meta: this.meta }));
+    this.dynamic.push(zone);
   }
 
   private renderCombat(): void {

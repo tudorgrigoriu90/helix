@@ -99,14 +99,14 @@ describe('TurnEngine.apply — attack (T-61)', () => {
     expect(result.state.enemies[0]?.hp).toBe(0);
   });
 
-  it('never deals negative damage when RES exceeds raw damage', () => {
+  it('floors a fully-mitigated hit at 1 chip damage (never zero, never negative)', () => {
     const state = baseState({
       enemies: [enemy('e1', { x: 2, y: 1 }, { stats: { str: 8, res: 99, agi: 8, int: 5 } })],
     });
     const result = TurnEngine.apply(state, attack('e1'), noCritRng());
     const dmg = result.effects.find((e) => e.type === 'damageDealt');
-    expect(dmg).toMatchObject({ amount: 0 });
-    expect(result.state.enemies[0]?.hp).toBe(10);
+    expect(dmg).toMatchObject({ amount: 1 });
+    expect(result.state.enemies[0]?.hp).toBe(9);
   });
 
   it('emits entityDied when the target reaches 0 HP', () => {

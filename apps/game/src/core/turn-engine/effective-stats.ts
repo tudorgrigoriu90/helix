@@ -77,12 +77,27 @@ export function isImmobilized(c: Combatant): boolean {
 }
 
 /**
+ * Chip-damage floor: any *connecting* damaging hit deals at least this much,
+ * regardless of RES. Flat mitigation (GDD §6.4) is `raw − RES`, which means a
+ * defender whose RES meets or beats the attacker's STR takes nothing at all —
+ * e.g. a Floor-1 grunt (STR 6) against the default loadout (RES 6) was dealing a
+ * literal zero every turn, so low-tier enemies could never threaten the player.
+ * A 1-point floor keeps every landed hit meaningful while RES still does the
+ * heavy lifting. Non-damaging effects (rawDamage ≤ 0, e.g. pure-status
+ * abilities) are exempt — the floor only applies to hits that intend to hurt.
+ */
+export const MIN_CONNECT_DAMAGE = 1;
+
+/**
  * Final damage dealt to `defender`: RES mitigation through {@link effectiveRes}
- * (Infected) then the Fractured multiplier. Floored at 0 — RES can fully block
- * an attack, matching the engine's base mitigation rule. `rawDamage` is the
- * pre-mitigation amount (crit already applied by the caller).
+ * (Infected) then the Fractured multiplier, with a {@link MIN_CONNECT_DAMAGE}
+ * chip floor so a connecting hit is never fully nullified. `rawDamage` is the
+ * pre-mitigation amount (crit already applied by the caller); a non-positive
+ * `rawDamage` is a no-op and returns 0 (no phantom chip from a 0-damage call).
  */
 export function damageTo(defender: Combatant, rawDamage: number, damageType: DamageType): number {
+  if (rawDamage <= 0) return 0;
   const mitigated = mitigate(rawDamage, effectiveRes(defender), damageType);
-  return Math.floor(mitigated * damageTakenMultiplier(defender));
+  const final = Math.floor(mitigated * damageTakenMultiplier(defender));
+  return Math.max(MIN_CONNECT_DAMAGE, final);
 }

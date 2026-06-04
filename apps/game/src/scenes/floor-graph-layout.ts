@@ -1,9 +1,10 @@
 import type { RoomNode } from '@shared-types/floor-graph';
 
 /**
- * Pure layout helpers for the floor-graph visualiser (FloorGraphSandboxScene).
+ * Pure layout helpers for rendering a floor's room graph (used by the tutorial
+ * map and the production game scene).
  *
- * Extracted from the scene file so they can be unit-tested without spinning up
+ * Kept separate from the scenes so they can be unit-tested without spinning up
  * Phaser. All functions are pure; no DOM, no canvas, no global state.
  */
 
