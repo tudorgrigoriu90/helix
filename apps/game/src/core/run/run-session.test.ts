@@ -78,6 +78,21 @@ describe('RunSession', () => {
     expect(s.beginEncounter()).toBeNull();
   });
 
+  it('rests in the (safe) start room for 25% of max HP on a fresh run (T-178)', () => {
+    // The start room is always safe; construction loads floor 1 and rests there.
+    const wounded: PlayerState = { ...newRunPlayer(), hp: 40, maxHp: 100 };
+    const s = new RunSession({ seed: 5, template: template(), registry, player: wounded });
+    // 40 + floor(100 * 0.25) = 65.
+    expect(s.snapshot.player.hp).toBe(65);
+  });
+
+  it('caps the safe-room rest at max HP (no overflow) (T-178)', () => {
+    const nearlyFull: PlayerState = { ...newRunPlayer(), hp: 90, maxHp: 100 };
+    const s = new RunSession({ seed: 6, template: template(), registry, player: nearlyFull });
+    // 90 + 25 capped at 100.
+    expect(s.snapshot.player.hp).toBe(100);
+  });
+
   it('carries the player and clears the room on a won encounter', () => {
     const s = session(4);
     forceIntoCombat(s); // walks toward the boss until a fight, then begins it

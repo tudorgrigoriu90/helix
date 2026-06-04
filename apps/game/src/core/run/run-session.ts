@@ -55,6 +55,8 @@ import {
 const FINAL_FLOOR_DEFAULT = 20;
 /** A Strand Event fires after clearing the boss of every Nth floor (GDD §5). */
 const STRAND_INTERVAL_DEFAULT = 5;
+/** Fraction of max HP restored on entering a Safe Room (UFD S026, GDD §6.1). */
+export const SAFE_ROOM_HEAL_FRACTION = 0.25;
 
 export type RunStatus =
   | 'exploring'
@@ -819,11 +821,16 @@ export class RunSession {
     if (this.roomById(id).enemies.length === 0) this.cleared.add(id);
   }
 
-  /** Safe rooms are rest points — entering one restores the player to full HP. */
-  private restIfSafe(id: string): void {
-    if (this.roomById(id).type === 'safe' && this.player.hp < this.player.maxHp) {
-      this.player = { ...this.player, hp: this.player.maxHp };
-    }
+  /** Safe rooms are rest points — entering one restores 25% of max HP (UFD S026).
+   *  Returns the amount of HP actually recovered (0 if not a safe room or already
+   *  at full), so the Safe Room screen can surface the gain (T-178). */
+  private restIfSafe(id: string): number {
+    if (this.roomById(id).type !== 'safe') return 0;
+    const before = this.player.hp;
+    const heal = Math.floor(this.player.maxHp * SAFE_ROOM_HEAL_FRACTION);
+    const hp = Math.min(this.player.hp + heal, this.player.maxHp);
+    this.player = { ...this.player, hp };
+    return hp - before;
   }
 
   /** T-176: grant VEIN Crystals as an event-room reward.

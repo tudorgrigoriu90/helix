@@ -76,7 +76,7 @@ const GC = {
 const FINAL_FLOOR = 20;
 const STRAND_INTERVAL = 5;
 
-type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory' | 'event';
+type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory' | 'event' | 'safe';
 
 /**
  * S040+ Production game scene — T-161.
@@ -121,6 +121,10 @@ export class GameScene extends Phaser.Scene {
   private pendingRevive = false;
 
   private view: View = 'map';
+  /** T-178: HP recovered by the most recent Safe Room rest, shown on the S026 panel. */
+  private safeRoomHealed = 0;
+  /** T-178: view to restore when the inventory closes (Safe Rooms reopen S026, not the map). */
+  private inventoryReturnView: View = 'map';
   private combat: RunState | null = null;
   private combatRng!: Mulberry32;
   private swapIncoming: ItemDef | null = null;
@@ -377,13 +381,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private enterRoom(id: string): void {
+    // Capture HP before the move so the Safe Room screen can report the heal —
+    // moveTo() auto-rests in safe rooms (RunSession.restIfSafe, 25% max HP).
+    const hpBefore = this.session.snapshot.player.hp;
     this.session.moveTo(id);
     const room = this.session.currentRoom();
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
       if (room.type === 'lace_event') this.openEventRoom();
       else if (room.type === 'merchant') this.openDispenser();
-      if (this.view !== 'event') {
+      else if (room.type === 'safe') this.openSafeRoom(this.session.snapshot.player.hp - hpBefore);
+      if (this.view !== 'event' && this.view !== 'safe') {
         this.maybeShowLoot();
         this.persist();
         this.renderAll();
@@ -1134,6 +1142,105 @@ export class GameScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  // ── S026 Safe Room (T-178) ──────────────────────────────────────────────────
+
+  /** Deterministic LACE reflections shown on the Safe Room moment (GDD §12.8). */
+  private static readonly SAFE_ROOM_REFLECTIONS: readonly string[] = [
+    'The pressure eases. For a moment, the VEIN forgets you are here.',
+    'A pocket of stillness. Your cells knit themselves back toward whole.',
+    'No signals, no teeth. Only the slow work of staying alive.',
+    'The dark holds its breath. Rest while it does.',
+  ];
+
+  /** Opens the S026 Safe Room screen after the auto-rest has been applied.
+   *  `healed` is the HP recovered (0 if the player was already at full). */
+  private openSafeRoom(healed: number): void {
+    this.safeRoomHealed = healed;
+    this.view = 'safe';
+    this.say('generic');
+    this.persist();
+    this.renderAll();
+  }
+
+  private leaveSafeRoom(): void {
+    this.view = 'map';
+    this.maybeShowLoot();
+    this.persist();
+    this.renderAll();
+  }
+
+  private renderSafeRoom(): void {
+    const snap = this.session.snapshot;
+    const roomId = snap.currentRoomId;
+    const idx = roomId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)
+      % GameScene.SAFE_ROOM_REFLECTIONS.length;
+    const reflection = GameScene.SAFE_ROOM_REFLECTIONS[idx] ?? GameScene.SAFE_ROOM_REFLECTIONS[0]!;
+
+    // Title + subtitle.
+    this.transient.push(
+      this.add.text(W / 2, STAGE_Y + 14, 'SAFE ROOM', {
+        fontFamily: 'monospace', fontSize: '16px', color: C.green, letterSpacing: 4,
+      }).setOrigin(0.5, 0),
+      this.add.text(W / 2, STAGE_Y + 40, reflection, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+        wordWrap: { width: W - 56 }, align: 'center', lineSpacing: 3,
+      }).setOrigin(0.5, 0),
+    );
+
+    // Rest panel — HP recovered + current integrity bar.
+    const px = 28;
+    const py = STAGE_Y + 110;
+    const pw = W - 56;
+    const ph = 132;
+    this.stage.fillStyle(0x0e1830).fillRoundedRect(px, py, pw, ph, 12);
+    this.stage.lineStyle(1, 0x244a38).strokeRoundedRect(px, py, pw, ph, 12);
+
+    const healLine = this.safeRoomHealed > 0
+      ? `+${this.safeRoomHealed} HP RECOVERED`
+      : 'INTEGRITY ALREADY FULL';
+    this.transient.push(
+      this.add.text(W / 2, py + 18, healLine, {
+        fontFamily: 'monospace', fontSize: '13px', color: this.safeRoomHealed > 0 ? C.green : C.dim,
+      }).setOrigin(0.5, 0),
+    );
+
+    // HP bar.
+    const barX = px + 22;
+    const barY = py + 56;
+    const barW = pw - 44;
+    const barH = 16;
+    const frac = Math.max(0, Math.min(1, snap.player.hp / snap.player.maxHp));
+    this.stage.fillStyle(GC.hpBg).fillRoundedRect(barX, barY, barW, barH, 4);
+    this.stage.fillStyle(GC.hpGreen).fillRoundedRect(barX, barY, Math.max(2, barW * frac), barH, 4);
+    this.transient.push(
+      this.add.text(W / 2, barY + barH + 8, `${snap.player.hp} / ${snap.player.maxHp} HP`, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.text,
+      }).setOrigin(0.5, 0),
+    );
+
+    // ACCESS INVENTORY button (inside the panel).
+    const invX = px + 22;
+    const invY = py + ph - 34;
+    const invW = pw - 44;
+    this.stage.fillStyle(0x14233a).fillRoundedRect(invX, invY, invW, 24, 6);
+    this.stage.lineStyle(1, 0x2a3a55).strokeRoundedRect(invX, invY, invW, 24, 6);
+    this.transient.push(
+      this.add.text(W / 2, invY + 12, 'ACCESS INVENTORY', {
+        fontFamily: 'monospace', fontSize: '10px', color: C.text,
+      }).setOrigin(0.5),
+    );
+    const invZone = this.add.zone(invX, invY, invW, 24).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    invZone.on('pointerdown', () => { playSfx(this, 'ui_click'); this.openInventoryFrom('safe'); });
+    this.buttonZones.push(invZone);
+
+    // Save confirmation note (the run was persisted on entry).
+    this.transient.push(
+      this.add.text(W / 2, py + ph + 14, 'progress saved', {
+        fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+      }).setOrigin(0.5, 0),
+    );
+  }
+
   private resolveEventChoice(reward: 'vein' | 'heal' | 'sig'): void {
     const snap = this.session.snapshot;
     if (reward === 'vein') {
@@ -1371,12 +1478,19 @@ export class GameScene extends Phaser.Scene {
   // ── Inventory ─────────────────────────────────────────────────────────────
 
   private openInventory(): void {
+    this.openInventoryFrom('map');
+  }
+
+  /** Opens the inventory, remembering which view to restore on close (T-178:
+   *  Safe Rooms reopen the S026 screen rather than dropping back to the map). */
+  private openInventoryFrom(returnView: View): void {
+    this.inventoryReturnView = returnView;
     this.view = 'inventory';
     this.renderAll();
   }
 
   private closeInventory(): void {
-    this.view = 'map';
+    this.view = this.inventoryReturnView;
     this.renderAll();
   }
 
@@ -1403,6 +1517,7 @@ export class GameScene extends Phaser.Scene {
     else if (this.view === 'strand') this.renderStrand();
     else if (this.view === 'shop') this.renderShop();
     else if (this.view === 'event') this.renderEvent();
+    else if (this.view === 'safe') this.renderSafeRoom();
     else if (this.view === 'levelup') this.renderLevelUp();
     else if (this.view === 'loot') this.renderLoot();
     else if (this.view === 'swap') this.renderSwap();
@@ -2078,6 +2193,7 @@ export class GameScene extends Phaser.Scene {
       }
       return;
     }
+    if (this.view === 'safe') { this.button(20, 'CONTINUE', C.green, () => this.leaveSafeRoom()); return; }
     if (this.view === 'shop') { this.button(20, 'LEAVE', C.green, () => this.leaveDispenser()); return; }
     if (this.view === 'loot') { this.button(20, 'LEAVE', C.dim, () => this.leaveLoot()); return; }
     if (this.view === 'swap') { this.button(20, 'LEAVE IT', C.dim, () => this.leaveSwap()); return; }

@@ -477,7 +477,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
 | T-176 | S024 Event Room (LACE narrative choice, 3 options)                    | Frontend | P0       | UFD 02     | |
 | T-177 | S025 Merchant Room (VC-priced shop, 1 ad refresh per merchant)        | Frontend | P1       | UFD 02     | |
-| T-178 | S026 Safe Room (heal 25% max HP + inventory + save + LACE moment)     | Frontend | P0       | UFD 02     | |
+| T-178 | ~~S026 Safe Room (heal 25% max HP + inventory + save + LACE moment)~~ — **DONE 2026-06-04.** RunSession.restIfSafe now heals SAFE_ROOM_HEAL_FRACTION (25% max HP, capped) and returns the amount — was a full heal, now matches spec. GameScene `view='safe'` S026 screen: deterministic LACE reflection, "+N HP RECOVERED" + integrity bar, ACCESS INVENTORY (reopens S026 on close via inventoryReturnView), CONTINUE, progress-saved note. 2 new RunSession tests; balance curve re-verified (1F 100% / 2F 100% / 3F 17%). | Frontend | P0       | UFD 02     | DONE |
 | T-179 | S026 Sigma Echo replay (3–5s ghost run; 3/run cap)                    | Frontend | P1       | GDD §10.4  | NFR P3 (cache) |
 | T-180 | S027 Loot reveal animation                                            | Frontend | P0       | UFD 02     | |
 
