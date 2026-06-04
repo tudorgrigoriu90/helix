@@ -46,8 +46,14 @@ export const TEST_AD_IDS: AdIds = {
  * test ads with no revenue.
  */
 export const PROD_AD_IDS: AdIds = {
-  android: { appId: '', rewardedUnitId: '' },
-  ios: { appId: '', rewardedUnitId: '' },
+  android: {
+    appId: 'ca-app-pub-3200277602941451~4224707694',
+    rewardedUnitId: 'ca-app-pub-3200277602941451/3489522168',
+  },
+  ios: {
+    appId: 'ca-app-pub-3200277602941451~6671739184',
+    rewardedUnitId: 'ca-app-pub-3200277602941451/7071194435',
+  },
 };
 
 /** COPPA flags applied at SDK init (docs/Legal Compliance Notes §T-19). */

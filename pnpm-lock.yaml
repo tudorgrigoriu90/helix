@@ -54,6 +54,9 @@ importers:
 
   apps/game:
     dependencies:
+      '@capacitor-community/admob':
+        specifier: ^8.0.0
+        version: 8.0.0
       '@capacitor/android':
         specifier: ^6.0.0
         version: 6.2.1(@capacitor/core@6.2.1)
@@ -140,6 +143,10 @@ packages:
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
 
+  '@capacitor-community/admob@8.0.0':
+    resolution: {integrity: sha512-+ZIq+UtcNvTMFwjvuhOuGvCjwK2Wu36lTIl9o1/CEjfp2Aj3m4b9zQGx0vXrERYqQmJp/Ven7ee3gGuh2Ym8nA==}
+    engines: {node: '>=22.0.0'}
+
   '@capacitor/android@6.2.1':
     resolution: {integrity: sha512-8gd4CIiQO5LAIlPIfd5mCuodBRxMMdZZEdj8qG8m+dQ1sQ2xyemVpzHmRK8qSCHorsBUCg3D62j2cp6bEBAkdw==}
     peerDependencies:
@@ -152,6 +159,9 @@ packages:
 
   '@capacitor/core@6.2.1':
     resolution: {integrity: sha512-urZwxa7hVE/BnA18oCFAdizXPse6fCKanQyEqpmz6cBJ2vObwMpyJDG5jBeoSsgocS9+Ax+9vb4ducWJn0y2qQ==}
+
+  '@capacitor/core@8.4.0':
+    resolution: {integrity: sha512-LrS1xPIrqLtJABBIPDGXxxKmI9OyesrzWw8DiHbxhSC9JoiLUleUAJlX1a0LWIVLRbuY4Szgf9huFeRqYH2SAQ==}
 
   '@capacitor/filesystem@6.0.4':
     resolution: {integrity: sha512-eFlg/ZrwYA4Y6ClLRRikudVu2XvuZxfX/XC0ky9MgfbC9dyqTnVkkEoWM6vr1xR89YNY4mB0EeVTet1m1Jcumw==}
@@ -518,6 +528,11 @@ packages:
 
   '@protobufjs/utf8@1.1.1':
     resolution: {integrity: sha512-oOAWABowe8EAbMyWKM0tYDKi8Yaox52D+HWZhAIJqQXbqe0xI/GV7FhLWqlEKreMkfDjshR5FKgi3mnle0h6Eg==}
+
+  '@rdlabo/capacitor-docgen@0.4.1':
+    resolution: {integrity: sha512-zUB0lwha4Omqyr5URy/QaFjP6Gh2xxTKAFI0MClqrmUxQwmV8c84+wGvqAoWPCzg4jk1MsU6oiRVuTkUV7xseA==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   '@rollup/rollup-android-arm-eabi@4.60.4':
     resolution: {integrity: sha512-F5QXMSiFebS9hKZj02XhWLLnRpJ3B3AROP0tWbFBSj+6kCbg5m9j5JoHKd4mmSVy5mS/IMQloYgYxCuJC0fxEQ==}
@@ -961,6 +976,9 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
+  colorette@2.0.20:
+    resolution: {integrity: sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w==}
+
   combined-stream@1.0.8:
     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
     engines: {node: '>= 0.8'}
@@ -1306,6 +1324,9 @@ packages:
   get-stream@8.0.1:
     resolution: {integrity: sha512-VaUJspBffn/LMCJVoMvSAdmscJyS1auj5Zulnn5UoYcY531UWmdwhRWkcGKnGU93m5HSXP9LP2usOryrBtQowA==}
     engines: {node: '>=16'}
+
+  github-slugger@1.5.0:
+    resolution: {integrity: sha512-wIh+gKBI9Nshz2o46B0B3f5k/W+WI9ZAv6y5Dn5WJ5SK1t0TnDimB4WE5rmTD05ZAIn8HALCZVmCsvj0w0v0lw==}
 
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
@@ -1672,6 +1693,9 @@ packages:
   minimatch@9.0.9:
     resolution: {integrity: sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==}
     engines: {node: '>=16 || 14 >=14.17'}
+
+  minimist@1.2.8:
+    resolution: {integrity: sha512-2yyAR8qBkN3YuheJanUpWC5U3bb5osDywNB8RzDVlDwDHbocAJveqqj1u8+SVD7jkWT4yvsHCpWqqWqAxb0zCA==}
 
   minipass@3.3.6:
     resolution: {integrity: sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw==}
@@ -2153,6 +2177,11 @@ packages:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
 
+  typescript@4.2.4:
+    resolution: {integrity: sha512-V+evlYHZnQkaz8TRBuxTA92yZBPotr5H+WhQ7bD3hZUndx5tGOa1fuCgeSjxAzM1RiN5IzvadIXTVefuuwZCRg==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -2368,6 +2397,11 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
+  '@capacitor-community/admob@8.0.0':
+    dependencies:
+      '@capacitor/core': 8.4.0
+      '@rdlabo/capacitor-docgen': 0.4.1
+
   '@capacitor/android@6.2.1(@capacitor/core@6.2.1)':
     dependencies:
       '@capacitor/core': 6.2.1
@@ -2395,6 +2429,10 @@ snapshots:
       - supports-color
 
   '@capacitor/core@6.2.1':
+    dependencies:
+      tslib: 2.8.1
+
+  '@capacitor/core@8.4.0':
     dependencies:
       tslib: 2.8.1
 
@@ -2792,6 +2830,13 @@ snapshots:
   '@protobufjs/pool@1.1.0': {}
 
   '@protobufjs/utf8@1.1.1': {}
+
+  '@rdlabo/capacitor-docgen@0.4.1':
+    dependencies:
+      colorette: 2.0.20
+      github-slugger: 1.5.0
+      minimist: 1.2.8
+      typescript: 4.2.4
 
   '@rollup/rollup-android-arm-eabi@4.60.4':
     optional: true
@@ -3253,6 +3298,8 @@ snapshots:
       color-name: 1.1.4
 
   color-name@1.1.4: {}
+
+  colorette@2.0.20: {}
 
   combined-stream@1.0.8:
     dependencies:
@@ -3724,6 +3771,8 @@ snapshots:
 
   get-stream@8.0.1: {}
 
+  github-slugger@1.5.0: {}
+
   glob-parent@5.1.2:
     dependencies:
       is-glob: 4.0.3
@@ -4114,6 +4163,8 @@ snapshots:
   minimatch@9.0.9:
     dependencies:
       brace-expansion: 2.1.1
+
+  minimist@1.2.8: {}
 
   minipass@3.3.6:
     dependencies:
@@ -4619,6 +4670,8 @@ snapshots:
     dependencies:
       media-typer: 0.3.0
       mime-types: 2.1.35
+
+  typescript@4.2.4: {}
 
   typescript@5.9.3: {}
 
