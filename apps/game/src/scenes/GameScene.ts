@@ -32,7 +32,9 @@ import { adService } from '../platform/ads-bootstrap';
 import { LaceNarrator } from '../core/lace';
 import type { RunSummaryData } from './PostRunScene';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
+import type { Viewport } from './floor-graph-layout';
 import { computeFogReveal, edgeVisible } from './map-fog';
+import { floorProgress, compactMinimapRect } from './minimap';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -126,6 +128,8 @@ export class GameScene extends Phaser.Scene {
   private pendingRevive = false;
 
   private view: View = 'map';
+  /** T-155: when true the expanded full-floor map overlay is showing (read-only). */
+  private mapOverlayOpen = false;
   /** T-178: HP recovered by the most recent Safe Room rest, shown on the S026 panel. */
   private safeRoomHealed = 0;
   /** T-178: view to restore when the inventory closes (Safe Rooms reopen S026, not the map). */
@@ -341,6 +345,8 @@ export class GameScene extends Phaser.Scene {
   // ── Input ─────────────────────────────────────────────────────────────────
 
   private onPointer(x: number, y: number): void {
+    // T-155: the expanded map is a read-only modal — any tap dismisses it.
+    if (this.mapOverlayOpen) { this.closeMapOverlay(); return; }
     if (this.revealingEnemies) return; // block input during S040 reveal
     // T-170: a tap during the enemy phase fast-forwards playback to 2× (the cap).
     if (this.enemySeqActive) { this.enemySeqSpeed = 2; return; }
@@ -1659,15 +1665,37 @@ export class GameScene extends Phaser.Scene {
       this.renderCombatMenu();
     }
 
+    // T-155: compact minimap on the room/combat screens, and its expanded view.
+    if (this.mapOverlayOpen) {
+      this.renderMapOverlay();
+    } else if (GameScene.MINIMAP_VIEWS.has(this.view) && !this.combatMenuOpen && this.itemConfirmPending === null) {
+      this.renderMinimapWidget();
+    }
+
     this.renderButtons();
     this.updateHud();
   }
 
-  private mapTransform(): { bounds: ReturnType<typeof computeBounds>; transform: ReturnType<typeof computeLayout> } {
-    const rooms = this.session.floor.rooms;
-    const bounds = computeBounds(rooms);
-    const transform = computeLayout(bounds, { x: 16, y: STAGE_Y, width: W - 32, height: STAGE_H });
+  /** The full navigation map's viewport (the STAGE area). */
+  private static readonly MAP_VIEWPORT: Viewport = { x: 16, y: STAGE_Y, width: W - 32, height: STAGE_H };
+
+  /** Layout (bounds + transform) for a floor graph fitted to `vp`. Single source
+   *  of truth so the renderer and the tap hit-test always agree on node positions. */
+  private layoutFor(vp: Viewport, radius: number, labels: boolean): {
+    bounds: ReturnType<typeof computeBounds>;
+    transform: ReturnType<typeof computeLayout>;
+  } {
+    const bounds = computeBounds(this.session.floor.rooms);
+    const transform = computeLayout(bounds, vp, {
+      minScale: radius * 1.6,
+      maxScale: labels ? 70 : 28,
+      padding: radius + 4,
+    });
     return { bounds, transform };
+  }
+
+  private mapTransform(): { bounds: ReturnType<typeof computeBounds>; transform: ReturnType<typeof computeLayout> } {
+    return this.layoutFor(GameScene.MAP_VIEWPORT, 14, true);
   }
 
   /** Rooms the player has stood in: cleared rooms plus wherever they are now.
@@ -1677,24 +1705,38 @@ export class GameScene extends Phaser.Scene {
     return new Set([...snap.clearedRoomIds, snap.currentRoomId]);
   }
 
-  private renderMap(): void {
+  /**
+   * Draw the floor's room graph (with fog) into `g`, fitted to viewport `vp`.
+   * Shared by the full navigation map (T-150/154), the compact minimap widget
+   * and the expanded map overlay (T-155). The big views pass `labels: true` to
+   * draw room icons/glyphs + "?" markers; the compact widget leaves them off and
+   * just plots coloured dots. `showAdj` draws the green "you can move here" ring,
+   * which only the live, interactive map enables.
+   */
+  private drawFloorGraph(
+    g: Phaser.GameObjects.Graphics,
+    vp: Viewport,
+    opts: { radius: number; labels: boolean; showAdj: boolean; textDepth: number },
+  ): void {
     const floor = this.session.floor;
-    const { bounds, transform } = this.mapTransform();
+    const { bounds, transform } = this.layoutFor(vp, opts.radius, opts.labels);
     const snap = this.session.snapshot;
     const cleared = new Set(snap.clearedRoomIds);
-    const adjacent = new Set(this.session.adjacentRooms());
+    const adjacent = opts.showAdj ? new Set(this.session.adjacentRooms()) : new Set<string>();
 
     // T-154: map-level fog of war. Corridors lead outward from explored ground
     // and unvisited rooms read as bare "?" outlines until entered (safe rooms
     // excepted — always shown), so descending a floor stays a discovery.
     const visited = this.visitedRooms();
     const reveal = computeFogReveal(floor, visited);
+    const r = opts.radius;
+    const edgeW = Math.max(1, Math.round(r / 7));
 
     for (const e of floor.edges) {
       if (!edgeVisible(e, visited)) continue;
       const a = project(this.roomById(e.from).pos, bounds, transform);
       const b = project(this.roomById(e.to).pos, bounds, transform);
-      this.stage.lineStyle(2, GC.edge).lineBetween(a.x, a.y, b.x, b.y);
+      g.lineStyle(edgeW, GC.edge).lineBetween(a.x, a.y, b.x, b.y);
     }
 
     for (const room of floor.rooms) {
@@ -1704,13 +1746,15 @@ export class GameScene extends Phaser.Scene {
 
       // Discovered-but-unknown rooms render as a hollow outline with a "?".
       if (rev.level === 'discovered' && !rev.typeKnown) {
-        this.stage.fillStyle(GC.fog, 0.55).fillCircle(p.x, p.y, 14);
-        this.stage.lineStyle(2, GC.fogEdge).strokeCircle(p.x, p.y, 14);
-        if (adjacent.has(room.id)) this.stage.lineStyle(3, GC.adj).strokeCircle(p.x, p.y, 17);
-        const q = this.add.text(p.x, p.y, '?', {
-          fontFamily: 'monospace', fontSize: '13px', color: C.dim,
-        }).setOrigin(0.5);
-        this.transient.push(q);
+        g.fillStyle(GC.fog, 0.55).fillCircle(p.x, p.y, r);
+        g.lineStyle(edgeW, GC.fogEdge).strokeCircle(p.x, p.y, r);
+        if (adjacent.has(room.id)) g.lineStyle(3, GC.adj).strokeCircle(p.x, p.y, r + 3);
+        if (opts.labels) {
+          const q = this.add.text(p.x, p.y, '?', {
+            fontFamily: 'monospace', fontSize: '13px', color: C.dim,
+          }).setOrigin(0.5).setDepth(opts.textDepth);
+          this.transient.push(q);
+        }
         continue;
       }
 
@@ -1718,21 +1762,29 @@ export class GameScene extends Phaser.Scene {
       let fill = cleared.has(room.id) ? GC.nodeCleared : GC.node;
       if (room.id === floor.bossRoomId) fill = GC.boss;
       else if (room.id === floor.startRoomId) fill = GC.start;
-      this.stage.fillStyle(fill).fillCircle(p.x, p.y, 14);
+      g.fillStyle(fill).fillCircle(p.x, p.y, r);
 
-      if (adjacent.has(room.id)) this.stage.lineStyle(3, GC.adj).strokeCircle(p.x, p.y, 17);
-      if (isCurrent) this.stage.lineStyle(3, GC.current).strokeCircle(p.x, p.y, 20);
+      if (adjacent.has(room.id)) g.lineStyle(3, GC.adj).strokeCircle(p.x, p.y, r + 3);
+      if (isCurrent) g.lineStyle(Math.max(2, edgeW + 1), GC.current).strokeCircle(p.x, p.y, r + (opts.labels ? 6 : 2));
 
-      const iconImg = drawSprite(this, this.stage, roomSpriteKey(room.type), p.x, p.y, 22, { fallback: false });
+      if (!opts.labels) continue;
+      const iconImg = drawSprite(this, g, roomSpriteKey(room.type), p.x, p.y, r + 8, { fallback: false });
       if (iconImg !== null) {
+        iconImg.setDepth(opts.textDepth);
         this.transient.push(iconImg);
       } else {
         const label = this.add.text(p.x, p.y, room.type[0]!.toUpperCase(), {
           fontFamily: 'monospace', fontSize: '11px', color: C.dark,
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(opts.textDepth);
         this.transient.push(label);
       }
     }
+  }
+
+  private renderMap(): void {
+    this.drawFloorGraph(this.stage, GameScene.MAP_VIEWPORT, {
+      radius: 14, labels: true, showAdj: true, textDepth: 1,
+    });
 
     const hint = this.add.text(W / 2, STAGE_Y + STAGE_H - 6, 'tap a highlighted room to move', {
       fontFamily: 'monospace', fontSize: '10px', color: C.dim,
@@ -1749,6 +1801,86 @@ export class GameScene extends Phaser.Scene {
     const z = this.add.zone(W - 16 - invLabel.width, STAGE_Y + 4, invLabel.width, 18).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     z.on('pointerdown', () => { playSfx(this, 'ui_click'); this.openInventory(); });
     this.buttonZones.push(z);
+  }
+
+  // ── Minimap (T-155) ─────────────────────────────────────────────────────────
+
+  /** Views that should carry the compact minimap (anywhere the full map isn't
+   *  on-screen but the player still benefits from spatial context). */
+  private static readonly MINIMAP_VIEWS: ReadonlySet<View> = new Set<View>([
+    'combat', 'strand', 'shop', 'event', 'safe', 'loot', 'swap',
+  ]);
+
+  /** T-155: a compact, tappable minimap pinned to the top-right corner. Shows the
+   *  fogged floor graph as dots; tapping it expands the full read-only map. */
+  private renderMinimapWidget(): void {
+    const size = 64;
+    const rect = compactMinimapRect(W, size, 6, 8);
+
+    // Panel backdrop.
+    this.overlay.fillStyle(GC.bg, 0.82).fillRoundedRect(rect.x, rect.y, rect.width, rect.height, 6);
+    this.overlay.lineStyle(1, GC.fogEdge, 0.9).strokeRoundedRect(rect.x, rect.y, rect.width, rect.height, 6);
+
+    // Inset the graph a touch so dots don't kiss the border.
+    const inset = 6;
+    this.drawFloorGraph(this.overlay, {
+      x: rect.x + inset, y: rect.y + inset, width: rect.width - 2 * inset, height: rect.height - 2 * inset - 8,
+    }, { radius: 3, labels: false, showAdj: false, textDepth: 4 });
+
+    const prog = floorProgress(
+      this.session.floor.rooms.map((rm) => rm.id),
+      new Set(this.session.snapshot.clearedRoomIds),
+    );
+    const label = this.add.text(rect.x + rect.width / 2, rect.y + rect.height - 2, `MAP  ${prog.cleared}/${prog.total}`, {
+      fontFamily: 'monospace', fontSize: '8px', color: C.dim,
+    }).setOrigin(0.5, 1).setDepth(4);
+    this.transient.push(label);
+
+    const z = this.add.zone(rect.x, rect.y, rect.width, rect.height).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    z.on('pointerdown', () => this.openMapOverlay());
+    this.buttonZones.push(z);
+  }
+
+  private openMapOverlay(): void {
+    if (this.mapOverlayOpen) return;
+    this.mapOverlayOpen = true;
+    playSfx(this, 'ui_click');
+    this.renderAll();
+  }
+
+  private closeMapOverlay(): void {
+    this.mapOverlayOpen = false;
+    playSfx(this, 'ui_back');
+    this.renderAll();
+  }
+
+  /** T-155: full-screen read-only floor map, expanded from the compact minimap. */
+  private renderMapOverlay(): void {
+    this.overlay.fillStyle(GC.bg, 0.95).fillRect(0, 0, W, H);
+
+    const title = this.add.text(W / 2, 40, `FLOOR ${this.session.snapshot.floorNumber}`, {
+      fontFamily: 'monospace', fontSize: '18px', color: C.text,
+    }).setOrigin(0.5).setDepth(4);
+    this.transient.push(title);
+
+    const prog = floorProgress(
+      this.session.floor.rooms.map((rm) => rm.id),
+      new Set(this.session.snapshot.clearedRoomIds),
+    );
+    const sub = this.add.text(W / 2, 64, `${prog.cleared}/${prog.total} rooms explored`, {
+      fontFamily: 'monospace', fontSize: '11px', color: C.dim,
+    }).setOrigin(0.5).setDepth(4);
+    this.transient.push(sub);
+
+    // Big read-only graph (no move ring — this view doesn't navigate).
+    this.drawFloorGraph(this.overlay, { x: 24, y: 92, width: W - 48, height: H - 200 }, {
+      radius: 16, labels: true, showAdj: false, textDepth: 4,
+    });
+
+    const hint = this.add.text(W / 2, H - 60, 'tap anywhere to close', {
+      fontFamily: 'monospace', fontSize: '12px', color: C.green,
+    }).setOrigin(0.5).setDepth(4);
+    this.transient.push(hint);
   }
 
   private tileSize(state: RunState): number {
