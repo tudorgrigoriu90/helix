@@ -57,6 +57,18 @@ describe('AdService — integration of adapter + gate + timeout', () => {
     expect(blocked).toEqual({ granted: false, result: 'blocked', blockReason: 'cap_reached' });
   });
 
+  it('canOffer() reports cap_reached so the UI can hide the ad button (T-243/E032)', async () => {
+    const { svc, tick } = make(new MemoryAdsAdapter(['completed']));
+    expect(svc.canOffer().allowed).toBe(true); // ad offered at run start
+    for (let i = 0; i < MAX_ADS_PER_RUN; i++) {
+      await svc.requestReward('revive');
+      tick(AD_COOLDOWN_MS);
+    }
+    const decision = svc.canOffer();
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) expect(decision.reason).toBe('cap_reached');
+  });
+
   it('failed attempts do not consume the cap', async () => {
     const { svc, tick } = make(new MemoryAdsAdapter(['dismissed', 'completed']));
     await svc.requestReward('revive');

@@ -362,10 +362,25 @@ export class PostRunScene extends Phaser.Scene {
     const btnW = pw - 32;
     const btnX = px + 16;
 
-    // WATCH AD button
-    this.buildReviveBtn(btnX, btnY, btnW, btnH, 'WATCH AD', 'free · rewarded ad', C.accentN, 0x1a3028, 12, () => {
-      void this.tryAdRevive();
-    });
+    // WATCH AD — hidden once this run's 3-ad cap is spent (E032); the SC path
+    // below remains the alternative. canOffer() also covers the cooldown window.
+    const offer = adService.canOffer();
+    if (offer.allowed) {
+      this.buildReviveBtn(btnX, btnY, btnW, btnH, 'WATCH AD', 'free · rewarded ad', C.accentN, 0x1a3028, 12, () => {
+        void this.tryAdRevive();
+      });
+    } else {
+      const reason = offer.reason === 'cap_reached' ? 'Ad limit reached this run' : 'Ad cooling down';
+      const ng = this.add.graphics().setDepth(12);
+      ng.fillStyle(0x0e1626, 0.5).fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+      ng.lineStyle(1, C.border).strokeRoundedRect(btnX, btnY, btnW, btnH, 10);
+      this.add.text(CX, btnY + 14, reason, {
+        fontFamily: 'monospace', fontSize: '12px', color: C.dim,
+      }).setOrigin(0.5, 0).setDepth(13);
+      this.add.text(CX, btnY + 32, 'use Shard Crystals below', {
+        fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+      }).setOrigin(0.5, 0).setDepth(13);
+    }
 
     // 75 SC button
     const shards = this.summary.meta.shardCrystals;

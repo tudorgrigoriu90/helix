@@ -28,6 +28,7 @@ import type { RunSessionSave } from '../core/run/run-session';
 import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState, recordRunOutcome } from '../core/save';
 import { createWebStorageAdapter } from '../platform/storage-web';
+import { adService } from '../platform/ads-bootstrap';
 import { LaceNarrator } from '../core/lace';
 import type { RunSummaryData } from './PostRunScene';
 import { computeBounds, computeLayout, project } from './floor-graph-layout';
@@ -264,6 +265,7 @@ export class GameScene extends Phaser.Scene {
     this.deathCause = 'enemy_kill';
     this.achievementsEarned = [];
     this.reviveUsed = false;
+    adService.reset(); // fresh per-run ad cap + cooldown (UFD E032)
     this.revealingEnemies = false;
     this.say('run_start');
     this.playFloorMusic();
