@@ -509,7 +509,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-195 | S030 Death sequence (3s animation; `death_cause` enum)                      | Frontend | P0       | UFD 02     | |
 | T-196 | S031 "What You Became" screen (portrait + name + share CTA)                 | Frontend | P0       | UFD 02, GDD §12.8 | |
 | T-197 | S032 Meta rewards (SC granted, achievements popped)                         | Frontend | P0       | UFD 02     | |
-| T-198 | S033 Revive offer (after share to protect emotional moment)                 | Frontend | P0       | UFD 02     | |
+| T-198 | ~~S033 Revive offer (after share to protect emotional moment)~~ — **DONE 2026-06-04.** Revive panel in PostRunScene: WATCH AD (via AdService) or 75 SC fallback; dismissed/timed-out ad keeps panel open; DECLINE → Hub. GameScene: reviveUsed flag, pendingRevive boot path (load save → applySave → revive()), reviveAvailable in RunSummaryData. RunSession.revive(): 50% HP restore + enemy reset. | Frontend | P0       | UFD 02     | DONE |
 
 ### S-4.9 — Meta-progression scenes (UFD Scope 5)
 
@@ -570,12 +570,12 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-235 | `AdsAdapter` interface                                 | Game Engineer | P1 | TDD §10.2  | |
-| T-236 | Web stub (returns "completed" with no actual ad)       | Frontend | P1       | TDD §10.2  | |
-| T-237 | Capacitor impl: AdMob Community plugin                 | Frontend | P1       | TDD §10.2  | |
-| T-238 | 3-ads-per-run hard cap                                 | Game Engineer | P1 | GDD §15.2  | |
-| T-239 | 60s cooldown between ads                               | Game Engineer | P1 | GDD §15.2  | |
-| T-240 | 10s timeout with graceful degradation (no retry, no goodwill grant) | Game Engineer | P1 | UFD 06 (E030/S135) | |
+| T-235 | ~~`AdsAdapter` interface~~ — **DONE 2026-06-04.** `AdsAdapter`, `AdPlacement`, `AdResult` types + `WebAdsAdapter` + `MemoryAdsAdapter` in `core/platform/ads-adapter.ts`. 7 tests. | Game Engineer | P1 | TDD §10.2  | DONE |
+| T-236 | ~~Web stub (returns "completed" with no actual ad)~~ — **DONE 2026-06-04.** Implemented as `WebAdsAdapter` (configurable result, defaults to `'completed'`). | Frontend | P1       | TDD §10.2  | DONE |
+| T-237 | ~~Capacitor impl: AdMob Community plugin~~ — **DONE 2026-06-04.** `CapacitorAdsAdapter` + `AdMobPluginLike` interface in `platform/ads-capacitor.ts`; `ad-config.ts` with TEST_AD_IDS, PROD_AD_IDS (filled with real IDs), COPPA_FLAGS, resolveAdIds(); `ads-bootstrap.ts` singleton; native manifest entries for Android + iOS; `@capacitor-community/admob` installed. 6 tests. | Frontend | P1       | TDD §10.2  | DONE |
+| T-238 | ~~3-ads-per-run hard cap~~ — **DONE 2026-06-04.** `AdGatekeeper` in `core/ads/ad-gatekeeper.ts`: MAX_ADS_PER_RUN=3, canShowAd(), recordAdAttempt(), isAdCapReached(). 7 tests. | Game Engineer | P1 | GDD §15.2  | DONE |
+| T-239 | ~~60s cooldown between ads~~ — **DONE 2026-06-04.** AD_COOLDOWN_MS=60000 in AdGatekeeper; enforced by canShowAd(). | Game Engineer | P1 | GDD §15.2  | DONE |
+| T-240 | ~~10s timeout with graceful degradation (no retry, no goodwill grant)~~ — **DONE 2026-06-04.** `withAdTimeout` in `core/ads/ad-timeout.ts`; AD_TIMEOUT_MS=10000; resolves `'timed_out'` on deadline. 5 tests. | Game Engineer | P1 | UFD 06 (E030/S135) | DONE |
 | T-241 | E030 ad load timeout → null reward + S135                              | Game Engineer | P1 | UFD 07 | |
 | T-242 | E031 ad cancelled mid-watch → null reward                              | Game Engineer | P1 | UFD 07 | |
 | T-243 | E032 ad cap reached → hide ad buttons, show SC alternative             | Frontend | P1 | UFD 07 | |
@@ -790,8 +790,8 @@ See T-294, T-300, T-310 in E-7. Codex stays in-house (Director's voice).
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-341 | AdMob account + ad units (rewarded only)               | Director | P1       | TDD §2.3   | |
-| T-342 | Rewarded placement: revive                             | Frontend | P1       | GDD §15.2  | |
+| T-341 | ~~AdMob account + ad units (rewarded only)~~ — **DONE 2026-06-04.** Account created; Android app ID ca-app-pub-3200277602941451~4224707694, iOS app ID ca-app-pub-3200277602941451~6671739184; rewarded unit IDs created for both platforms and filled into PROD_AD_IDS. | Director | P1       | TDD §2.3   | DONE |
+| T-342 | ~~Rewarded placement: revive~~ — **DONE 2026-06-04.** Wired via T-198 (S033 panel) and AdService.requestReward('revive'). | Frontend | P1       | GDD §15.2  | DONE |
 | T-343 | Rewarded placement: Strand reroll (1 card)             | Frontend | P1       | GDD §15.2  | |
 | T-344 | Rewarded placement: merchant refresh                   | Frontend | P1       | GDD §15.2  | |
 
