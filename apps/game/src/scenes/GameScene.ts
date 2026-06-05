@@ -9,6 +9,7 @@ import type { ItemDef } from '@shared-types/item';
 import type { EntityStats, DeathCause, StatusEffect } from '@shared-types/run-state';
 import type { MetaState } from '@shared-types/meta-state';
 import type { MutationDef, MutationFamily } from '@shared-types/mutation';
+import { dominantTraitFor } from '../core/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
@@ -38,6 +39,7 @@ import { pickEvent, resolveEvent, type EventOutcome } from './event-room';
 import { rarityLook, rarityGlows } from './loot-reveal';
 import { affordLabel } from './merchant';
 import { reachableMoves, attackPreview, showMoveConfirmHint } from './combat-preview';
+import { FAMILY_LOOK, TIER_LOOK, showStrandConfirmHint, familyCountIn } from './strand-event';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -111,6 +113,12 @@ export class GameScene extends Phaser.Scene {
 
   private strandSelected: number | null = null;
   private strandRerollUsed = false;
+  /** T-185: whether the player has tapped TAKE once and is awaiting the second confirm tap. */
+  private strandConfirmPending = false;
+  /** T-182/T-188: which cards to animate in on next renderStrand ('all' = all, number = one slot, null = none). */
+  private strandAnimateCards: 'all' | number | null = null;
+  /** T-191: families that just earned a Dominant Trait — triggers the celebration overlay. */
+  private dominantTraitReveal: MutationFamily[] = [];
 
   private seed = 0;
   private originId = 'void_diver';
@@ -1548,6 +1556,9 @@ export class GameScene extends Phaser.Scene {
     this.session.beginStrandEvent();
     this.strandSelected = null;
     this.strandRerollUsed = false;
+    this.strandConfirmPending = false;
+    this.dominantTraitReveal = [];
+    this.strandAnimateCards = 'all';
     this.view = 'strand';
     this.say('generic');
     this.persist();
@@ -1560,6 +1571,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < cards.length; i++) {
       const r = this.strandCardRect(i);
       if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) {
+        if (this.strandSelected !== i) this.strandConfirmPending = false;
         this.strandSelected = i;
         this.laceText.setText(`LACE: ${cards[i]!.mutation.lace}`);
         this.renderAll();
@@ -1572,19 +1584,44 @@ export class GameScene extends Phaser.Scene {
     if (this.strandSelected === null) return;
     const card = this.session.strandOffer[this.strandSelected];
     if (card === undefined) return;
+
+    // T-185: two-tap confirm for new players
+    if (showStrandConfirmHint(this.meta.lifetime.runs) && !this.strandConfirmPending) {
+      this.strandConfirmPending = true;
+      this.renderAll();
+      return;
+    }
+    this.strandConfirmPending = false;
+
+    // T-191: capture dominant traits before applying mutation
+    const prevTraits = [...(this.session.snapshot.player.dominantTraits ?? [])];
     this.session.chooseStrandMutation(card.mutation.id);
     playSfx(this, 'sfx_mutation');
     this.laceText.setText(`LACE: ${card.mutation.lace}`);
-    this.view = 'map';
-    this.persist();
-    this.renderAll();
+
+    // Detect newly unlocked dominant traits
+    const afterTraits = (this.session.snapshot.player.dominantTraits ?? []) as MutationFamily[];
+    const newTraits = afterTraits.filter((f) => !(prevTraits as MutationFamily[]).includes(f));
+    if (newTraits.length > 0) {
+      this.dominantTraitReveal = newTraits;
+      this.persist();
+      this.renderAll();
+      // Auto-dismiss celebration after 3 seconds; player can also tap CONTINUE
+    } else {
+      this.view = 'map';
+      this.persist();
+      this.renderAll();
+    }
   }
 
   private rerollStrandCard(): void {
     if (this.strandSelected === null || this.strandRerollUsed) return;
-    this.session.rerollStrandCard(this.strandSelected);
+    const idx = this.strandSelected;
+    this.session.rerollStrandCard(idx);
     this.strandRerollUsed = true;
-    const card = this.session.strandOffer[this.strandSelected];
+    this.strandConfirmPending = false;
+    this.strandAnimateCards = idx; // T-188: animate only the replaced card
+    const card = this.session.strandOffer[idx];
     if (card !== undefined) this.laceText.setText(`LACE: ${card.mutation.lace}`);
     this.renderAll();
   }
@@ -2722,40 +2759,262 @@ export class GameScene extends Phaser.Scene {
   }
 
   private strandCardRect(i: number): { x: number; y: number; w: number; h: number } {
-    return { x: 16, y: STAGE_Y + 28 + i * 128, w: W - 32, h: 116 };
+    return { x: 16, y: STAGE_Y + 32 + i * 112, w: W - 32, h: 100 };
   }
 
   private renderStrand(): void {
-    const cards = this.session.strandOffer;
-    if (cards.length === 0) {
-      this.stage.fillStyle(0x101830).fillRoundedRect(16, STAGE_Y + 40, W - 32, 150, 10);
-      this.stage.lineStyle(1, 0xffdd44).strokeRoundedRect(16, STAGE_Y + 40, W - 32, 150, 10);
-      this.transient.push(
-        this.add.text(W / 2, STAGE_Y + 80, 'VEIN INTERMISSION', { fontFamily: 'monospace', fontSize: '16px', color: C.yellow }).setOrigin(0.5),
-        this.add.text(W / 2, STAGE_Y + 120, '+100 VEIN Crystals', { fontFamily: 'monospace', fontSize: '13px', color: C.green }).setOrigin(0.5),
-        this.add.text(W / 2, STAGE_Y + 150, '(saturated — 4 mutations held)', { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5),
-      );
+    // T-191: dominant trait celebration overlay takes over the strand view.
+    if (this.dominantTraitReveal.length > 0) {
+      this.renderDominantTraitReveal();
       return;
     }
-    this.transient.push(this.add.text(W / 2, STAGE_Y + 12, 'STRAND EVENT — choose one', { fontFamily: 'monospace', fontSize: '12px', color: C.green }).setOrigin(0.5, 0));
-    cards.forEach((card, i) => {
+
+    const cards = this.session.strandOffer;
+
+    // T-192: VEIN Intermission — polished gold panel.
+    if (cards.length === 0) {
+      this.renderIntermissionPanel();
+      return;
+    }
+
+    // Title
+    const titleT = this.add.text(W / 2, STAGE_Y + 8, 'STRAND EVENT', {
+      fontFamily: 'monospace', fontSize: '12px', color: C.green, letterSpacing: 4,
+    }).setOrigin(0.5, 0);
+    const subT = this.add.text(W / 2, STAGE_Y + 24, 'choose your mutation', {
+      fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+    }).setOrigin(0.5, 0);
+    this.transient.push(titleT, subT);
+
+    // Owned families for T-184 synergy hint
+    const ownedIds = this.session.snapshot.player.mutations;
+    const ownedFamilies: MutationFamily[] = ownedIds
+      .map((id) => this.mutationPool.find((m) => m.id === id))
+      .filter((m): m is MutationDef => m !== undefined)
+      .map((m) => m.family);
+
+    const animate = this.strandAnimateCards;
+    this.strandAnimateCards = null; // consume
+
+    for (let i = 0; i < cards.length; i++) {
+      const card = cards[i]!;
       const r = this.strandCardRect(i);
       const m = card.mutation;
       const selected = this.strandSelected === i;
-      this.stage.fillStyle(selected ? 0x16243c : 0x0e1626).fillRoundedRect(r.x, r.y, r.w, r.h, 8);
-      this.stage.lineStyle(selected ? 2 : 1, selected ? 0xffdd44 : GC.edge).strokeRoundedRect(r.x, r.y, r.w, r.h, 8);
+      const confirming = selected && this.strandConfirmPending;
+      const look = FAMILY_LOOK[m.family];
+      const tierLook = TIER_LOOK[m.tier];
+
+      // Card background — own Graphics so it can be scaled/faded from its centre (T-182).
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
+      const hw = r.w / 2;
+      const hh = r.h / 2;
+      const cardG = this.add.graphics();
+      cardG.fillStyle(selected ? look.bgHex : 0x0c1220);
+      cardG.fillRoundedRect(-hw, -hh, r.w, r.h, 8);
+      cardG.lineStyle(confirming ? 2 : selected ? 2 : 1, confirming ? 0xffdd44 : selected ? look.accentHex : 0x1e2a40);
+      cardG.strokeRoundedRect(-hw, -hh, r.w, r.h, 8);
+      // Family spine (T-183)
+      cardG.fillStyle(look.accentHex, selected ? 1.0 : 0.5);
+      cardG.fillRoundedRect(-hw, -hh, 4, r.h, { tl: 8, bl: 8, tr: 0, br: 0 } as unknown as number);
+      cardG.setPosition(cx, cy);
+
+      // Header: family · tier badge
       const wild = card.slot === 'wild' ? '  ·  WILD' : '';
-      this.transient.push(
-        this.add.text(r.x + 12, r.y + 10, `${m.family.toUpperCase()} · ${m.tier.toUpperCase()}${wild}`, { fontFamily: 'monospace', fontSize: '9px', color: C.dim }),
-        this.add.text(r.x + 12, r.y + 26, m.name, { fontFamily: 'monospace', fontSize: '14px', color: selected ? C.yellow : C.text }),
-        this.add.text(r.x + 12, r.y + 50, `Passive: ${GameScene.modifierSummary(m)}`, { fontFamily: 'monospace', fontSize: '10px', color: C.green }),
-        this.add.text(r.x + 12, r.y + 68, `Active:  ${GameScene.abilitySummary(m)}`, { fontFamily: 'monospace', fontSize: '10px', color: C.green }),
-        this.add.text(r.x + 12, r.y + 90, `SIG +${m.sigBonus}`, { fontFamily: 'monospace', fontSize: '10px', color: C.dim }),
-      );
+      const headerT = this.add.text(r.x + 14, r.y + 8, `${m.family.toUpperCase()}${wild}`, {
+        fontFamily: 'monospace', fontSize: '8px', color: look.accentLabel,
+      });
+      // Tier badge — top right
+      const tierT = this.add.text(r.x + r.w - 12, r.y + 8, tierLook.badge, {
+        fontFamily: 'monospace', fontSize: '8px', color: tierLook.label,
+      }).setOrigin(1, 0);
+      // Mutation name
+      const nameT = this.add.text(r.x + 14, r.y + 22, m.name, {
+        fontFamily: 'monospace', fontSize: '13px',
+        color: confirming ? C.yellow : selected ? look.accentLabel : C.text,
+      });
+      // Passive + active
+      const passiveT = this.add.text(r.x + 14, r.y + 44, `Passive: ${GameScene.modifierSummary(m)}`, {
+        fontFamily: 'monospace', fontSize: '9px', color: C.green,
+      });
+      const activeT = this.add.text(r.x + 14, r.y + 60, `Active: ${GameScene.abilitySummary(m)}`, {
+        fontFamily: 'monospace', fontSize: '9px', color: C.green,
+      });
+      // SIG bonus
+      const sigT = this.add.text(r.x + 14, r.y + 80, `SIG +${m.sigBonus}`, {
+        fontFamily: 'monospace', fontSize: '8px', color: C.dim,
+      });
+      // Reroll available indicator on selected card (T-186)
+      const rerollIndicator = (selected && !this.strandRerollUsed)
+        ? this.add.text(r.x + r.w - 12, r.y + 80, '↺ reroll', {
+            fontFamily: 'monospace', fontSize: '8px', color: C.yellow,
+          }).setOrigin(1, 0)
+        : null;
+
+      const textObjs = [headerT, tierT, nameT, passiveT, activeT, sigT];
+      if (rerollIndicator !== null) textObjs.push(rerollIndicator);
+      this.transient.push(cardG, ...textObjs);
+
+      // T-182/T-188: entrance animation for new or rerolled card
+      const shouldAnimate = animate === 'all' || animate === i;
+      if (shouldAnimate) {
+        const delay = animate === 'all' ? i * 70 : 0;
+        cardG.setAlpha(0).setScale(0.88);
+        for (const t of textObjs) t.setAlpha(0);
+        this.tweens.add({
+          targets: cardG, alpha: 1, scaleX: 1, scaleY: 1,
+          duration: 220, delay, ease: 'Back.easeOut',
+        });
+        this.tweens.add({
+          targets: textObjs, alpha: 1,
+          duration: 180, delay: delay + 80, ease: 'Sine.easeOut',
+        });
+      }
+
+      // Hit zone
       const z = this.add.zone(r.x, r.y, r.w, r.h).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => this.onStrandPointer(r.x + 1, r.y + 1));
       this.buttonZones.push(z);
-    });
+    }
+
+    // T-184: Detail strip below the three cards (family lore + synergy hint).
+    const detailY = STAGE_Y + 32 + 3 * 112 + 4;
+    if (this.strandSelected !== null && !this.strandConfirmPending && detailY < STAGE_Y + 430) {
+      const card = cards[this.strandSelected]!;
+      const m = card.mutation;
+      const look = FAMILY_LOOK[m.family];
+      const ownedInFamily = familyCountIn(m.family, ownedFamilies);
+      const afterTake = ownedInFamily + 1;
+      const needed = 3 - afterTake;
+      const synergyHint = needed <= 0
+        ? '✦ Taking this card unlocks a DOMINANT TRAIT'
+        : `${afterTake} of 3 — ${needed} more ${m.family} to unlock Dominant Trait`;
+
+      this.transient.push(
+        this.add.text(24, detailY, look.lore, {
+          fontFamily: 'monospace', fontSize: '9px', color: look.accentLabel,
+        }),
+        this.add.text(24, detailY + 16, synergyHint, {
+          fontFamily: 'monospace', fontSize: '9px',
+          color: needed <= 0 ? C.yellow : C.dim,
+        }),
+      );
+    }
+
+    // T-185: confirm hint strip
+    if (this.strandSelected !== null && this.strandConfirmPending) {
+      this.transient.push(
+        this.add.text(W / 2, detailY, 'tap TAKE again to confirm', {
+          fontFamily: 'monospace', fontSize: '9px', color: C.yellow,
+        }).setOrigin(0.5, 0),
+        this.add.text(W / 2, detailY + 16, 'mutations are permanent for this run', {
+          fontFamily: 'monospace', fontSize: '8px', color: C.dim,
+        }).setOrigin(0.5, 0),
+      );
+    }
+  }
+
+  /** T-192: polished VEIN Intermission panel with entrance animation. */
+  private renderIntermissionPanel(): void {
+    const cardW = W - 32;
+    const cardH = 170;
+    const cardX = 16;
+    const cardY = STAGE_Y + (430 - cardH) / 2;
+    const cx = cardX + cardW / 2;
+    const cy = cardY + cardH / 2;
+
+    const panelG = this.add.graphics().setAlpha(0).setScale(0.9);
+    panelG.fillStyle(0x1a1608);
+    panelG.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 12);
+    panelG.lineStyle(2, 0xbbaa22);
+    panelG.strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 12);
+    // Gold spine
+    panelG.fillStyle(0xbbaa22, 0.8);
+    panelG.fillRoundedRect(-cardW / 2, -cardH / 2, 5, cardH, { tl: 12, bl: 12, tr: 0, br: 0 } as unknown as number);
+    panelG.setPosition(cx, cy);
+    this.transient.push(panelG);
+    this.tweens.add({ targets: panelG, alpha: 1, scaleX: 1, scaleY: 1, duration: 280, ease: 'Back.easeOut' });
+
+    const snap = this.session.snapshot;
+    const vcBalance = snap.veinCrystals ?? 0;
+
+    const texts = [
+      this.add.text(W / 2, cardY + 22, 'VEIN INTERMISSION', {
+        fontFamily: 'monospace', fontSize: '15px', color: C.yellow, letterSpacing: 3,
+      }).setOrigin(0.5, 0).setAlpha(0),
+      this.add.text(W / 2, cardY + 50, 'Genetic saturation reached — 4 mutations held.', {
+        fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+      }).setOrigin(0.5, 0).setAlpha(0),
+      this.add.text(W / 2, cardY + 80, '+100 VEIN Crystals', {
+        fontFamily: 'monospace', fontSize: '16px', color: C.green,
+      }).setOrigin(0.5, 0).setAlpha(0),
+      this.add.text(W / 2, cardY + 108, `Balance: ${vcBalance + 100} VC after bonus`, {
+        fontFamily: 'monospace', fontSize: '9px', color: C.dim,
+      }).setOrigin(0.5, 0).setAlpha(0),
+      this.add.text(W / 2, cardY + 134, 'The strands will not accept more. But VEIN endures.', {
+        fontFamily: 'monospace', fontSize: '8px', color: '#5a6a80',
+        wordWrap: { width: cardW - 32 },
+      }).setOrigin(0.5, 0).setAlpha(0),
+    ];
+    this.transient.push(...texts);
+    this.tweens.add({ targets: texts, alpha: 1, duration: 200, delay: 120, ease: 'Sine.easeOut' });
+  }
+
+  /** T-191: Dominant Trait unlock celebration overlay shown inside the strand view. */
+  private renderDominantTraitReveal(): void {
+    const traits = this.dominantTraitReveal.map((f) => dominantTraitFor(f));
+    const family = this.dominantTraitReveal[0]!;
+    const look = FAMILY_LOOK[family];
+    const trait = traits[0]!;
+
+    const cardW = W - 24;
+    const cardH = 210;
+    const cardX = 12;
+    const cardY = STAGE_Y + (430 - cardH) / 2;
+    const cx = cardX + cardW / 2;
+    const cy = cardY + cardH / 2;
+
+    // Background dim
+    const dim = this.add.graphics().setAlpha(0).setDepth(3);
+    dim.fillStyle(0x000000, 0.7).fillRect(0, STAGE_Y, W, 430);
+    this.transient.push(dim);
+    this.tweens.add({ targets: dim, alpha: 1, duration: 200 });
+
+    // Gold burst card
+    const panelG = this.add.graphics().setAlpha(0).setScale(0.8).setDepth(3);
+    panelG.fillStyle(look.bgHex);
+    panelG.fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 14);
+    panelG.lineStyle(3, look.accentHex);
+    panelG.strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 14);
+    // Thick spine
+    panelG.fillStyle(look.accentHex, 1.0);
+    panelG.fillRoundedRect(-cardW / 2, -cardH / 2, 6, cardH, { tl: 14, bl: 14, tr: 0, br: 0 } as unknown as number);
+    panelG.setPosition(cx, cy);
+    this.transient.push(panelG);
+    this.tweens.add({ targets: panelG, alpha: 1, scaleX: 1, scaleY: 1, duration: 360, ease: 'Back.easeOut', delay: 80 });
+
+    const texts = [
+      this.add.text(W / 2, cardY + 16, 'DOMINANT TRAIT UNLOCKED', {
+        fontFamily: 'monospace', fontSize: '11px', color: look.accentLabel, letterSpacing: 3,
+      }).setOrigin(0.5, 0).setAlpha(0).setDepth(3),
+      this.add.text(W / 2, cardY + 42, `✦  ${trait.name}  ✦`, {
+        fontFamily: 'monospace', fontSize: '18px', color: C.yellow,
+      }).setOrigin(0.5, 0).setAlpha(0).setDepth(3),
+      this.add.text(W / 2, cardY + 78, trait.description, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.text,
+        wordWrap: { width: cardW - 40 },
+      }).setOrigin(0.5, 0).setAlpha(0).setDepth(3),
+      this.add.text(W / 2, cardY + 130, family.toUpperCase() + '  FAMILY', {
+        fontFamily: 'monospace', fontSize: '9px', color: look.accentLabel, letterSpacing: 4,
+      }).setOrigin(0.5, 0).setAlpha(0).setDepth(3),
+      this.add.text(W / 2, cardY + 158, 'three mutations of one family — the threshold is crossed', {
+        fontFamily: 'monospace', fontSize: '8px', color: C.dim,
+        wordWrap: { width: cardW - 40 },
+      }).setOrigin(0.5, 0).setAlpha(0).setDepth(3),
+    ];
+    this.transient.push(...texts);
+    this.tweens.add({ targets: texts, alpha: 1, duration: 220, delay: 320, ease: 'Sine.easeOut' });
   }
 
 
@@ -2763,10 +3022,23 @@ export class GameScene extends Phaser.Scene {
 
   private renderButtons(): void {
     if (this.view === 'strand') {
+      // T-191: no buttons during dominant trait celebration (tap anywhere to continue)
+      if (this.dominantTraitReveal.length > 0) {
+        this.button(20, 'CONTINUE', C.green, () => {
+          this.dominantTraitReveal = [];
+          this.view = 'map';
+          this.renderAll();
+        });
+        return;
+      }
       const cards = this.session.strandOffer;
+      // T-192: VEIN Intermission
       if (cards.length === 0) { this.button(20, 'CONTINUE', C.yellow, () => this.continueIntermission()); return; }
       if (this.strandSelected !== null) {
-        this.button(20, 'TAKE', C.green, () => this.takeStrandCard());
+        // T-185: TAKE label changes to signal confirm-pending state
+        const takeLabel = this.strandConfirmPending ? 'CONFIRM TAKE' : 'TAKE';
+        const takeColor = this.strandConfirmPending ? C.yellow : C.green;
+        this.button(20, takeLabel, takeColor, () => this.takeStrandCard());
         if (!this.strandRerollUsed) this.button(210, 'REROLL', C.yellow, () => this.rerollStrandCard());
       }
       return;
