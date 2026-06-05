@@ -125,6 +125,8 @@ export interface AnalyticsAdapter {
 
 // ── Module-level registry ────────────────────────────────────────────────────
 
+import { recordDebugEvent } from './analytics-debug-log';
+
 let _adapter: AnalyticsAdapter | null = null;
 
 /** Install the active analytics adapter (called once at boot after consent check). */
@@ -132,8 +134,10 @@ export function setAnalyticsAdapter(adapter: AnalyticsAdapter): void {
   _adapter = adapter;
 }
 
-/** Fire a typed analytics event through the installed adapter.
- *  A no-op if no adapter is installed (e.g., before consent or in test environments). */
+/** Fire a typed analytics event.
+ *  Always recorded in the in-memory debug log (T-253).
+ *  Forwarded to the installed adapter if one is present; no-op otherwise. */
 export function logEvent<K extends keyof EventSchema>(name: K, params: EventSchema[K]): void {
+  recordDebugEvent(name, params);
   _adapter?.logEvent(name, params);
 }
