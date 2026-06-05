@@ -13,8 +13,6 @@ import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
 import { chebyshev } from '../core/turn-engine/grid';
-import { damageTo } from '../core/turn-engine/effective-stats';
-import { CRIT_MULTIPLIER } from '../core/turn-engine/combat';
 import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { parseEnemyDef } from '../core/content/enemy-loader';
 import { parseItemDef } from '../core/content/item-loader';
@@ -39,6 +37,7 @@ import { roomGlyph } from './room-glyph';
 import { pickEvent, resolveEvent, type EventOutcome } from './event-room';
 import { rarityLook, rarityGlows } from './loot-reveal';
 import { affordLabel } from './merchant';
+import { reachableMoves, attackPreview, showMoveConfirmHint } from './combat-preview';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -2050,19 +2049,54 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // S042: move preview — teal tint + border + "1 AP" cost label on the pending tile
+    // T-163 S042: move preview.
+    // Dim reachable tiles so the player sees the option space at a glance.
+    if (state.phase === 'player' && this.targeting === null) {
+      const blockedKeys = new Set([
+        ...state.enemies.filter((e) => e.hp > 0).map((e) => `${e.pos.x},${e.pos.y}`),
+        ...Array.from({ length: state.grid.width * state.grid.height }, (_, i) => {
+          const t = state.grid.tiles[i];
+          return t === 'wall' ? `${i % state.grid.width},${Math.floor(i / state.grid.width)}` : null;
+        }).filter((k): k is string => k !== null),
+      ]);
+      const reachable = reachableMoves(state.player.pos, state.grid, blockedKeys);
+      for (const p of reachable) {
+        const px = gx + p.x * tile;
+        const py = STAGE_Y + p.y * tile;
+        this.topGfx.fillStyle(0xa0ffdc, 0.06).fillRect(px, py, tile, tile);
+      }
+    }
+
     if (this.movePending !== null && state.phase === 'player') {
+      // Arrow from player tile centre toward destination centre.
+      const pcx = gx + state.player.pos.x * tile + tile / 2;
+      const pcy = STAGE_Y + state.player.pos.y * tile + tile / 2;
       const mx = gx + this.movePending.col * tile;
       const my = STAGE_Y + this.movePending.row * tile;
-      this.topGfx.fillStyle(0xa0ffdc, 0.22).fillRect(mx, my, tile, tile);
+      const mcx = mx + tile / 2;
+      const mcy = my + tile / 2;
+      this.topGfx.lineStyle(2, 0xa0ffdc, 0.6).lineBetween(pcx, pcy, mcx, mcy);
+      // Arrowhead at the destination.
+      const angle = Math.atan2(mcy - pcy, mcx - pcx);
+      const aLen = 6;
+      this.topGfx.fillStyle(0xa0ffdc, 0.9);
+      this.topGfx.fillTriangle(
+        mcx + Math.cos(angle) * aLen, mcy + Math.sin(angle) * aLen,
+        mcx + Math.cos(angle + 2.4) * aLen, mcy + Math.sin(angle + 2.4) * aLen,
+        mcx + Math.cos(angle - 2.4) * aLen, mcy + Math.sin(angle - 2.4) * aLen,
+      );
+      // Destination tile highlight.
+      this.topGfx.fillStyle(0xa0ffdc, 0.2).fillRect(mx, my, tile, tile);
       this.topGfx.lineStyle(2, 0xa0ffdc, 0.85).strokeRect(mx, my, tile, tile);
-      const apLabel = this.add.text(mx + tile / 2, my - 3, '1 AP · tap to confirm', {
+      // Hint text — only shown to new players (first N runs) to avoid friction.
+      const hint = showMoveConfirmHint(this.meta.lifetime.runs) ? '1 AP · tap to confirm' : '1 AP';
+      const apLabel = this.add.text(mcx, my - 3, hint, {
         fontFamily: 'monospace', fontSize: '9px', color: '#a0ffdc',
       }).setOrigin(0.5, 1).setDepth(2);
       this.transient.push(apLabel);
     }
 
-    // S043: attack preview — red hover tint + damage range on hovered adjacent enemy
+    // T-164 S043: attack preview — hover tint + full damage range + crit chance.
     if (this.attackHoverEnemyId !== null && state.phase === 'player') {
       const hovEnemy = state.enemies.find((e) => e.id === this.attackHoverEnemyId && e.hp > 0);
       if (hovEnemy !== undefined) {
@@ -2070,11 +2104,11 @@ export class GameScene extends Phaser.Scene {
         const ey = STAGE_Y + hovEnemy.pos.y * tile;
         this.topGfx.fillStyle(0xff4444, 0.22).fillRect(ex, ey, tile, tile);
         this.topGfx.lineStyle(2, 0xff6644, 0.85).strokeRect(ex, ey, tile, tile);
-        const dmgRange = this.calcAttackRange(state, hovEnemy);
-        const dmgLabel = this.add.text(ex + tile / 2, ey - 3, `${dmgRange} · 1 AP`, {
+        const preview = attackPreview(state.player.stats, hovEnemy);
+        const previewLabel = this.add.text(ex + tile / 2, ey - 3, preview.label, {
           fontFamily: 'monospace', fontSize: '9px', color: '#ff8866',
         }).setOrigin(0.5, 1).setDepth(2);
-        this.transient.push(dmgLabel);
+        this.transient.push(previewLabel);
       }
     }
 
@@ -2691,12 +2725,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Returns a "min–max" or single value attack damage range string for the preview. */
-  private calcAttackRange(state: RunState, enemy: RunState['enemies'][number]): string {
-    const baseDmg = Math.floor(state.player.stats.str);  // MELEE_DAMAGE_MULT = 1.0
-    const normalDmg = damageTo(enemy, baseDmg, 'physical');
-    const critDmg = damageTo(enemy, Math.floor(baseDmg * CRIT_MULTIPLIER), 'physical');
-    return normalDmg === critDmg ? `${normalDmg}` : `${normalDmg}–${critDmg}`;
-  }
+
 
   /** T-195: short in-animation phrasing for each death cause. */
   private static deathCauseLabel(cause: DeathCause): string {
