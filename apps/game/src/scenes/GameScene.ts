@@ -37,6 +37,7 @@ import { computeFogReveal, edgeVisible } from './map-fog';
 import { floorProgress, compactMinimapRect } from './minimap';
 import { roomGlyph } from './room-glyph';
 import { pickEvent, resolveEvent, type EventOutcome } from './event-room';
+import { rarityLook, rarityGlows } from './loot-reveal';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -1581,7 +1582,7 @@ export class GameScene extends Phaser.Scene {
       this.swapIncoming = item;
       this.view = 'swap';
     } else if (res.taken) {
-      playSfx(this, 'ui_click');
+      playSfx(this, 'ui_confirm');
       if (this.session.lootPending().length === 0) this.view = 'map';
     }
     this.persist();
@@ -2415,34 +2416,54 @@ export class GameScene extends Phaser.Scene {
     this.transient.push(hdr, sub);
     this.tweens.add({ targets: [hdr, sub], alpha: 1, duration: 200, ease: 'Sine.easeOut' });
 
-    // S027: stagger each item card in with an 80ms offset, creating per-item
-    // Graphics objects so each can be tweened independently.
+    const cardW = W - 32;
+    const cardH = 52;
+
+    // S027: each item card pops in with a Back-eased scale + fade, staggered;
+    // rarity drives the accent colour, a banner, and (rare+) a pulsing aura.
     pending.forEach((item, i) => {
       const x = 16;
       const y = STAGE_Y + 60 + i * 60;
-      const w = W - 32;
+      const cx = x + cardW / 2;
+      const cy = y + cardH / 2;
       const cursed = item.cursed === true;
+      const look = rarityLook(item.rarity);
+      const accent = cursed ? GC.boss : look.hex;
+      const glows = !cursed && rarityGlows(item.rarity);
 
-      // Per-item card background (own Graphics so alpha can be tweened).
-      const card = this.add.graphics().setAlpha(0);
-      card.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(x, y, w, 52, 8);
-      card.lineStyle(1, cursed ? GC.boss : GC.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
+      // Rare+ aura behind the card — a soft, slow pulse so the eye lands there.
+      if (glows) {
+        const aura = this.add.graphics().setAlpha(0);
+        aura.fillStyle(look.hex, 0.18 + 0.18 * look.glow).fillRoundedRect(x - 4, y - 4, cardW + 8, cardH + 8, 10);
+        this.transient.push(aura);
+        this.tweens.add({
+          targets: aura, alpha: { from: 0, to: 1 }, duration: 260, delay: i * 90,
+          onComplete: () => this.tweens.add({
+            targets: aura, alpha: 0.45, duration: 720, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+          }),
+        });
+      }
 
-      const nameT = this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setAlpha(0);
-      const tagT = this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}${cursed ? ' · CURSED' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }).setAlpha(0);
-      const modT = this.add.text(x + w - 12, y + 26, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5).setAlpha(0);
+      // Per-item card (own Graphics so it can be scaled/faded from its centre).
+      const card = this.add.graphics().setAlpha(0).setScale(0.85);
+      card.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 8);
+      card.lineStyle(2, accent).strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 8);
+      card.fillStyle(accent, 0.9).fillRoundedRect(-cardW / 2, -cardH / 2, 4, cardH, 2); // rarity spine
+      card.setPosition(cx, cy);
+
+      const nameT = this.add.text(x + 14, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setAlpha(0);
+      const rarityTag = cursed ? 'CURSED' : look.label;
+      const tagT = this.add.text(x + 14, y + 28, `${item.category} · ${rarityTag}`, {
+        fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : look.color,
+      }).setAlpha(0);
+      const modT = this.add.text(x + cardW - 12, cy, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5).setAlpha(0);
 
       this.transient.push(card, nameT, tagT, modT);
 
-      this.tweens.add({
-        targets: [card, nameT, tagT, modT],
-        alpha: 1,
-        duration: 220,
-        delay: i * 80,
-        ease: 'Sine.easeOut',
-      });
+      this.tweens.add({ targets: card, alpha: 1, scale: 1, duration: 260, delay: i * 90, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: [nameT, tagT, modT], alpha: 1, duration: 220, delay: i * 90 + 80, ease: 'Sine.easeOut' });
 
-      const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      const z = this.add.zone(x, y, cardW, cardH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => this.onTakeLoot(item));
       this.buttonZones.push(z);
     });

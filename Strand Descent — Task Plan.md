@@ -487,7 +487,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-177 | S025 Merchant Room (VC-priced shop, 1 ad refresh per merchant)        | Frontend | P1       | UFD 02     | |
 | T-178 | ~~S026 Safe Room (heal 25% max HP + inventory + save + LACE moment)~~ — **DONE 2026-06-04.** RunSession.restIfSafe now heals SAFE_ROOM_HEAL_FRACTION (25% max HP, capped) and returns the amount — was a full heal, now matches spec. GameScene `view='safe'` S026 screen: deterministic LACE reflection, "+N HP RECOVERED" + integrity bar, ACCESS INVENTORY (reopens S026 on close via inventoryReturnView), CONTINUE, progress-saved note. 2 new RunSession tests; balance curve re-verified (1F 100% / 2F 100% / 3F 17%). | Frontend | P0       | UFD 02     | DONE |
 | T-179 | S026 Sigma Echo replay (3–5s ghost run; 3/run cap)                    | Frontend | P1       | GDD §10.4  | NFR P3 (cache) |
-| T-180 | S027 Loot reveal animation                                            | Frontend | P0       | UFD 02     | |
+| T-180 | ~~S027 Loot reveal animation~~ — **DONE 2026-06-05.** New pure `scenes/loot-reveal.ts` (`rarityLook`/`rarityGlows`, 6 tests) maps each rarity band to an accent colour, a glow strength, a rank and a banner label (common grey → uncommon green → rare blue → legendary gold). `GameScene.renderLoot` now pops each drop in with a Back-eased scale + fade (staggered 90ms), borders/labels the card in its rarity colour with a rarity spine, and gives rare+ drops a soft pulsing aura behind the card so the eye lands on the good stuff; cursed drops keep their red treatment. Taking a drop now plays the positive `ui_confirm`. | Frontend | P0       | UFD 02     | DONE |
 
 ### S-4.7 — Strand Event scenes (UFD Scope 4)
 
