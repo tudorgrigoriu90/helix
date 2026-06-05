@@ -1627,7 +1627,7 @@ export class GameScene extends Phaser.Scene {
 
     // Detect newly unlocked dominant traits
     const afterTraits = (this.session.snapshot.player.dominantTraits ?? []) as MutationFamily[];
-    const newTraits = afterTraits.filter((f) => !(prevTraits as MutationFamily[]).includes(f));
+    const newTraits = afterTraits.filter((f) => !prevTraits.includes(f));
     if (newTraits.length > 0) {
       this.dominantTraitReveal = newTraits;
       this.persist();
