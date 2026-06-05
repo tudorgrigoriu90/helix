@@ -36,6 +36,7 @@ import type { Viewport } from './floor-graph-layout';
 import { computeFogReveal, edgeVisible } from './map-fog';
 import { floorProgress, compactMinimapRect } from './minimap';
 import { roomGlyph } from './room-glyph';
+import { pickEvent, resolveEvent, type EventOutcome } from './event-room';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -131,6 +132,8 @@ export class GameScene extends Phaser.Scene {
   private view: View = 'map';
   /** T-155: when true the expanded full-floor map overlay is showing (read-only). */
   private mapOverlayOpen = false;
+  /** T-176: set once an Event Room choice is made — drives the resolved-outcome panel. */
+  private eventOutcome: EventOutcome | null = null;
   /** T-178: HP recovered by the most recent Safe Room rest, shown on the S026 panel. */
   private safeRoomHealed = 0;
   /** T-178: view to restore when the inventory closes (Safe Rooms reopen S026, not the map). */
@@ -1234,42 +1237,9 @@ export class GameScene extends Phaser.Scene {
    * Mechanical rewards are intentionally minimal for v0.1 — authored event
    * content and richer outcomes land with the content system (T-282+).
    */
-  private static readonly EVENT_SETS: ReadonlyArray<{
-    title: string;
-    sub: string;
-    choices: ReadonlyArray<{ label: string; desc: string; reward: 'vein' | 'heal' | 'sig' }>;
-  }> = [
-    {
-      title: 'ANOMALOUS SIGNAL',
-      sub: 'LACE detects a residual broadcast from before the first descent.',
-      choices: [
-        { label: 'TAP THE FREQUENCY', desc: '+20 VEIN Crystals — the signal rewards contact.', reward: 'vein' },
-        { label: 'FILTER THE NOISE', desc: 'Recover 25% HP — discipline has its own dividend.', reward: 'heal' },
-        { label: 'LOG AND LEAVE', desc: '+15 VEIN — prudence over curiosity.', reward: 'sig' },
-      ],
-    },
-    {
-      title: 'SEALED ALCOVE',
-      sub: 'A recess in the wall, untouched. LACE cannot read what is inside.',
-      choices: [
-        { label: 'FORCE IT OPEN', desc: '+20 VEIN — whatever was sealed is now yours.', reward: 'vein' },
-        { label: 'LISTEN FIRST', desc: 'Recover 25% HP — patience costs nothing here.', reward: 'heal' },
-        { label: 'LEAVE IT SEALED', desc: '+15 VEIN — some debts stay closed.', reward: 'sig' },
-      ],
-    },
-    {
-      title: 'STRAND ECHO',
-      sub: 'A previous Sigma-carrier\'s mutation left an imprint in the floor.',
-      choices: [
-        { label: 'ABSORB THE ECHO', desc: '+20 VEIN — borrowed memory, real reward.', reward: 'vein' },
-        { label: 'REINFORCE YOUR CELLS', desc: 'Recover 25% HP — your biology asserts itself.', reward: 'heal' },
-        { label: 'PASS THROUGH QUICKLY', desc: '+15 VEIN — no inheritance today.', reward: 'sig' },
-      ],
-    },
-  ];
-
   private openEventRoom(): void {
     this.view = 'event';
+    this.eventOutcome = null;
     this.say('generic');
     this.persist();
     this.renderAll();
@@ -1374,30 +1344,29 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
-  private resolveEventChoice(reward: 'vein' | 'heal' | 'sig'): void {
-    const snap = this.session.snapshot;
-    if (reward === 'vein') {
-      this.session.grantVein(20);
-    } else if (reward === 'heal') {
-      const amount = Math.floor(snap.player.maxHp * 0.25);
-      this.session.healPlayer(amount);
-    } else {
-      // 'sig' — the lesser VEIN grant; a richer SIG system comes with T-282+.
-      this.session.grantVein(15);
-    }
-    playSfx(this, 'ui_click');
+  /** T-176: apply a chosen response, then hold on the resolved-outcome panel
+   *  (the player taps CONTINUE to return to the map). */
+  private chooseEvent(reward: EventOutcome['reward']): void {
+    const outcome = resolveEvent(reward, this.session.snapshot.player.maxHp);
+    if (outcome.reward === 'heal') this.session.healPlayer(outcome.amount);
+    else this.session.grantVein(outcome.amount); // 'vein' and 'sig' both grant VEIN
+    this.eventOutcome = outcome;
+    this.laceText.setText(`LACE: ${outcome.lace}`);
+    playSfx(this, 'ui_confirm');
     this.persist();
+    this.renderAll();
+  }
+
+  private leaveEventRoom(): void {
+    this.eventOutcome = null;
     this.view = 'map';
     this.maybeShowLoot();
+    this.persist();
     this.renderAll();
   }
 
   private renderEvent(): void {
-    const roomId = this.session.snapshot.currentRoomId;
-    // Pick event set deterministically from the room id's character codes.
-    const setIndex = roomId.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % GameScene.EVENT_SETS.length;
-    const evt = GameScene.EVENT_SETS[setIndex];
-    if (evt === undefined) return;
+    const evt = pickEvent(this.session.snapshot.currentRoomId);
 
     this.transient.push(
       this.add.text(W / 2, STAGE_Y + 10, evt.title, {
@@ -1409,6 +1378,12 @@ export class GameScene extends Phaser.Scene {
       }).setOrigin(0.5, 0),
     );
 
+    // Resolved: show the outcome the player chose instead of the choices.
+    if (this.eventOutcome !== null) {
+      this.renderEventOutcome(this.eventOutcome);
+      return;
+    }
+
     const cardTop = STAGE_Y + 76;
     const cardH = 78;
     const cardGap = 10;
@@ -1418,25 +1393,56 @@ export class GameScene extends Phaser.Scene {
       const y = cardTop + i * (cardH + cardGap);
       const w = W - 32;
 
-      this.stage.fillStyle(0x0e1830).fillRoundedRect(x, y, w, cardH, 8);
-      this.stage.lineStyle(1, GC.edge).strokeRoundedRect(x, y, w, cardH, 8);
+      // Own Graphics per card so its entrance can be tweened independently.
+      const card = this.add.graphics().setAlpha(0);
+      card.fillStyle(0x0e1830).fillRoundedRect(x, y, w, cardH, 8);
+      card.lineStyle(1, GC.edge).strokeRoundedRect(x, y, w, cardH, 8);
+      // A coloured spine marks the choice's flavour (bold / patient / cautious).
+      const spine = choice.reward === 'heal' ? GC.hpGreen : choice.reward === 'vein' ? GC.current : GC.adj;
+      card.fillStyle(spine, 0.9).fillRoundedRect(x, y, 4, cardH, 2);
 
-      this.transient.push(
-        this.add.text(x + 14, y + 14, choice.label, { fontFamily: 'monospace', fontSize: '12px', color: C.text }),
-        this.add.text(x + 14, y + 38, choice.desc, {
-          fontFamily: 'monospace', fontSize: '9px', color: C.dim,
-          wordWrap: { width: w - 28 },
-        }),
-      );
+      const labelT = this.add.text(x + 16, y + 14, choice.label, { fontFamily: 'monospace', fontSize: '12px', color: C.text }).setAlpha(0);
+      const descT = this.add.text(x + 16, y + 38, choice.desc, {
+        fontFamily: 'monospace', fontSize: '9px', color: C.dim, wordWrap: { width: w - 30 },
+      }).setAlpha(0);
+      this.transient.push(card, labelT, descT);
+
+      // Stagger each card up from slightly below (40ms apart).
+      [card, labelT, descT].forEach((o) => { o.y += 8; });
+      this.tweens.add({
+        targets: [card, labelT, descT], alpha: 1, y: '-=8',
+        duration: 200, delay: 60 + i * 70, ease: 'Sine.easeOut',
+      });
 
       const z = this.add.zone(x, y, w, cardH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-      z.on('pointerdown', () => this.resolveEventChoice(choice.reward));
-      z.on('pointerover', () => {
-        this.stage.fillStyle(0x162040).fillRoundedRect(x, y, w, cardH, 8);
-        this.stage.lineStyle(1, GC.start).strokeRoundedRect(x, y, w, cardH, 8);
-      });
+      z.on('pointerdown', () => this.chooseEvent(choice.reward));
       this.buttonZones.push(z);
     });
+  }
+
+  /** T-176: the resolved-outcome card shown after a choice (CONTINUE in the button row). */
+  private renderEventOutcome(outcome: EventOutcome): void {
+    const px = 28;
+    const py = STAGE_Y + 96;
+    const pw = W - 56;
+    const ph = 150;
+    const accent = outcome.reward === 'heal' ? GC.hpGreen : GC.current;
+
+    const card = this.add.graphics().setAlpha(0).setScale(0.96);
+    card.fillStyle(0x0e1830).fillRoundedRect(px, py, pw, ph, 12);
+    card.lineStyle(2, accent, 0.7).strokeRoundedRect(px, py, pw, ph, 12);
+
+    const headline = this.add.text(W / 2, py + 42, outcome.headline, {
+      fontFamily: 'monospace', fontSize: '17px', color: outcome.reward === 'heal' ? C.green : C.yellow,
+    }).setOrigin(0.5).setAlpha(0);
+    const lace = this.add.text(W / 2, py + 92, outcome.lace, {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim, fontStyle: 'italic',
+      wordWrap: { width: pw - 36 }, align: 'center', lineSpacing: 3,
+    }).setOrigin(0.5).setAlpha(0);
+
+    this.transient.push(card, headline, lace);
+    this.tweens.add({ targets: card, alpha: 1, scale: 1, duration: 220, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: [headline, lace], alpha: 1, duration: 260, delay: 120, ease: 'Sine.easeOut' });
   }
 
   // ── Stat allocation ───────────────────────────────────────────────────────
@@ -2539,6 +2545,10 @@ export class GameScene extends Phaser.Scene {
         pz.on('pointerdown', () => { this.combatMenuOpen = true; this.surrenderConfirmPending = false; this.renderAll(); });
         this.buttonZones.push(pz);
       }
+      return;
+    }
+    if (this.view === 'event') {
+      if (this.eventOutcome !== null) this.button(20, 'CONTINUE', C.green, () => this.leaveEventRoom());
       return;
     }
     if (this.view === 'safe') { this.button(20, 'CONTINUE', C.green, () => this.leaveSafeRoom()); return; }
