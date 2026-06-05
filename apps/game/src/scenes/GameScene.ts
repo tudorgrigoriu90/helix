@@ -46,6 +46,7 @@ import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 import { queueAudioLoads, playSfx, playMusic, getCategoryVolume, setCategoryVolume } from './audio/audio-registry';
+import { logEvent } from '../core/platform/analytics-adapter';
 
 import filterer from '@content/enemies/filterer.json';
 import caveCrawler from '@content/enemies/cave_crawler.json';
@@ -302,6 +303,12 @@ export class GameScene extends Phaser.Scene {
     this.strandIntroShown = false;
     adService.reset(); // fresh per-run ad cap + cooldown (UFD E032)
     this.revealingEnemies = false;
+    logEvent('run_start', {
+      seed: this.seed,
+      originId: this.originId,
+      floorCount: FINAL_FLOOR,
+      isTutorial: false,
+    });
     this.say('run_start');
     this.playFloorMusic();
     this.persist();
@@ -427,6 +434,10 @@ export class GameScene extends Phaser.Scene {
     const hpBefore = this.session.snapshot.player.hp;
     this.session.moveTo(id);
     const room = this.session.currentRoom();
+    logEvent('room_enter', {
+      roomType: room.type,
+      floorNumber: this.session.snapshot.floorNumber,
+    });
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
       if (room.type === 'lace_event') this.openEventRoom();
@@ -439,6 +450,11 @@ export class GameScene extends Phaser.Scene {
       }
       return;
     }
+    logEvent('combat_start', {
+      roomType: room.type as 'combat' | 'boss',
+      floorNumber: this.session.snapshot.floorNumber,
+      enemyCount: encounter.enemies.length,
+    });
     this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
     if (room.type === 'boss') playMusic(this, 'music_boss');
     this.combat = encounter;
@@ -1119,6 +1135,11 @@ export class GameScene extends Phaser.Scene {
     if (state === null) return;
     if (state.phase === 'player' || state.phase === 'enemy') return;
 
+    logEvent('combat_end', {
+      outcome: state.phase === 'defeat' ? 'defeat' : 'victory',
+      turnsElapsed: state.turn,
+    });
+
     const wasBoss = this.session.currentRoom().type === 'boss';
     const xpBefore = this.session.snapshot.xp;
     this.session.endEncounter(state);
@@ -1178,12 +1199,21 @@ export class GameScene extends Phaser.Scene {
     if (this.runRecorded) return;
     this.runRecorded = true;
     const snap = this.session.snapshot;
+    const durationMs = Date.now() - this.runStartMs;
+    const outcome = won ? 'win' : this.deathCause === 'surrender' ? 'surrender' : 'loss';
+    logEvent('run_end', {
+      outcome,
+      floorReached: snap.floorNumber,
+      mutationCount: snap.player.mutations.length,
+      durationMs,
+      ...(won ? {} : { deathCause: this.deathCause }),
+    });
     const before = this.meta.shardCrystals;
     this.meta = recordRunOutcome(this.meta, {
       won,
       floorReached: snap.floorNumber,
       enemiesKilled: this.enemiesKilled,
-      playtimeMs: Date.now() - this.runStartMs,
+      playtimeMs: durationMs,
       veinEarned: snap.veinEarned,
     });
     this.lastRunShards = this.meta.shardCrystals - before;
@@ -1502,7 +1532,13 @@ export class GameScene extends Phaser.Scene {
 
   /** S029 narration card (T-194) → S022 reveal mask (T-149) → new floor. */
   private descendFloor(): void {
-    const nextFloor = this.session.snapshot.floorNumber + 1;
+    const completedFloor = this.session.snapshot.floorNumber;
+    const floorStartMs = this.runStartMs; // approximation; per-floor timer is future work
+    logEvent('floor_complete', {
+      floorNumber: completedFloor,
+      durationMs: Date.now() - floorStartMs,
+    });
+    const nextFloor = completedFloor + 1;
     this.playDescentNarration(nextFloor, () => this.playFloorRevealMask(() => {
       this.session.descend();
       this.say('floor_enter');
@@ -1586,6 +1622,10 @@ export class GameScene extends Phaser.Scene {
     this.dominantTraitReveal = [];
     this.strandAnimateCards = 'all';
     this.view = 'strand';
+    logEvent('strand_event_open', {
+      floorNumber: this.session.snapshot.floorNumber,
+      mutationCount: this.session.snapshot.player.mutations.length,
+    });
     this.say('generic');
     this.persist();
     this.renderAll();
@@ -1625,9 +1665,20 @@ export class GameScene extends Phaser.Scene {
     playSfx(this, 'sfx_mutation');
     this.laceText.setText(`LACE: ${card.mutation.lace}`);
 
+    const mut = card.mutation;
+    logEvent('mutation_chosen', {
+      mutationId: mut.id,
+      family: mut.family,
+      tier: mut.tier,
+      slot: mut.grantsAbility !== null ? 'active' : 'passive',
+    });
+
     // Detect newly unlocked dominant traits
     const afterTraits = (this.session.snapshot.player.dominantTraits ?? []) as MutationFamily[];
     const newTraits = afterTraits.filter((f) => !prevTraits.includes(f));
+    for (const family of newTraits) {
+      logEvent('dominant_trait_unlocked', { family, traitId: `${family}_dominant` });
+    }
     if (newTraits.length > 0) {
       this.dominantTraitReveal = newTraits;
       this.persist();
@@ -1645,6 +1696,7 @@ export class GameScene extends Phaser.Scene {
     const idx = this.strandSelected;
     this.session.rerollStrandCard(idx);
     this.strandRerollUsed = true;
+    logEvent('strand_reroll', { floorNumber: this.session.snapshot.floorNumber });
     this.strandConfirmPending = false;
     this.strandAnimateCards = idx; // T-188: animate only the replaced card
     const card = this.session.strandOffer[idx];

@@ -8,6 +8,8 @@ import { metaCodec, newMetaState } from '../core/save';
 import { runSessionCodec } from '../core/run/run-session-save';
 import { decideResume } from '../core/run/resume-decision';
 import { createWebStorageAdapter } from '../platform/storage-web';
+import { setAnalyticsAdapter, logEvent } from '../core/platform/analytics-adapter';
+import { consoleAnalytics } from '../platform/analytics-console';
 
 /**
  * Boot manager — T-129/T-130/T-132/T-134/T-136.
@@ -89,14 +91,16 @@ export class GameBootScene extends Phaser.Scene {
   private checkConsent(): void {
     const stored = storedConsent();
     if (stored !== null) {
-      // Already consented or declined this device — skip modal.
+      // Already decided on this device — install adapter if granted, then boot.
+      if (stored === 'granted') setAnalyticsAdapter(consoleAnalytics);
       this.startBoot();
       return;
     }
     if (detectRegionNeedsConsent()) {
       this.showConsentModal();
     } else {
-      // Outside EU/CA — implied consent, proceed.
+      // Outside EU/CA — implied consent; install adapter and proceed.
+      setAnalyticsAdapter(consoleAnalytics);
       this.startBoot();
     }
   }
@@ -124,6 +128,11 @@ export class GameBootScene extends Phaser.Scene {
   }
 
   private route(decision: ResumeDecision): void {
+    logEvent('session_start', {
+      hasActiveRun: decision.kind === 'prompt',
+      lifetimeRuns: this.meta.lifetime.runs,
+      consentGranted: storedConsent() === 'granted',
+    });
     if (decision.kind === 'prompt') {
       this.showResumeModal(decision.summary);
     } else {
@@ -228,7 +237,12 @@ export class GameBootScene extends Phaser.Scene {
     acceptG.lineStyle(2, 0xa0ffdc).strokeRoundedRect(btnX, btnY, btnW, 46, 8);
     this.add.text(CX, btnY + 23, 'ACCEPT & CONTINUE', { fontFamily: 'monospace', fontSize: '14px', color: C.accent, letterSpacing: 2 }).setOrigin(0.5);
     const acceptZ = this.add.zone(btnX, btnY, btnW, 46).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    acceptZ.on('pointerdown', () => { storeConsent('granted'); this.startBoot(); });
+    acceptZ.on('pointerdown', () => {
+      storeConsent('granted');
+      setAnalyticsAdapter(consoleAnalytics);
+      logEvent('consent_decision', { decision: 'granted' });
+      this.startBoot();
+    });
 
     // DECLINE button
     const declineG = this.add.graphics();
@@ -238,6 +252,7 @@ export class GameBootScene extends Phaser.Scene {
     const declineZ = this.add.zone(btnX, btnY + 56, btnW, 36).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     declineZ.on('pointerdown', () => {
       storeConsent('declined');
+      logEvent('consent_decision', { decision: 'declined' });
       // T-134: show brief analytics-off acknowledgement then continue
       this.showAnalyticsOff();
     });
