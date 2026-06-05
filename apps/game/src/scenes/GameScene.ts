@@ -40,6 +40,7 @@ import { rarityLook, rarityGlows } from './loot-reveal';
 import { affordLabel } from './merchant';
 import { reachableMoves, attackPreview, showMoveConfirmHint } from './combat-preview';
 import { FAMILY_LOOK, TIER_LOOK, showStrandConfirmHint, familyCountIn } from './strand-event';
+import { isInVision, fogAlpha } from './combat-fog';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -2000,6 +2001,18 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // T-441b: tactical fog — draw a darkening overlay on tiles beyond vision.
+    // Applied after the threat overlay so threat tiles stay legible through thin fog.
+    const playerPos = state.player.pos;
+    for (let r = 0; r < state.grid.height; r++) {
+      for (let c = 0; c < state.grid.width; c++) {
+        const alpha = fogAlpha(playerPos, { x: c, y: r });
+        if (alpha > 0) {
+          this.topGfx.fillStyle(0x010408, alpha).fillRect(gx + c * tile, STAGE_Y + r * tile, tile, tile);
+        }
+      }
+    }
+
     const drawHp = (cx: number, cy: number, frac: number, color: number): void => {
       this.topGfx.fillStyle(GC.hpBg).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, tile - 4, 3);
       if (frac > 0) this.topGfx.fillStyle(color).fillRect(cx - tile / 2 + 2, cy - tile / 2 + 2, Math.round((tile - 4) * frac), 3);
@@ -2017,6 +2030,9 @@ export class GameScene extends Phaser.Scene {
       for (const e of state.enemies) {
         const cx = gx + e.pos.x * tile + tile / 2;
         const cy = STAGE_Y + e.pos.y * tile + tile / 2;
+        // T-441b: living enemies outside vision radius are hidden (not revealed until seen).
+        // Dead enemies always show as environmental markers.
+        if (e.hp > 0 && !isInVision(playerPos, e.pos)) continue;
         if (e.hp <= 0) { this.sprite(e.enemyDefId, cx, cy, tile * 0.9, GC.dead); continue; }
         this.sprite(e.enemyDefId, cx, cy, tile * 0.92);
         drawHp(cx, cy, e.hp / e.maxHp, GC.hpRed);
