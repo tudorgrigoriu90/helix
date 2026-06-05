@@ -393,7 +393,7 @@ export class GameScene extends Phaser.Scene {
     if (state === null || state.phase !== 'player' || this.revealingEnemies || this.enemySeqActive) return;
     const tile = this.tileSize(state);
     const col = Math.floor((x - this.gridX(state)) / tile);
-    const row = Math.floor((y - STAGE_Y) / tile);
+    const row = Math.floor((y - this.gridY(state)) / tile);
     const inBounds = col >= 0 && col < state.grid.width && row >= 0 && row < state.grid.height;
 
     // S044: ability AoE hover (targeting mode active)
@@ -785,8 +785,9 @@ export class GameScene extends Phaser.Scene {
     if (state === null) return;
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
+    const gy = this.gridY(state);
     const g = this.add.graphics().setDepth(3).setAlpha(0.55);
-    g.fillStyle(0xffaa44, 1).fillRect(gx + pos.x * tile, STAGE_Y + pos.y * tile, tile, tile);
+    g.fillStyle(0xffaa44, 1).fillRect(gx + pos.x * tile, gy + pos.y * tile, tile, tile);
     this.tweens.add({
       targets: g, alpha: 0, duration: 200, ease: 'Sine.easeOut',
       onComplete: () => g.destroy(),
@@ -816,8 +817,9 @@ export class GameScene extends Phaser.Scene {
 
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
+    const gy = this.gridY(state);
     const px = gx + tilePos.x * tile;
-    const py = STAGE_Y + tilePos.y * tile;
+    const py = gy + tilePos.y * tile;
 
     const flash = this.add.graphics().setDepth(3).setAlpha(0.7);
     flash.fillStyle(flashColor, 1).fillRect(px, py, tile, tile);
@@ -852,8 +854,9 @@ export class GameScene extends Phaser.Scene {
 
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
+    const gy = this.gridY(state);
     const cx = gx + pos.x * tile + tile / 2;
-    const cy = STAGE_Y + pos.y * tile + tile / 2;
+    const cy = gy + pos.y * tile + tile / 2;
 
     const label = this.add.text(cx, cy - tile * 0.15, text, {
       fontFamily: 'monospace', fontSize: big ? '15px' : '11px', color,
@@ -882,8 +885,9 @@ export class GameScene extends Phaser.Scene {
 
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
+    const gy = this.gridY(state);
     const px = gx + tilePos.x * tile;
-    const py = STAGE_Y + tilePos.y * tile;
+    const py = gy + tilePos.y * tile;
 
     const color = applied ? statusHex(status) : 0x888888;
     const flash = this.add.graphics().setDepth(3).setAlpha(applied ? 0.55 : 0.4);
@@ -916,6 +920,7 @@ export class GameScene extends Phaser.Scene {
 
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
+    const gy = this.gridY(state);
     const reveals: Phaser.GameObjects.Graphics[] = [];
     let completed = 0;
 
@@ -927,7 +932,7 @@ export class GameScene extends Phaser.Scene {
 
     enemies.forEach((e, i) => {
       const cx = gx + e.pos.x * tile + tile / 2;
-      const cy = STAGE_Y + e.pos.y * tile + tile / 2;
+      const cy = gy + e.pos.y * tile + tile / 2;
       const r = tile * 0.38;
 
       const g = this.add.graphics().setAlpha(0).setDepth(1);
@@ -960,7 +965,7 @@ export class GameScene extends Phaser.Scene {
     if (state === null || state.phase !== 'player') return;
     const tile = this.tileSize(state);
     const col = Math.floor((x - this.gridX(state)) / tile);
-    const row = Math.floor((y - STAGE_Y) / tile);
+    const row = Math.floor((y - this.gridY(state)) / tile);
     if (col < 0 || col >= state.grid.width || row < 0 || row >= state.grid.height) return;
 
     // Ability/item targeting overrides everything
@@ -2036,12 +2041,31 @@ export class GameScene extends Phaser.Scene {
     this.transient.push(hint);
   }
 
+  /** T-158: minimum tile size so art stays legible on large floors. */
+  private static readonly TILE_MIN = 22;
+
   private tileSize(state: RunState): number {
-    return Math.floor(GRID_PX / Math.max(state.grid.width, state.grid.height));
+    return Math.max(GameScene.TILE_MIN, Math.floor(GRID_PX / Math.max(state.grid.width, state.grid.height)));
   }
 
+  /** T-158: X origin of the combat grid. Centers small grids; pans to follow
+   *  the player when the grid overflows the screen width. */
   private gridX(state: RunState): number {
-    return Math.floor((W - this.tileSize(state) * state.grid.width) / 2);
+    const tile = this.tileSize(state);
+    const totalW = tile * state.grid.width;
+    if (totalW <= W) return Math.floor((W - totalW) / 2);
+    const raw = Math.round(W / 2 - (state.player.pos.x * tile + tile / 2));
+    return Math.max(W - totalW, Math.min(0, raw));
+  }
+
+  /** T-158: Y origin of the combat grid. Centers small grids; pans to follow
+   *  the player when the grid overflows the stage height. */
+  private gridY(state: RunState): number {
+    const tile = this.tileSize(state);
+    const totalH = tile * state.grid.height;
+    if (totalH <= STAGE_H) return STAGE_Y + Math.floor((STAGE_H - totalH) / 2);
+    const raw = Math.round(STAGE_Y + STAGE_H / 2 - (state.player.pos.y * tile + tile / 2));
+    return Math.max(STAGE_Y + STAGE_H - totalH, Math.min(STAGE_Y, raw));
   }
 
   private sprite(key: string, x: number, y: number, size: number, tint?: number): void {
@@ -2054,12 +2078,13 @@ export class GameScene extends Phaser.Scene {
     if (state === null) return;
     const tile = this.tileSize(state);
     const gx = this.gridX(state);
+    const gy = this.gridY(state);
 
     for (let r = 0; r < state.grid.height; r++) {
       for (let c = 0; c < state.grid.width; c++) {
         const t = state.grid.tiles[r * state.grid.width + c]!;
         const px = gx + c * tile;
-        const py = STAGE_Y + r * tile;
+        const py = gy + r * tile;
         this.sprite(tileSpriteKey(t), px + tile / 2, py + tile / 2, tile);
         this.stage.lineStyle(1, GC.tileBorder).strokeRect(px, py, tile, tile);
       }
@@ -2073,8 +2098,8 @@ export class GameScene extends Phaser.Scene {
       const threatened = threatenedTiles(state);
       for (const key of threatened) {
         const [tc, tr] = key.split(',').map(Number) as [number, number];
-        this.topGfx.fillStyle(0xff4444, 0.1).fillRect(gx + tc * tile, STAGE_Y + tr * tile, tile, tile);
-        this.topGfx.lineStyle(1, 0xff4444, 0.18).strokeRect(gx + tc * tile + 0.5, STAGE_Y + tr * tile + 0.5, tile - 1, tile - 1);
+        this.topGfx.fillStyle(0xff4444, 0.1).fillRect(gx + tc * tile, gy + tr * tile, tile, tile);
+        this.topGfx.lineStyle(1, 0xff4444, 0.18).strokeRect(gx + tc * tile + 0.5, gy + tr * tile + 0.5, tile - 1, tile - 1);
       }
     }
 
@@ -2085,7 +2110,7 @@ export class GameScene extends Phaser.Scene {
       for (let c = 0; c < state.grid.width; c++) {
         const alpha = fogAlpha(playerPos, { x: c, y: r });
         if (alpha > 0) {
-          this.topGfx.fillStyle(0x010408, alpha).fillRect(gx + c * tile, STAGE_Y + r * tile, tile, tile);
+          this.topGfx.fillStyle(0x010408, alpha).fillRect(gx + c * tile, gy + r * tile, tile, tile);
         }
       }
     }
@@ -2106,7 +2131,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.revealingEnemies) {
       for (const e of state.enemies) {
         const cx = gx + e.pos.x * tile + tile / 2;
-        const cy = STAGE_Y + e.pos.y * tile + tile / 2;
+        const cy = gy + e.pos.y * tile + tile / 2;
         // T-441b: living enemies outside vision radius are hidden (not revealed until seen).
         // Dead enemies always show as environmental markers.
         if (e.hp > 0 && !isInVision(playerPos, e.pos)) continue;
@@ -2115,12 +2140,12 @@ export class GameScene extends Phaser.Scene {
         drawHp(cx, cy, e.hp / e.maxHp, GC.hpRed);
         const def = this.enemyRegistry.get(e.enemyDefId);
         const name = def ? def.name : e.enemyDefId;
-        addLabel(cx, STAGE_Y + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def?.tier === 'boss' ? C.red : C.yellow);
+        addLabel(cx, gy + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def?.tier === 'boss' ? C.red : C.yellow);
 
         // T-159: in-reach marker — a red caret over any enemy that can strike the
         // player from where it stands right now (player phase only).
         if (state.phase === 'player' && enemyInReach(e, state.player.pos)) {
-          const markerY = STAGE_Y + e.pos.y * tile + 1;
+          const markerY = gy + e.pos.y * tile + 1;
           this.topGfx.fillStyle(0xff4444, 0.95);
           this.topGfx.fillTriangle(cx - 5, markerY, cx + 5, markerY, cx, markerY + 6);
         }
@@ -2128,14 +2153,14 @@ export class GameScene extends Phaser.Scene {
         // T-159: boss wind-up tell. Baseline enemies are read from their threat
         // range (above); only scripted boss telegraphs get an explicit icon.
         if (def?.tier === 'boss' && e.telegraph !== null && e.telegraph !== 'idle') {
-          const tg = this.add.text(cx, STAGE_Y + e.pos.y * tile - 12, this.telegraphIcon(e.telegraph), {
+          const tg = this.add.text(cx, gy + e.pos.y * tile - 12, this.telegraphIcon(e.telegraph), {
             fontFamily: 'monospace', fontSize: '13px', color: '#ff4444',
           }).setOrigin(0.5, 1).setDepth(3);
           this.transient.push(tg);
         }
 
         // T-172: persistent active-status badges below the enemy.
-        this.drawStatusBadges(cx, STAGE_Y + e.pos.y * tile + tile, e.statuses);
+        this.drawStatusBadges(cx, gy + e.pos.y * tile + tile, e.statuses);
       }
     }
 
@@ -2145,7 +2170,7 @@ export class GameScene extends Phaser.Scene {
         for (let c = 0; c < state.grid.width; c++) {
           if (c === state.player.pos.x && r === state.player.pos.y) continue;
           if (chebyshev(state.player.pos, { x: c, y: r }) <= range) {
-            this.topGfx.fillStyle(0x44ccff, 0.16).fillRect(gx + c * tile, STAGE_Y + r * tile, tile, tile);
+            this.topGfx.fillStyle(0x44ccff, 0.16).fillRect(gx + c * tile, gy + r * tile, tile, tile);
           }
         }
       }
@@ -2158,11 +2183,11 @@ export class GameScene extends Phaser.Scene {
 
         if (inRange) {
           const hx = gx + hc * tile + tile / 2;
-          const hy = STAGE_Y + hr * tile + tile / 2;
+          const hy = gy + hr * tile + tile / 2;
 
           // Highlight the targeted tile
-          this.topGfx.fillStyle(0xffdd44, 0.28).fillRect(gx + hc * tile, STAGE_Y + hr * tile, tile, tile);
-          this.topGfx.lineStyle(2, 0xffdd44, 0.9).strokeRect(gx + hc * tile, STAGE_Y + hr * tile, tile, tile);
+          this.topGfx.fillStyle(0xffdd44, 0.28).fillRect(gx + hc * tile, gy + hr * tile, tile, tile);
+          this.topGfx.lineStyle(2, 0xffdd44, 0.9).strokeRect(gx + hc * tile, gy + hr * tile, tile, tile);
 
           // AoE radius circle (when > 0)
           if (def.aoeRadius > 0) {
@@ -2174,7 +2199,7 @@ export class GameScene extends Phaser.Scene {
           // Damage range label
           const dmgVal = def.baseDamage + Math.floor(state.player.stats.int * def.intScaling);
           const label = def.aoeRadius > 0 ? `${dmgVal} AoE·${def.aoeRadius} · ${def.apCost}AP` : `${dmgVal} · ${def.apCost}AP`;
-          const dmgLabel = this.add.text(hx, STAGE_Y + hr * tile - 3, label, {
+          const dmgLabel = this.add.text(hx, gy + hr * tile - 3, label, {
             fontFamily: 'monospace', fontSize: '9px', color: '#ffdd44',
           }).setOrigin(0.5, 1).setDepth(2);
           this.transient.push(dmgLabel);
@@ -2195,7 +2220,7 @@ export class GameScene extends Phaser.Scene {
       const reachable = reachableMoves(state.player.pos, state.grid, blockedKeys);
       for (const p of reachable) {
         const px = gx + p.x * tile;
-        const py = STAGE_Y + p.y * tile;
+        const py = gy + p.y * tile;
         this.topGfx.fillStyle(0xa0ffdc, 0.06).fillRect(px, py, tile, tile);
       }
     }
@@ -2203,9 +2228,9 @@ export class GameScene extends Phaser.Scene {
     if (this.movePending !== null && state.phase === 'player') {
       // Arrow from player tile centre toward destination centre.
       const pcx = gx + state.player.pos.x * tile + tile / 2;
-      const pcy = STAGE_Y + state.player.pos.y * tile + tile / 2;
+      const pcy = gy + state.player.pos.y * tile + tile / 2;
       const mx = gx + this.movePending.col * tile;
-      const my = STAGE_Y + this.movePending.row * tile;
+      const my = gy + this.movePending.row * tile;
       const mcx = mx + tile / 2;
       const mcy = my + tile / 2;
       this.topGfx.lineStyle(2, 0xa0ffdc, 0.6).lineBetween(pcx, pcy, mcx, mcy);
@@ -2234,7 +2259,7 @@ export class GameScene extends Phaser.Scene {
       const hovEnemy = state.enemies.find((e) => e.id === this.attackHoverEnemyId && e.hp > 0);
       if (hovEnemy !== undefined) {
         const ex = gx + hovEnemy.pos.x * tile;
-        const ey = STAGE_Y + hovEnemy.pos.y * tile;
+        const ey = gy + hovEnemy.pos.y * tile;
         this.topGfx.fillStyle(0xff4444, 0.22).fillRect(ex, ey, tile, tile);
         this.topGfx.lineStyle(2, 0xff6644, 0.85).strokeRect(ex, ey, tile, tile);
         const preview = attackPreview(state.player.stats, hovEnemy);
@@ -2247,12 +2272,12 @@ export class GameScene extends Phaser.Scene {
 
     const pp = state.player;
     const pcx = gx + pp.pos.x * tile + tile / 2;
-    const pcy = STAGE_Y + pp.pos.y * tile + tile / 2;
+    const pcy = gy + pp.pos.y * tile + tile / 2;
     this.sprite('player', pcx, pcy, tile * 0.92);
     drawHp(pcx, pcy, pp.hp / pp.maxHp, GC.hpGreen);
-    addLabel(pcx, STAGE_Y + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
+    addLabel(pcx, gy + pp.pos.y * tile, `YOU\n${pp.hp}/${pp.maxHp}`, C.green);
     // T-172: persistent active-status badges below the player.
-    this.drawStatusBadges(pcx, STAGE_Y + pp.pos.y * tile + tile, pp.statuses);
+    this.drawStatusBadges(pcx, gy + pp.pos.y * tile + tile, pp.statuses);
   }
 
   /** T-172: renders a centred row of active-status badges (glyph + turns) just
