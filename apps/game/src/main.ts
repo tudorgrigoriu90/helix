@@ -11,6 +11,13 @@ import { FloorTransitionScene } from '@scenes/FloorTransitionScene';
 import { GameScene } from '@scenes/GameScene';
 import { PostRunScene } from '@scenes/PostRunScene';
 import { SettingsScene } from '@scenes/SettingsScene';
+import { AudioSettingsScene } from '@scenes/AudioSettingsScene';
+import { DisplaySettingsScene } from '@scenes/DisplaySettingsScene';
+import { AccessibilitySettingsScene } from '@scenes/AccessibilitySettingsScene';
+import { ControlsSettingsScene } from '@scenes/ControlsSettingsScene';
+import { PrivacyScene } from '@scenes/PrivacyScene';
+import { AboutScene } from '@scenes/AboutScene';
+import { SupportScene } from '@scenes/SupportScene';
 
 // Compile-time constant replaced by Vite define. Import this wherever DEMO_MODE
 // branching is needed — never read window or import.meta.env directly.
@@ -44,6 +51,13 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     GameScene,
     PostRunScene,
     SettingsScene,
+    AudioSettingsScene,
+    DisplaySettingsScene,
+    AccessibilitySettingsScene,
+    ControlsSettingsScene,
+    PrivacyScene,
+    AboutScene,
+    SupportScene,
   ],
 };
 

@@ -40,12 +40,13 @@ interface SettingRow {
 }
 
 const ROWS: SettingRow[] = [
-  { label: 'AUDIO', subtitle: 'Music, SFX, ambient volume.', target: null },
-  { label: 'DISPLAY', subtitle: 'Brightness, colour-blind, motion.', target: null },
-  { label: 'ACCESSIBILITY', subtitle: 'Cognitive load, dyslexia font, text size.', target: null },
-  { label: 'CONTROLS', subtitle: 'Confirm-tap, animation speed.', target: null },
-  { label: 'PRIVACY', subtitle: 'GDPR / CCPA data controls.', target: null },
-  { label: 'ABOUT', subtitle: 'Version, licences, support.', target: null },
+  { label: 'AUDIO',         subtitle: 'Music, SFX, UI volume.',                  target: 'AudioSettingsScene'         },
+  { label: 'DISPLAY',       subtitle: 'Colour-blind mode, reduced motion.',       target: 'DisplaySettingsScene'       },
+  { label: 'ACCESSIBILITY', subtitle: 'Cognitive load, dyslexia font, text size.', target: 'AccessibilitySettingsScene' },
+  { label: 'CONTROLS',      subtitle: 'Confirm-tap, animation speed.',            target: 'ControlsSettingsScene'      },
+  { label: 'PRIVACY',       subtitle: 'GDPR / CCPA data controls.',               target: 'PrivacyScene'               },
+  { label: 'ABOUT',         subtitle: 'Version and licences.',                    target: 'AboutScene'                 },
+  { label: 'SUPPORT',      subtitle: 'Contact us or report a bug.',              target: 'SupportScene'               },
 ];
 
 export class SettingsScene extends Phaser.Scene {
