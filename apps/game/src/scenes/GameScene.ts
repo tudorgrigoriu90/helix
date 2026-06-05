@@ -38,6 +38,7 @@ import { floorProgress, compactMinimapRect } from './minimap';
 import { roomGlyph } from './room-glyph';
 import { pickEvent, resolveEvent, type EventOutcome } from './event-room';
 import { rarityLook, rarityGlows } from './loot-reveal';
+import { affordLabel } from './merchant';
 import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
@@ -135,6 +136,8 @@ export class GameScene extends Phaser.Scene {
   private mapOverlayOpen = false;
   /** T-176: set once an Event Room choice is made — drives the resolved-outcome panel. */
   private eventOutcome: EventOutcome | null = null;
+  /** T-177: true once the one-per-visit ad refresh has been used at this Dispenser. */
+  private shopAdRefreshUsed = false;
   /** T-178: HP recovered by the most recent Safe Room rest, shown on the S026 panel. */
   private safeRoomHealed = 0;
   /** T-178: view to restore when the inventory closes (Safe Rooms reopen S026, not the map). */
@@ -1199,26 +1202,29 @@ export class GameScene extends Phaser.Scene {
   // ── Dispenser ─────────────────────────────────────────────────────────────
 
   private openDispenser(): void {
-    if (this.session.dispenserStock().length === 0) {
-      this.laceText.setText('LACE: The Dispenser is dark. Nothing on offer here.');
-      return;
-    }
+    this.shopAdRefreshUsed = false;
     this.say('generic');
     this.view = 'shop';
+    this.persist();
+    this.renderAll();
   }
 
   private buyItem(item: ItemDef): void {
     if (!this.session.canAfford(item)) {
-      this.laceText.setText(`LACE: ${item.name} costs ${this.session.dispenserPriceOf(item)} VEIN — you can't afford it.`);
+      const price = this.session.dispenserPriceOf(item);
+      const short = price - this.session.snapshot.veinCrystals;
+      this.laceText.setText(`LACE: ${item.name} costs ${price} VEIN — you're ${short} short.`);
+      playSfx(this, 'ui_back');
       this.renderAll(); return;
     }
     if (!this.session.canCarry(item)) {
       const { count, limit } = this.session.inventory()[item.category];
-      this.laceText.setText(`LACE: Your ${item.category} slots are full (${count}/${limit}). Drop something first.`);
+      this.laceText.setText(`LACE: ${item.category} slots full (${count}/${limit}). Drop something first.`);
+      playSfx(this, 'ui_back');
       this.renderAll(); return;
     }
     this.session.purchaseItem(item);
-    playSfx(this, 'ui_click');
+    playSfx(this, 'ui_confirm');
     this.laceText.setText(`LACE: Acquired ${item.name}.`);
     this.persist();
     this.renderAll();
@@ -1226,6 +1232,24 @@ export class GameScene extends Phaser.Scene {
 
   private leaveDispenser(): void {
     this.view = 'map';
+    this.maybeShowLoot();
+    this.persist();
+    this.renderAll();
+  }
+
+  /** T-177: watch a rewarded ad to refresh the Dispenser's stock (1/visit cap). */
+  private async shopAdRefresh(): Promise<void> {
+    if (this.shopAdRefreshUsed) return;
+    const outcome = await adService.requestReward('merchant_refresh');
+    if (!outcome.granted) {
+      this.laceText.setText('LACE: No signal. The Dispenser stays as is.');
+      this.renderAll(); return;
+    }
+    this.shopAdRefreshUsed = true;
+    this.session.refreshDispenserStock();
+    playSfx(this, 'ui_confirm');
+    this.laceText.setText('LACE: The Dispenser cycles. New stock loaded.');
+    this.persist();
     this.renderAll();
   }
 
@@ -2359,35 +2383,73 @@ export class GameScene extends Phaser.Scene {
   private renderShop(): void {
     const stock = this.session.dispenserStock();
     const vein = this.session.snapshot.veinCrystals;
-    this.transient.push(
-      this.add.text(W / 2, STAGE_Y + 12, 'VEIN DISPENSER', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0),
-      this.add.text(W / 2, STAGE_Y + 34, `you hold ${vein} VEIN  ·  tap to buy`, { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0),
-    );
+
+    // Header.
+    const hdr = this.add.text(W / 2, STAGE_Y + 12, 'VEIN DISPENSER', { fontFamily: 'monospace', fontSize: '14px', color: C.yellow }).setOrigin(0.5, 0).setAlpha(0);
+    const sub = this.add.text(W / 2, STAGE_Y + 34, `you hold ${vein} VEIN  ·  tap to buy`, { fontFamily: 'monospace', fontSize: '10px', color: C.dim }).setOrigin(0.5, 0).setAlpha(0);
+    this.transient.push(hdr, sub);
+    this.tweens.add({ targets: [hdr, sub], alpha: 1, duration: 200, ease: 'Sine.easeOut' });
+
     if (stock.length === 0) {
       this.transient.push(this.add.text(W / 2, STAGE_Y + 120, 'sold out', { fontFamily: 'monospace', fontSize: '12px', color: C.dim }).setOrigin(0.5));
-      return;
+    } else {
+      const rowH = 58;
+      const rowW = W - 32;
+      const top = STAGE_Y + 60;
+
+      stock.forEach((item, i) => {
+        const price = this.session.dispenserPriceOf(item);
+        const afford = vein >= price;
+        const look = rarityLook(item.rarity);
+        const accent = afford ? look.hex : GC.edge;
+        const x = 16;
+        const y = top + i * (rowH + 8);
+        const cx = x + rowW / 2;
+        const cy = y + rowH / 2;
+
+        // Own Graphics per card — scale-pop entrance.
+        const card = this.add.graphics().setAlpha(0).setScale(0.88).setPosition(cx, cy);
+        card.fillStyle(afford ? 0x12243a : 0x0e1626).fillRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8);
+        card.lineStyle(2, accent, afford ? 1 : 0.4).strokeRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8);
+        card.fillStyle(accent, afford ? 0.9 : 0.3).fillRoundedRect(-rowW / 2, -rowH / 2, 4, rowH, 2);
+
+        const nameT = this.add.text(x + 14, y + 10, item.name, { fontFamily: 'monospace', fontSize: '12px', color: afford ? C.text : C.dim }).setAlpha(0);
+        const tagT = this.add.text(x + 14, y + 30, `${item.category} · ${look.label}`, { fontFamily: 'monospace', fontSize: '9px', color: afford ? look.color : C.dim }).setAlpha(0);
+        const priceT = this.add.text(x + rowW - 12, cy, affordLabel(price, vein), {
+          fontFamily: 'monospace', fontSize: '11px', color: afford ? C.green : C.red,
+        }).setOrigin(1, 0.5).setAlpha(0);
+        this.transient.push(card, nameT, tagT, priceT);
+        this.tweens.add({ targets: card, alpha: 1, scale: 1, duration: 240, delay: i * 70, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: [nameT, tagT, priceT], alpha: 1, duration: 200, delay: i * 70 + 80, ease: 'Sine.easeOut' });
+
+        if (afford) {
+          const z = this.add.zone(x, y, rowW, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+          z.on('pointerdown', () => this.buyItem(item));
+          this.buttonZones.push(z);
+        }
+      });
     }
-    const rowH = 52;
-    const top = STAGE_Y + 60;
-    stock.forEach((item, i) => {
-      const price = this.session.dispenserPriceOf(item);
-      const afford = vein >= price;
-      const x = 16;
-      const y = top + i * (rowH + 8);
-      const w = W - 32;
-      this.stage.fillStyle(afford ? 0x12243a : 0x0e1626).fillRoundedRect(x, y, w, rowH, 8);
-      this.stage.lineStyle(1, afford ? GC.btnBrd : GC.edge).strokeRoundedRect(x, y, w, rowH, 8);
-      this.transient.push(
-        this.add.text(x + 12, y + 10, item.name, { fontFamily: 'monospace', fontSize: '12px', color: afford ? C.text : C.dim }),
-        this.add.text(x + 12, y + 30, `${item.category} · ${item.rarity}`, { fontFamily: 'monospace', fontSize: '9px', color: C.dim }),
-        this.add.text(x + w - 12, y + rowH / 2, `${price} VEIN`, { fontFamily: 'monospace', fontSize: '12px', color: afford ? C.green : C.red }).setOrigin(1, 0.5),
-      );
-      if (afford) {
-        const z = this.add.zone(x, y, w, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-        z.on('pointerdown', () => this.buyItem(item));
-        this.buttonZones.push(z);
-      }
-    });
+
+    // T-177: ad refresh button — one per visit, only while the ad service is available.
+    const adDecision = adService.canOffer();
+    const refreshAvail = adDecision.allowed && !this.shopAdRefreshUsed;
+    const adBtnY = STAGE_Y + STAGE_H - 62;
+    const adBtnW = W - 80;
+    const adBtnX = 40;
+    const adG = this.add.graphics().setAlpha(refreshAvail ? 0 : 0.35);
+    adG.fillStyle(0x0e1626).fillRoundedRect(adBtnX, adBtnY, adBtnW, 40, 8);
+    adG.lineStyle(1, refreshAvail ? 0x44ccff : GC.edge).strokeRoundedRect(adBtnX, adBtnY, adBtnW, 40, 8);
+    const adLabel = this.shopAdRefreshUsed ? 'REFRESH USED' : '▶ WATCH AD — REFRESH STOCK';
+    const adT = this.add.text(W / 2, adBtnY + 20, adLabel, {
+      fontFamily: 'monospace', fontSize: '11px', color: refreshAvail ? '#44ccff' : C.dim,
+    }).setOrigin(0.5).setAlpha(refreshAvail ? 0 : 0.5);
+    this.transient.push(adG, adT);
+    if (refreshAvail) {
+      this.tweens.add({ targets: [adG, adT], alpha: 1, duration: 260, delay: 200, ease: 'Sine.easeOut' });
+      const adZ = this.add.zone(adBtnX, adBtnY, adBtnW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      adZ.on('pointerdown', () => void this.shopAdRefresh());
+      this.buttonZones.push(adZ);
+    }
   }
 
   private itemRow(item: ItemDef, i: number, top: number, onTap?: () => void): void {

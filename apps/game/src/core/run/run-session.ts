@@ -516,6 +516,15 @@ export class RunSession {
     return stock;
   }
 
+  /**
+   * T-177: bust the cached stock for the current Dispenser so the next call to
+   * {@link dispenserStock} generates a fresh draw (the ad-refresh flow). Has no
+   * effect when called outside a merchant room.
+   */
+  refreshDispenserStock(): void {
+    this.dispenserStockByRoom.delete(this.current);
+  }
+
   /** True when the run's VEIN balance covers `item` at the current Dispenser. */
   canAfford(item: ItemDef): boolean {
     return this.veinCrystals >= this.dispenserPriceOf(item);
