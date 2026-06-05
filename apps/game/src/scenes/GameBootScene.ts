@@ -10,19 +10,54 @@ import { decideResume } from '../core/run/resume-decision';
 import { createWebStorageAdapter } from '../platform/storage-web';
 
 /**
- * Boot manager — T-136 (S100 Resume Run? modal, UFD E011).
+ * Boot manager — T-129/T-130/T-132/T-134/T-136.
  *
- * Runs immediately after the studio splash. Not visible during the async
- * load; shows a brief spinner if loading takes more than 400 ms, then
- * either routes silently or surfaces the S100 Resume Run? modal.
+ * Runs immediately after the studio splash. Chains:
+ *  1. T-129 Offline mode notice (if navigator.onLine === false).
+ *  2. T-130/T-132 GDPR/CCPA consent modal (EU/CA region, once per device).
+ *  3. T-134 Analytics-off acknowledgement (if consent declined).
+ *  4. Async load + T-136 Resume Run? modal.
  *
  * Route map:
  *  ┌─ resumable run found → S100 modal → RESUME → GameScene / NEW RUN → HubScene
  *  └─ no in-progress run → HubScene (T-144)
- *
- * The MetaState and run save are loaded here once and forwarded as scene
- * data to downstream scenes so they don't reload storage.
  */
+
+/** localStorage key that stores the player's consent decision. */
+const CONSENT_KEY = 'helix.consent';
+type ConsentDecision = 'granted' | 'declined';
+
+/** BCP-47 language prefixes whose users are in the EU or EEA. */
+const EU_LANGUAGES = new Set([
+  'de', 'fr', 'it', 'es', 'pt', 'nl', 'pl', 'sv', 'da', 'fi', 'nb', 'no',
+  'el', 'cs', 'sk', 'hu', 'ro', 'bg', 'hr', 'sl', 'et', 'lv', 'lt', 'mt',
+  'ga', 'lb', 'ca', 'eu', 'gl',
+]);
+
+function detectRegionNeedsConsent(): boolean {
+  try {
+    const lang = (navigator.language ?? '').toLowerCase().split('-')[0] ?? '';
+    const region = (navigator.language ?? '').toLowerCase().split('-')[1] ?? '';
+    if (EU_LANGUAGES.has(lang)) return true;
+    // Canadian French / English-Canada
+    if (region === 'ca') return true;
+  } catch {
+    // SSR or unusual environment — skip consent gate
+  }
+  return false;
+}
+
+function storedConsent(): ConsentDecision | null {
+  try {
+    const v = localStorage.getItem(CONSENT_KEY);
+    if (v === 'granted' || v === 'declined') return v;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function storeConsent(decision: ConsentDecision): void {
+  try { localStorage.setItem(CONSENT_KEY, decision); } catch { /* ignore */ }
+}
 
 // ── Colours (consistent with the rest of the game) ────────────────────────
 const C = { bg: 0x070b14, surface: 0x0e1626, border: 0x1e2a40, accent: '#a0ffdc', dim: '#7a8fad', text: '#e8edf5', gold: '#ffdd44', danger: '#ff4444' };
@@ -42,10 +77,34 @@ export class GameBootScene extends Phaser.Scene {
   create(): void {
     this.add.graphics().fillStyle(C.bg).fillRect(0, 0, W, H);
 
+    // T-129: offline mode notice — shown above whatever comes next.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      this.showOfflineNotice(() => this.checkConsent());
+    } else {
+      this.checkConsent();
+    }
+  }
+
+  /** T-130/T-132: gate on consent for EU/CA players (once per device). */
+  private checkConsent(): void {
+    const stored = storedConsent();
+    if (stored !== null) {
+      // Already consented or declined this device — skip modal.
+      this.startBoot();
+      return;
+    }
+    if (detectRegionNeedsConsent()) {
+      this.showConsentModal();
+    } else {
+      // Outside EU/CA — implied consent, proceed.
+      this.startBoot();
+    }
+  }
+
+  private startBoot(): void {
     // Show a spinner if the load takes more than 400 ms so the screen isn't
     // just black. Most loads complete in <50 ms on-device.
     const spinnerHandle = this.time.delayedCall(400, () => this.showSpinner());
-
     void this.bootAsync().then((decision) => {
       spinnerHandle.remove(false);
       this.route(decision);
@@ -96,6 +155,116 @@ export class GameBootScene extends Phaser.Scene {
   private clearSpinner(): void {
     this.spinnerTimer?.remove(false);
     this.spinnerText?.destroy();
+  }
+
+  // ── T-129: Offline mode notice ───────────────────────────────────────────
+
+  /** S006 — shown when navigator.onLine is false. Dismissible; the game
+   *  functions offline since all state is local. */
+  private showOfflineNotice(onDismiss: () => void): void {
+    const bw = W - 48;
+    const bh = 90;
+    const bx = 24;
+    const by = CY - bh / 2 - 60;
+
+    const g = this.add.graphics();
+    g.fillStyle(C.surface).fillRoundedRect(bx, by, bw, bh, 10);
+    g.lineStyle(1, 0x555566).strokeRoundedRect(bx, by, bw, bh, 10);
+
+    this.add.text(CX, by + 18, 'OFFLINE', { fontFamily: 'monospace', fontSize: '13px', color: '#ffaa44', letterSpacing: 3 }).setOrigin(0.5, 0);
+    this.add.text(CX, by + 42, 'No network connection detected.\nProgress saves locally — you can still play.', {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim, align: 'center', lineSpacing: 3,
+    }).setOrigin(0.5, 0);
+
+    const btnY = by + bh + 10;
+    const cont = this.add.text(CX, btnY, 'CONTINUE OFFLINE  ›', { fontFamily: 'monospace', fontSize: '11px', color: C.accent }).setOrigin(0.5);
+    const zone = this.add.zone(CX - 90, btnY - 10, 180, 28).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    zone.on('pointerdown', () => { cont.destroy(); zone.destroy(); g.destroy(); onDismiss(); });
+    zone.on('pointerover', () => cont.setColor('#ffffff'));
+    zone.on('pointerout', () => cont.setColor(C.accent));
+  }
+
+  // ── T-130/T-132/T-134: GDPR / CCPA consent ──────────────────────────────
+
+  /** S009 — GDPR/CCPA consent modal for EU/CA players. */
+  private showConsentModal(): void {
+    const cardX = 24;
+    const cardY = 80;
+    const cardW = W - 48;
+    const cardH = H - 140;
+
+    const g = this.add.graphics();
+    g.fillStyle(C.surface).fillRoundedRect(cardX, cardY, cardW, cardH, 12);
+    g.lineStyle(1, C.border).strokeRoundedRect(cardX, cardY, cardW, cardH, 12);
+
+    this.add.text(CX, cardY + 24, 'YOUR PRIVACY', { fontFamily: 'monospace', fontSize: '16px', color: C.text, letterSpacing: 3 }).setOrigin(0.5, 0);
+
+    const body = [
+      'Strand Descent collects no personal data.',
+      '',
+      'Gameplay state (run progress, mutations,',
+      'stats) is stored locally on your device.',
+      '',
+      'Diagnostic data (crash reports, session',
+      'length) may be shared with Empathy',
+      'Software to improve the game.',
+      '',
+      'You can withdraw consent at any time via',
+      'Settings → Privacy.',
+    ].join('\n');
+
+    this.add.text(CX, cardY + 68, body, {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim, align: 'center',
+      lineSpacing: 4, wordWrap: { width: cardW - 32 },
+    }).setOrigin(0.5, 0);
+
+    // ACCEPT button
+    const btnY = cardY + cardH - 110;
+    const btnW = cardW - 32;
+    const btnX = cardX + 16;
+
+    const acceptG = this.add.graphics();
+    acceptG.fillStyle(0x1a3028).fillRoundedRect(btnX, btnY, btnW, 46, 8);
+    acceptG.lineStyle(2, 0xa0ffdc).strokeRoundedRect(btnX, btnY, btnW, 46, 8);
+    this.add.text(CX, btnY + 23, 'ACCEPT & CONTINUE', { fontFamily: 'monospace', fontSize: '14px', color: C.accent, letterSpacing: 2 }).setOrigin(0.5);
+    const acceptZ = this.add.zone(btnX, btnY, btnW, 46).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    acceptZ.on('pointerdown', () => { storeConsent('granted'); this.startBoot(); });
+
+    // DECLINE button
+    const declineG = this.add.graphics();
+    declineG.fillStyle(C.surface).fillRoundedRect(btnX, btnY + 56, btnW, 36, 8);
+    declineG.lineStyle(1, C.border).strokeRoundedRect(btnX, btnY + 56, btnW, 36, 8);
+    this.add.text(CX, btnY + 74, 'DECLINE (analytics off)', { fontFamily: 'monospace', fontSize: '11px', color: C.dim }).setOrigin(0.5);
+    const declineZ = this.add.zone(btnX, btnY + 56, btnW, 36).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    declineZ.on('pointerdown', () => {
+      storeConsent('declined');
+      // T-134: show brief analytics-off acknowledgement then continue
+      this.showAnalyticsOff();
+    });
+
+    void acceptG; void declineG; void acceptZ; void declineZ;
+  }
+
+  /** T-134: S010A — brief acknowledgement when consent is declined. */
+  private showAnalyticsOff(): void {
+    this.children.each((child) => child.destroy());
+    this.add.graphics().fillStyle(C.bg).fillRect(0, 0, W, H);
+
+    const cardX = 32;
+    const cardY = CY - 70;
+    const cardW = W - 64;
+    const cardH = 130;
+    const g = this.add.graphics();
+    g.fillStyle(C.surface).fillRoundedRect(cardX, cardY, cardW, cardH, 10);
+    g.lineStyle(1, C.border).strokeRoundedRect(cardX, cardY, cardW, cardH, 10);
+
+    this.add.text(CX, cardY + 20, 'ANALYTICS OFF', { fontFamily: 'monospace', fontSize: '13px', color: C.dim, letterSpacing: 3 }).setOrigin(0.5, 0);
+    this.add.text(CX, cardY + 50, 'No diagnostic data will be shared.\nYou can change this in Settings → Privacy.', {
+      fontFamily: 'monospace', fontSize: '10px', color: C.dim, align: 'center', lineSpacing: 4,
+    }).setOrigin(0.5, 0);
+
+    // Auto-continue after 1.8 s
+    this.time.delayedCall(1800, () => this.startBoot());
   }
 
   // ── S100 Resume Run? modal ───────────────────────────────────────────────
