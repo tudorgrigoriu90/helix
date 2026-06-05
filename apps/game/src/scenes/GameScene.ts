@@ -120,6 +120,8 @@ export class GameScene extends Phaser.Scene {
   private strandAnimateCards: 'all' | number | null = null;
   /** T-191: families that just earned a Dominant Trait — triggers the celebration overlay. */
   private dominantTraitReveal: MutationFamily[] = [];
+  /** T-181: whether the S060 not-skippable Strand Event intro has played this run. */
+  private strandIntroShown = false;
 
   private seed = 0;
   private originId = 'void_diver';
@@ -295,6 +297,7 @@ export class GameScene extends Phaser.Scene {
     this.deathCause = 'enemy_kill';
     this.achievementsEarned = [];
     this.reviveUsed = false;
+    this.strandIntroShown = false;
     adService.reset(); // fresh per-run ad cap + cooldown (UFD E032)
     this.revealingEnemies = false;
     this.say('run_start');
@@ -2804,6 +2807,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // T-181: S060 not-skippable intro — first Strand Event of each run.
+    if (!this.strandIntroShown) {
+      this.renderStrandIntro();
+      return;
+    }
+
     const cards = this.session.strandOffer;
 
     // T-192: VEIN Intermission — polished gold panel.
@@ -2948,6 +2957,86 @@ export class GameScene extends Phaser.Scene {
         }).setOrigin(0.5, 0),
       );
     }
+  }
+
+  /**
+   * T-181: S060 Strand Event intro — shown once per run before the first
+   * card offer. A brief LACE narration explains the mutation process.
+   * A CONTINUE button appears after a 600ms lock so accidental taps don't
+   * skip it; the intro is intentionally short (one screen, no scroll).
+   */
+  private renderStrandIntro(): void {
+    const cardW = W - 32;
+    const cardH = 310;
+    const cx = W / 2;
+    const cy = STAGE_Y + STAGE_H / 2;
+
+    const card = this.add.graphics().setAlpha(0);
+    card.fillStyle(0x0a1220).fillRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 12);
+    card.lineStyle(2, 0xa0ffdc, 0.6).strokeRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 12);
+    card.setPosition(cx, cy);
+    this.transient.push(card);
+
+    const mk = (x: number, y: number, text: string, style: Phaser.Types.GameObjects.Text.TextStyle): Phaser.GameObjects.Text => {
+      const t = this.add.text(x, y, text, { fontFamily: 'monospace', ...style }).setAlpha(0);
+      this.transient.push(t);
+      return t;
+    };
+
+    const label = mk(cx, cy - cardH / 2 + 20, 'STRAND EVENT', {
+      fontSize: '11px', color: C.green, letterSpacing: 4,
+    } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5, 0);
+
+    const headline = mk(cx, cy - cardH / 2 + 46, 'THE VEIN OFFERS', {
+      fontSize: '18px', color: C.text, letterSpacing: 4,
+    } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5, 0);
+
+    const body = mk(cx, cy - cardH / 2 + 84, [
+      'Deep within the VEIN, your genome responds',
+      'to pressure. Choose one mutation to integrate',
+      'permanently into your biological architecture.',
+      '',
+      'Each family has its own resonance.',
+      'Three mutations from one family unlock',
+      'a Dominant Trait — a systemic transformation',
+      'that reshapes how you fight.',
+    ].join('\n'), {
+      fontSize: '10px', color: C.dim, lineSpacing: 4, align: 'center',
+      wordWrap: { width: cardW - 48 },
+    } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5, 0);
+
+    // CONTINUE button — locked for 600ms so an accidental tap can't skip it
+    const btnW = 180;
+    const btnH = 40;
+    const btnX = cx - btnW / 2;
+    const btnY = cy + cardH / 2 - btnH - 16;
+    const btnG = this.add.graphics().setAlpha(0);
+    btnG.fillStyle(0x1a3028).fillRoundedRect(btnX, btnY, btnW, btnH, 10);
+    btnG.lineStyle(2, 0xa0ffdc).strokeRoundedRect(btnX, btnY, btnW, btnH, 10);
+    this.transient.push(btnG);
+    const btnT = mk(cx, btnY + btnH / 2, 'CONTINUE', {
+      fontSize: '14px', color: C.green, letterSpacing: 3,
+    } as Phaser.Types.GameObjects.Text.TextStyle).setOrigin(0.5);
+
+    const objs = [card, label, headline, body, btnG, btnT];
+
+    this.tweens.add({
+      targets: objs, alpha: 1, duration: 220, ease: 'Back.easeOut',
+      onComplete: () => {
+        // Unlock the CONTINUE tap after 600ms
+        this.time.delayedCall(600, () => {
+          const zone = this.add
+            .zone(btnX, btnY, btnW, btnH)
+            .setOrigin(0, 0)
+            .setInteractive({ useHandCursor: true });
+          this.transient.push(zone);
+          zone.on('pointerdown', () => {
+            this.strandIntroShown = true;
+            this.renderAll();
+          });
+        });
+      },
+    });
   }
 
   /** T-192: polished VEIN Intermission panel with entrance animation. */
