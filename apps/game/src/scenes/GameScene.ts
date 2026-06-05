@@ -1574,6 +1574,23 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** T-189: Green body-flash when a mutation is applied — communicates the
+   *  DNA-level change to the player's geometry. Screen-wide pulse (depth 5)
+   *  that fades in quickly then washes out over ~500 ms. */
+  private playMutationPulse(): void {
+    const flash = this.add.graphics().setDepth(5).setAlpha(0);
+    flash.fillStyle(0x44ff99, 0.38).fillRect(0, STAGE_Y, W, H - STAGE_Y);
+    this.tweens.add({
+      targets: flash, alpha: 1, duration: 90, ease: 'Sine.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets: flash, alpha: 0, duration: 520, ease: 'Sine.easeIn',
+          onComplete: () => flash.destroy(),
+        });
+      },
+    });
+  }
+
   private playDescentNarration(nextFloor: number, onDone: () => void): void {
     playSfx(this, 'sfx_descend');
 
@@ -1677,6 +1694,7 @@ export class GameScene extends Phaser.Scene {
       tier: mut.tier,
       slot: mut.grantsAbility !== null ? 'active' : 'passive',
     });
+    this.playMutationPulse();
 
     // Detect newly unlocked dominant traits
     const afterTraits = (this.session.snapshot.player.dominantTraits ?? []) as MutationFamily[];
