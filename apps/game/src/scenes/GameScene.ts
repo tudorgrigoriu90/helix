@@ -42,7 +42,7 @@ import { threatenedTiles, enemyInReach } from './combat-threat';
 import { statusBadges, statusHex } from './combat-status';
 import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
-import { queueAudioLoads, playSfx, playMusic } from './audio/audio-registry';
+import { queueAudioLoads, playSfx, playMusic, getCategoryVolume, setCategoryVolume } from './audio/audio-registry';
 
 import filterer from '@content/enemies/filterer.json';
 import caveCrawler from '@content/enemies/cave_crawler.json';
@@ -163,6 +163,8 @@ export class GameScene extends Phaser.Scene {
   private combatMenuOpen = false;
   /** S047: whether the player has already confirmed once for surrender (double-confirm). */
   private surrenderConfirmPending = false;
+  /** T-168: which sub-panel is showing inside the combat menu (null = root). */
+  private combatMenuPanel: 'settings' | null = null;
   /** S042: tile the player tapped first; confirmed on a second tap of the same tile. */
   private movePending: { col: number; row: number } | null = null;
   /** S043: enemy currently hovered — drives the damage-range preview label. */
@@ -1114,6 +1116,7 @@ export class GameScene extends Phaser.Scene {
     this.itemConfirmPending = null;
     this.combatMenuOpen = false;
     this.surrenderConfirmPending = false;
+    this.combatMenuPanel = null;
     const status = this.session.snapshot.status;
 
     if (status === 'defeat') {
@@ -2143,63 +2146,105 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** S047: in-combat pause menu overlay with RESUME and double-confirm SURRENDER. */
+  /** S047 / T-168: in-combat pause menu — root or settings sub-panel. */
   private renderCombatMenu(): void {
+    if (this.combatMenuPanel === 'settings') {
+      this.renderCombatMenuSettings();
+    } else {
+      this.renderCombatMenuRoot();
+    }
+  }
+
+  /** Root menu: RESUME · SETTINGS · SURRENDER (double-confirm). */
+  private renderCombatMenuRoot(): void {
     const cw = 260;
-    const ch = this.surrenderConfirmPending ? 200 : 160;
+    const ch = this.surrenderConfirmPending ? 236 : 196;
     const cx = (W - cw) / 2;
     const cy = STAGE_Y + (STAGE_H - ch) / 2;
 
-    // Dim the game behind
     const dim = this.add.graphics().setDepth(5);
     dim.fillStyle(0x000000, 0.6).fillRect(0, 0, W, H);
 
-    const card = this.add.graphics().setDepth(5);
+    const card = this.add.graphics().setDepth(5).setAlpha(0);
     card.fillStyle(0x0e1626).fillRoundedRect(cx, cy, cw, ch, 12);
     card.lineStyle(2, 0x2a3a55).strokeRoundedRect(cx, cy, cw, ch, 12);
+    this.tweens.add({ targets: card, alpha: 1, duration: 120, ease: 'Power2' });
+
+    const combat = this.combat;
+    const hpLine = combat
+      ? `HP ${combat.player.hp}/${combat.player.maxHp}  ·  turn ${combat.turn}`
+      : '';
 
     this.transient.push(dim, card,
-      this.add.text(W / 2, cy + 20, 'PAUSED', {
+      this.add.text(W / 2, cy + 16, 'PAUSED', {
         fontFamily: 'monospace', fontSize: '16px', color: '#e8edf5', letterSpacing: 4,
       }).setOrigin(0.5).setDepth(5),
+      this.add.text(W / 2, cy + 36, hpLine, {
+        fontFamily: 'monospace', fontSize: '9px', color: '#7a8fad',
+      }).setOrigin(0.5).setDepth(5),
     );
 
-    // RESUME button
-    const rowY = cy + 52;
     const rowW = cw - 32;
     const rowX = cx + 16;
+    let nextY = cy + 56;
+
+    // ── RESUME ────────────────────────────────────────────────────────────────
     const resumeG = this.add.graphics().setDepth(5);
-    resumeG.fillStyle(0x1a3028).fillRoundedRect(rowX, rowY, rowW, 40, 8);
-    resumeG.lineStyle(1, 0xa0ffdc).strokeRoundedRect(rowX, rowY, rowW, 40, 8);
+    resumeG.fillStyle(0x1a3028).fillRoundedRect(rowX, nextY, rowW, 36, 8);
+    resumeG.lineStyle(1, 0xa0ffdc).strokeRoundedRect(rowX, nextY, rowW, 36, 8);
     this.transient.push(resumeG,
-      this.add.text(W / 2, rowY + 20, 'RESUME', {
-        fontFamily: 'monospace', fontSize: '14px', color: '#a0ffdc',
+      this.add.text(W / 2, nextY + 18, 'RESUME', {
+        fontFamily: 'monospace', fontSize: '13px', color: '#a0ffdc',
       }).setOrigin(0.5).setDepth(5),
     );
-    const resumeZ = this.add.zone(rowX, rowY, rowW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
-    resumeZ.on('pointerdown', () => { this.combatMenuOpen = false; this.surrenderConfirmPending = false; this.renderAll(); });
+    const resumeZ = this.add.zone(rowX, nextY, rowW, 36).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    resumeZ.on('pointerdown', () => {
+      this.combatMenuOpen = false;
+      this.surrenderConfirmPending = false;
+      this.combatMenuPanel = null;
+      this.renderAll();
+    });
     this.buttonZones.push(resumeZ);
+    nextY += 44;
 
-    // SURRENDER button (with double-confirm)
-    const surrY = rowY + 52;
+    // ── SETTINGS ──────────────────────────────────────────────────────────────
+    const settG = this.add.graphics().setDepth(5);
+    settG.fillStyle(0x1a2030).fillRoundedRect(rowX, nextY, rowW, 36, 8);
+    settG.lineStyle(1, 0x2a3a55).strokeRoundedRect(rowX, nextY, rowW, 36, 8);
+    this.transient.push(settG,
+      this.add.text(rowX + 14, nextY + 18, 'SETTINGS', {
+        fontFamily: 'monospace', fontSize: '13px', color: '#e8edf5',
+      }).setOrigin(0, 0.5).setDepth(5),
+      this.add.text(rowX + rowW - 14, nextY + 18, '›', {
+        fontFamily: 'monospace', fontSize: '16px', color: '#7a8fad',
+      }).setOrigin(1, 0.5).setDepth(5),
+    );
+    const settZ = this.add.zone(rowX, nextY, rowW, 36).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    settZ.on('pointerdown', () => {
+      this.combatMenuPanel = 'settings';
+      this.renderAll();
+    });
+    this.buttonZones.push(settZ);
+    nextY += 44;
+
+    // ── SURRENDER (double-confirm) ────────────────────────────────────────────
     const surrLabel = this.surrenderConfirmPending ? 'CONFIRM SURRENDER' : 'SURRENDER';
     const surrColor = this.surrenderConfirmPending ? '#ff4444' : '#7a8fad';
-    const surrBorderColor = this.surrenderConfirmPending ? 0xff4444 : 0x3a3050;
+    const surrBorder = this.surrenderConfirmPending ? 0xff4444 : 0x3a3050;
     const surrG = this.add.graphics().setDepth(5);
-    surrG.fillStyle(0x1a1420).fillRoundedRect(rowX, surrY, rowW, 40, 8);
-    surrG.lineStyle(1, surrBorderColor).strokeRoundedRect(rowX, surrY, rowW, 40, 8);
+    surrG.fillStyle(0x1a1420).fillRoundedRect(rowX, nextY, rowW, 36, 8);
+    surrG.lineStyle(1, surrBorder).strokeRoundedRect(rowX, nextY, rowW, 36, 8);
     this.transient.push(surrG,
-      this.add.text(W / 2, surrY + 20, surrLabel, {
-        fontFamily: 'monospace', fontSize: '14px', color: surrColor,
+      this.add.text(W / 2, nextY + 18, surrLabel, {
+        fontFamily: 'monospace', fontSize: '13px', color: surrColor,
       }).setOrigin(0.5).setDepth(5),
     );
-    const surrZ = this.add.zone(rowX, surrY, rowW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    const surrZ = this.add.zone(rowX, nextY, rowW, 36).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
     surrZ.on('pointerdown', () => {
       if (!this.surrenderConfirmPending) {
         this.surrenderConfirmPending = true;
         this.renderAll();
       } else {
-        // Second tap confirms: forfeit the run outright.
         this.combatMenuOpen = false;
         this.surrenderConfirmPending = false;
         this.combat = null;
@@ -2209,7 +2254,6 @@ export class GameScene extends Phaser.Scene {
         playMusic(this, 'music_menu');
         this.recordRun(false);
         void this.saves.clear();
-        // S030 → S031/S032 via the shared death sequence.
         this.playDeathSequence();
       }
     });
@@ -2217,11 +2261,94 @@ export class GameScene extends Phaser.Scene {
 
     if (this.surrenderConfirmPending) {
       this.transient.push(
-        this.add.text(W / 2, surrY + 44, 'this ends your run permanently', {
+        this.add.text(W / 2, nextY + 40, 'this ends your run permanently', {
           fontFamily: 'monospace', fontSize: '9px', color: '#7a8fad',
         }).setOrigin(0.5).setDepth(5),
       );
     }
+  }
+
+  /** Settings sub-panel: ‹ BACK · MUSIC toggle · SFX toggle. */
+  private renderCombatMenuSettings(): void {
+    const cw = 260;
+    const ch = 184;
+    const cx = (W - cw) / 2;
+    const cy = STAGE_Y + (STAGE_H - ch) / 2;
+
+    const dim = this.add.graphics().setDepth(5);
+    dim.fillStyle(0x000000, 0.6).fillRect(0, 0, W, H);
+
+    const card = this.add.graphics().setDepth(5).setAlpha(0);
+    card.fillStyle(0x0e1626).fillRoundedRect(cx, cy, cw, ch, 12);
+    card.lineStyle(2, 0x2a3a55).strokeRoundedRect(cx, cy, cw, ch, 12);
+    this.tweens.add({ targets: card, alpha: 1, duration: 120, ease: 'Power2' });
+
+    // Header row: ‹ back arrow + title
+    const backT = this.add.text(cx + 14, cy + 16, '‹', {
+      fontFamily: 'monospace', fontSize: '18px', color: '#7a8fad',
+    }).setOrigin(0, 0.5).setDepth(5);
+    const titleT = this.add.text(W / 2, cy + 16, 'SETTINGS', {
+      fontFamily: 'monospace', fontSize: '14px', color: '#e8edf5', letterSpacing: 3,
+    }).setOrigin(0.5, 0.5).setDepth(5);
+    this.transient.push(dim, card, backT, titleT);
+
+    const backZ = this.add.zone(cx, cy, 64, 36).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    backZ.on('pointerdown', () => { this.combatMenuPanel = null; this.renderAll(); });
+    backZ.on('pointerover', () => backT.setColor('#a0ffdc'));
+    backZ.on('pointerout', () => backT.setColor('#7a8fad'));
+    this.buttonZones.push(backZ);
+
+    // Divider
+    const divG = this.add.graphics().setDepth(5);
+    divG.lineStyle(1, 0x1e2a40).lineBetween(cx + 12, cy + 36, cx + cw - 12, cy + 36);
+    this.transient.push(divG);
+
+    const rowW = cw - 32;
+    const rowX = cx + 16;
+    const toggleRow = (y: number, label: string, on: boolean, onToggle: () => void): void => {
+      const bg = this.add.graphics().setDepth(5);
+      bg.fillStyle(0x141c2c).fillRoundedRect(rowX, y, rowW, 40, 8);
+      bg.lineStyle(1, on ? 0x2a4a38 : 0x2a2a40).strokeRoundedRect(rowX, y, rowW, 40, 8);
+
+      const labelT = this.add.text(rowX + 14, y + 20, label, {
+        fontFamily: 'monospace', fontSize: '12px', color: '#e8edf5',
+      }).setOrigin(0, 0.5).setDepth(5);
+
+      const pillW = 44; const pillH = 22; const pillX = rowX + rowW - 14 - pillW; const pillY = y + 9;
+      const pill = this.add.graphics().setDepth(5);
+      pill.fillStyle(on ? 0x22aa66 : 0x2a2a40).fillRoundedRect(pillX, pillY, pillW, pillH, pillH / 2);
+      const knobX = on ? pillX + pillW - 13 : pillX + 3;
+      pill.fillStyle(0xffffff).fillCircle(knobX + 8, pillY + pillH / 2, 8);
+
+      const stateT = this.add.text(pillX - 8, y + 20, on ? 'ON' : 'OFF', {
+        fontFamily: 'monospace', fontSize: '9px', color: on ? '#a0ffdc' : '#7a8fad',
+      }).setOrigin(1, 0.5).setDepth(5);
+
+      this.transient.push(bg, labelT, pill, stateT);
+
+      const z = this.add.zone(rowX, y, rowW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+      z.on('pointerdown', () => { onToggle(); this.renderAll(); });
+      this.buttonZones.push(z);
+    };
+
+    const musicOn = getCategoryVolume('music') > 0;
+    const sfxOn = getCategoryVolume('sfx') > 0;
+
+    toggleRow(cy + 48, 'MUSIC', musicOn, () => {
+      setCategoryVolume('music', musicOn ? 0 : 1);
+      playSfx(this, 'ui_confirm');
+    });
+    toggleRow(cy + 100, 'SOUND EFFECTS', sfxOn, () => {
+      setCategoryVolume('sfx', sfxOn ? 0 : 1);
+      playSfx(this, 'ui_confirm');
+    });
+
+    // Subtle hint
+    this.transient.push(
+      this.add.text(W / 2, cy + ch - 14, 'settings apply immediately', {
+        fontFamily: 'monospace', fontSize: '8px', color: '#3a4a60',
+      }).setOrigin(0.5).setDepth(5),
+    );
   }
 
   /** S045: floating confirm prompt for instant-use (heal) items.
