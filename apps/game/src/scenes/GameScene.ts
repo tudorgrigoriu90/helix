@@ -142,6 +142,8 @@ export class GameScene extends Phaser.Scene {
   private pendingRevive = false;
 
   private view: View = 'map';
+  /** T-175: current ability bar page (0-indexed); page N shows slots N×6 … N×6+5. */
+  private abilityPage = 0;
   /** T-155: when true the expanded full-floor map overlay is showing (read-only). */
   private mapOverlayOpen = false;
   /** T-176: set once an Event Room choice is made — drives the resolved-outcome panel. */
@@ -442,6 +444,7 @@ export class GameScene extends Phaser.Scene {
     this.combat = encounter;
     this.combatRng = makeRng(encounter.seed, 'combat');
     this.targeting = null;
+    this.abilityPage = 0;
     this.view = 'combat';
     this.session.syncCombat(this.combat, this.combatRng.state);
     this.persist();
@@ -2487,24 +2490,43 @@ export class GameScene extends Phaser.Scene {
     this.buttonZones.push(cancelZone);
   }
 
+  /** T-175: fixed 6-slot ability bar; swipe arrows appear when the player has >6 abilities. */
   private renderAbilityBar(): void {
     const state = this.combat;
     if (state === null || state.phase !== 'player') return;
-    const n = state.player.abilities.length;
-    if (n === 0) return;
-    const margin = 16;
-    const gap = 6;
-    const btnW = Math.floor((W - 2 * margin - (n - 1) * gap) / n);
-    const btnH = 36;
-    // Tighten label size when buttons are narrow (many abilities granted by mutations)
-    const labelSize = btnW >= 150 ? '10px' : btnW >= 95 ? '9px' : '8px';
+    const all = state.player.abilities;
+    if (all.length === 0) return;
 
-    state.player.abilities.forEach((slot, i) => {
-      const x = margin + i * (btnW + gap);
-      const onCooldown = slot.cooldownRemaining > 0;
-      const canAfford = state.player.ap >= slot.def.apCost;
+    const SLOTS = 6;
+    const totalPages = Math.ceil(all.length / SLOTS);
+    const hasPages = totalPages > 1;
+
+    // With pagination arrows, shrink the bar to leave room on each side.
+    const arrowW = hasPages ? 18 : 0;
+    const margin = 8 + arrowW;
+    const gap = 4;
+    const btnW = Math.floor((W - 2 * margin - (SLOTS - 1) * gap) / SLOTS);
+    const btnH = 36;
+
+    // Ensure page is in range (could be stale from a previous render)
+    this.abilityPage = Math.min(this.abilityPage, totalPages - 1);
+    const pageStart = this.abilityPage * SLOTS;
+
+    for (let slot = 0; slot < SLOTS; slot++) {
+      const x = margin + slot * (btnW + gap);
+      const abilitySlot = all[pageStart + slot];
+
+      if (abilitySlot === undefined) {
+        // Empty slot placeholder
+        this.stage.fillStyle(0x0a0f18).fillRoundedRect(x, ABILITY_Y, btnW, btnH, 6);
+        this.stage.lineStyle(1, 0x1e2a40, 0.5).strokeRoundedRect(x, ABILITY_Y, btnW, btnH, 6);
+        continue;
+      }
+
+      const onCooldown = abilitySlot.cooldownRemaining > 0;
+      const canAfford = state.player.ap >= abilitySlot.def.apCost;
       const ready = !onCooldown && canAfford;
-      const active = this.targeting?.kind === 'ability' && this.targeting.slot.def.id === slot.def.id;
+      const active = this.targeting?.kind === 'ability' && this.targeting.slot.def.id === abilitySlot.def.id;
 
       const border = active ? 0xffdd44 : ready ? GC.btnBrd : 0x2a3050;
       const fillColor = active ? 0x1e2c1a : onCooldown ? 0x0e1020 : GC.btnBg;
@@ -2513,30 +2535,67 @@ export class GameScene extends Phaser.Scene {
       this.stage.fillStyle(fillColor).fillRoundedRect(x, ABILITY_Y, btnW, btnH, 6);
       this.stage.lineStyle(1, border).strokeRoundedRect(x, ABILITY_Y, btnW, btnH, 6);
 
-      // Cooldown progress bar: a dim fill across the bottom of the button
-      if (onCooldown && slot.def.cooldown > 0) {
-        const cdFrac = slot.cooldownRemaining / slot.def.cooldown;
+      if (onCooldown && abilitySlot.def.cooldown > 0) {
+        const cdFrac = abilitySlot.cooldownRemaining / abilitySlot.def.cooldown;
         this.stage.fillStyle(0x3a3060, 0.7).fillRect(x + 1, ABILITY_Y + btnH - 5, Math.round((btnW - 2) * cdFrac), 4);
       }
 
-      // Ability name: replace underscores with spaces, title-cased
-      const name = slot.def.id.replace(/_/g, ' ');
-      const apCostLabel = `${slot.def.apCost}AP`;
-      const cdLabel = onCooldown ? ` · cd${slot.cooldownRemaining}` : '';
+      // Truncate name to fit the narrow slot
+      const rawName = abilitySlot.def.id.replace(/_/g, ' ');
+      const maxChars = Math.floor((btnW - 12) / 5.5); // ~5.5px per char at 8px monospace
+      const name = rawName.length > maxChars ? rawName.slice(0, maxChars - 1) + '…' : rawName;
+      const apLabel = `${abilitySlot.def.apCost}AP`;
+      const cdLabel = onCooldown ? `cd${abilitySlot.cooldownRemaining}` : '';
 
-      const nameText = this.add.text(x + 6, ABILITY_Y + 10, name, {
-        fontFamily: 'monospace', fontSize: labelSize, color: textColor, wordWrap: { width: btnW - 32 },
+      const nameText = this.add.text(x + 4, ABILITY_Y + 6, name, {
+        fontFamily: 'monospace', fontSize: '8px', color: textColor,
       }).setOrigin(0, 0);
-      const apText = this.add.text(x + btnW - 5, ABILITY_Y + 10, `${apCostLabel}${cdLabel}`, {
+      const apText = this.add.text(x + btnW - 4, ABILITY_Y + 6, apLabel, {
         fontFamily: 'monospace', fontSize: '8px', color: onCooldown ? '#554466' : C.dim,
       }).setOrigin(1, 0);
-
       this.transient.push(nameText, apText);
 
+      if (cdLabel !== '') {
+        const cdText = this.add.text(x + btnW / 2, ABILITY_Y + btnH - 7, cdLabel, {
+          fontFamily: 'monospace', fontSize: '7px', color: '#554466',
+        }).setOrigin(0.5, 0);
+        this.transient.push(cdText);
+      }
+
       const z = this.add.zone(x, ABILITY_Y, btnW, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-      z.on('pointerdown', () => this.onAbilityButton(slot));
+      z.on('pointerdown', () => this.onAbilityButton(abilitySlot));
       this.buttonZones.push(z);
-    });
+    }
+
+    // Pagination arrows
+    if (hasPages) {
+      const cy = ABILITY_Y + btnH / 2;
+      if (this.abilityPage > 0) {
+        const lt = this.add.text(4, cy, '‹', {
+          fontFamily: 'monospace', fontSize: '16px', color: C.dim,
+        }).setOrigin(0, 0.5);
+        this.transient.push(lt);
+        const lz = this.add.zone(0, ABILITY_Y, arrowW + 4, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        lz.on('pointerdown', () => { this.abilityPage--; this.renderAll(); });
+        this.buttonZones.push(lz);
+      }
+      if (this.abilityPage < totalPages - 1) {
+        const rt = this.add.text(W - 4, cy, '›', {
+          fontFamily: 'monospace', fontSize: '16px', color: C.dim,
+        }).setOrigin(1, 0.5);
+        this.transient.push(rt);
+        const rz = this.add.zone(W - arrowW - 4, ABILITY_Y, arrowW + 4, btnH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        rz.on('pointerdown', () => { this.abilityPage++; this.renderAll(); });
+        this.buttonZones.push(rz);
+      }
+      // Page indicator dot row
+      const dotY = ABILITY_Y + btnH + 3;
+      for (let p = 0; p < totalPages; p++) {
+        const dot = this.add.graphics();
+        dot.fillStyle(p === this.abilityPage ? 0xa0ffdc : 0x2a3a50).fillCircle(W / 2 + (p - totalPages / 2 + 0.5) * 10, dotY, 3);
+        this.transient.push(dot);
+      }
+    }
   }
 
   private renderItemBar(): void {
