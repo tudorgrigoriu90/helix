@@ -9,7 +9,7 @@ import type { ItemDef } from '@shared-types/item';
 import type { EntityStats, DeathCause, StatusEffect } from '@shared-types/run-state';
 import type { MetaState } from '@shared-types/meta-state';
 import type { MutationDef, MutationFamily } from '@shared-types/mutation';
-import { dominantTraitFor } from '../core/mutation';
+import { dominantTraitFor, unlockedSynergies } from '../core/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
@@ -368,7 +368,10 @@ export class GameScene extends Phaser.Scene {
   // ── LACE ──────────────────────────────────────────────────────────────────
 
   private say(context: LaceContext): void {
-    const line = this.narrator.narrate(context);
+    // T-190: pass the player's dominant family (if any) for grammar flavour.
+    const traits = this.session?.snapshot.player.dominantTraits;
+    const family = traits && traits.length > 0 ? traits[0] : undefined;
+    const line = this.narrator.narrate(context, { family });
     if (line !== null) this.laceText.setText(`LACE: ${line.text}`);
   }
 
@@ -1073,6 +1076,10 @@ export class GameScene extends Phaser.Scene {
   private combatAction(action: Action): void {
     const state = this.combat;
     if (state === null) return;
+    // T-190: attacking at ≤25% HP signals risky play to LACE.
+    if (action.type === 'attack' && state.player.hp <= Math.round(state.player.maxHp * 0.25)) {
+      this.narrator.signalMood('risky_play');
+    }
     const result = TurnEngine.apply(state, action, this.combatRng);
     if (result.errors.length === 0) {
       if (action.type === 'attack') playSfx(this, 'sfx_attack');
@@ -1186,12 +1193,18 @@ export class GameScene extends Phaser.Scene {
       this.view = 'map';
       this.persist();
       this.playCombatVictoryFlash(xpGained);
+      // T-190: high-HP victory → LACE reads as defensive play.
+      const ps = this.session.snapshot.player;
+      if (ps.hp >= Math.round(ps.maxHp * 0.75)) this.narrator.signalMood('defensive_play');
     } else {
       this.say(wasBoss ? 'boss_killed' : 'room_cleared');
       if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();
       this.playCombatVictoryFlash(xpGained);
+      // T-190: high-HP victory → LACE reads as defensive play.
+      const ps = this.session.snapshot.player;
+      if (ps.hp >= Math.round(ps.maxHp * 0.75)) this.narrator.signalMood('defensive_play');
     }
 
     if (this.view === 'map' && this.session.snapshot.pendingStatPoints > 0) {
@@ -1203,6 +1216,9 @@ export class GameScene extends Phaser.Scene {
   private recordRun(won: boolean): void {
     if (this.runRecorded) return;
     this.runRecorded = true;
+    // T-190: repeated death signals contempt in LACE (runs − wins = prior losses).
+    const priorLosses = this.meta.lifetime.runs - this.meta.lifetime.wins;
+    if (!won && priorLosses > 0) this.narrator.signalMood('death_loop');
     const snap = this.session.snapshot;
     const durationMs = Date.now() - this.runStartMs;
     const outcome = won ? 'win' : this.deathCause === 'surrender' ? 'surrender' : 'loss';
@@ -1546,6 +1562,9 @@ export class GameScene extends Phaser.Scene {
     const nextFloor = completedFloor + 1;
     this.playDescentNarration(nextFloor, () => this.playFloorRevealMask(() => {
       this.session.descend();
+      // T-190: mood signals for new/deep floors.
+      this.narrator.signalMood('new_floor');
+      if (this.session.snapshot.floorNumber >= 16) this.narrator.signalMood('deep_floor');
       this.say('floor_enter');
       this.playFloorMusic();
       this.persist();
@@ -1681,8 +1700,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.strandConfirmPending = false;
 
-    // T-191: capture dominant traits before applying mutation
-    const prevTraits = [...(this.session.snapshot.player.dominantTraits ?? [])];
+    // T-191: capture dominant traits and synergy count before applying mutation
+    const prevSnap = this.session.snapshot;
+    const prevOwnedDefs = this.mutationPool.filter((m) => prevSnap.player.mutations.includes(m.id));
+    const prevSynCount = unlockedSynergies(prevOwnedDefs).length;
+    const prevTraits = [...(prevSnap.player.dominantTraits ?? [])];
     this.session.chooseStrandMutation(card.mutation.id);
     playSfx(this, 'sfx_mutation');
     this.laceText.setText(`LACE: ${card.mutation.lace}`);
@@ -1695,6 +1717,11 @@ export class GameScene extends Phaser.Scene {
       slot: mut.grantsAbility !== null ? 'active' : 'passive',
     });
     this.playMutationPulse();
+
+    // T-190: new hybrid synergy → reverent mood signal.
+    const afterSnap = this.session.snapshot;
+    const afterOwnedDefs = this.mutationPool.filter((m) => afterSnap.player.mutations.includes(m.id));
+    if (unlockedSynergies(afterOwnedDefs).length > prevSynCount) this.narrator.signalMood('hybrid_synergy');
 
     // Detect newly unlocked dominant traits
     const afterTraits = (this.session.snapshot.player.dominantTraits ?? []) as MutationFamily[];
