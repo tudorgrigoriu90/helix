@@ -601,13 +601,13 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 | ID    | Title                                                                 | Role     | Priority | Refs       | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
-| T-248 | `AnalyticsAdapter` interface                                          | Game Engineer | P0 | TDD §10.4  | |
-| T-249 | Type-safe `EventSchema` (typo = compile error)                        | Game Engineer | P0 | TDD §13.2  | |
+| T-248 | ~~`AnalyticsAdapter` interface~~ — **DONE 2026-06-05.** `core/platform/analytics-adapter.ts`: `AnalyticsAdapter` interface with `logEvent<K>(name, params)` + optional `setUserProperty`; module-level `_adapter` singleton + `setAnalyticsAdapter()` / `logEvent()` public API. | Game Engineer | P0 | TDD §10.4  | DONE |
+| T-249 | ~~Type-safe `EventSchema` (typo = compile error)~~ — **DONE 2026-06-05.** Same file as T-248: `EventSchema` interface maps 20 event names to their required param shapes; wrong name or param shape is a compile-time error (TypeScript mapped-type inference). Events: `run_start/end`, `combat_start/end`, `ability_used`, `item_used`, `strand_event_open`, `mutation_chosen`, `strand_reroll`, `dominant_trait_unlocked`, `vein_intermission`, `room_enter`, `floor_complete`, `session_start`, `consent_decision`, `tutorial_complete`, `revive_accepted`. | Game Engineer | P0 | TDD §13.2  | DONE |
 | T-250 | Web impl: Firebase Analytics web SDK                                  | Frontend | P0       | TDD §10.4  | |
 | T-251 | Capacitor impl: Firebase Analytics native SDK via plugin              | Frontend | P0       | TDD §10.4  | |
-| T-252 | Dev-mode console logging                                              | Frontend | P0       | TDD §10.4  | |
+| T-252 | ~~Dev-mode console logging~~ — **DONE 2026-06-05.** `platform/analytics-console.ts`: `consoleAnalytics` adapter logs every event to `console.debug` as `[analytics] <name>` with params; `setUserProperty` logs as `[analytics:prop] key = value`. Install at boot via `setAnalyticsAdapter(consoleAnalytics)` in dev mode. | Frontend | P0       | TDD §10.4  | DONE |
 | T-253 | Local debug log (last 200 events)                                     | Game Engineer | P0 | TDD §13.3  | |
-| T-254 | GDPR/CCPA: Analytics off-by-default in EU/CA until consent (UFD S009) | Frontend | P0       | TDD §13.4  | NFR P6 |
+| T-254 | ~~GDPR/CCPA: Analytics off-by-default in EU/CA until consent (UFD S009)~~ — **DONE 2026-06-05.** Covered by T-132/T-134: `GameBootScene` gates `setAnalyticsAdapter()` behind consent. EU/CA detected via `detectRegionNeedsConsent()` (BCP-47 prefix), consent stored in `localStorage('helix.consent')`; adapter is never installed when consent is declined or still pending. | Frontend | P0       | TDD §13.4  | NFR P6 | DONE |
 | T-255 | Wire all 50+ events from GDD §19 to fire at correct points            | Frontend | P0/P1    | GDD §19    | One sub-task per event domain |
 
 ### S-5.6 — Share adapter
