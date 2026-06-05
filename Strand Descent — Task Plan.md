@@ -408,7 +408,7 @@ slots — over the cap you drop-to-swap by count. This story closes that loop.
 | T-146 | S019 Daily Sigma intro                                 | Frontend | P1       | UFD 02     | |
 | T-147 | S020 Weekly Challenge intro                            | Frontend | P1       | UFD 02     | |
 | T-148 | S021 Run preview (seed + modifiers + Strains)          | Frontend | P0       | UFD 02     | |
-| T-149 | S022 Floor transition (1s async-gen mask)              | Frontend | P0       | UFD 02     | |
+| T-149 | ~~S022 Floor transition (1s async-gen mask)~~ — **DONE 2026-06-05.** `descendFloor` now chains the existing narration card (T-194) into a new `playFloorRevealMask`: fades to black (180ms), calls `session.descend()` + `renderAll()` while the screen is black, then lifts the mask with a slow Sine fade (700ms) to reveal the new floor — eliminating the abrupt jump-cut on floor change. Mask runs at depth 10 (above all normal content). | Frontend | P0       | UFD 02     | DONE |
 
 ### S-4.4 — FloorScene (S023)
 

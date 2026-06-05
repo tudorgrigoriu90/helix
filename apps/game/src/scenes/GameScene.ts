@@ -1494,17 +1494,36 @@ export class GameScene extends Phaser.Scene {
 
   // ── Floor descent ─────────────────────────────────────────────────────────
 
-  /** S029: brief LACE narration overlay (1.5s) before advancing to the next floor.
-   *  The current map stays visible beneath the card so the player knows where they are. */
+  /** S029 narration card (T-194) → S022 reveal mask (T-149) → new floor. */
   private descendFloor(): void {
     const nextFloor = this.session.snapshot.floorNumber + 1;
-    this.playDescentNarration(nextFloor, () => {
+    this.playDescentNarration(nextFloor, () => this.playFloorRevealMask(() => {
       this.session.descend();
       this.say('floor_enter');
-      playSfx(this, 'sfx_descend');
       this.playFloorMusic();
       this.persist();
       this.renderAll();
+    }));
+  }
+
+  /**
+   * T-149: full-screen black mask that covers the scene while `generate` runs,
+   * then fades out (~700 ms) to reveal the freshly rendered floor.
+   * Depth 10 sits above all normal game content (topGfx=2, overlay=3, menus=5).
+   */
+  private playFloorRevealMask(generate: () => void): void {
+    const mask = this.add.graphics().setDepth(10);
+    mask.fillStyle(0x000000).fillRect(0, 0, W, H);
+    mask.setAlpha(0);
+    this.tweens.add({
+      targets: mask, alpha: 1, duration: 180, ease: 'Sine.easeIn',
+      onComplete: () => {
+        generate();
+        this.tweens.add({
+          targets: mask, alpha: 0, duration: 700, ease: 'Sine.easeOut',
+          onComplete: () => mask.destroy(),
+        });
+      },
     });
   }
 
