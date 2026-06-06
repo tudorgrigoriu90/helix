@@ -10,6 +10,7 @@ import { decideResume } from '../core/run/resume-decision';
 import { createWebStorageAdapter } from '../platform/storage-web';
 import { setAnalyticsAdapter, logEvent } from '../core/platform/analytics-adapter';
 import { consoleAnalytics } from '../platform/analytics-console';
+import { ensureAnonymousAuth } from '../platform/firebase/auth';
 
 /**
  * Boot manager — T-129/T-130/T-132/T-134/T-136.
@@ -106,6 +107,11 @@ export class GameBootScene extends Phaser.Scene {
   }
 
   private startBoot(): void {
+    // T-127: establish the anonymous UID in the background. Best-effort and
+    // non-blocking — the save/resume load and routing never wait on the network,
+    // and the game runs fully offline if sign-in fails.
+    void ensureAnonymousAuth();
+
     // Show a spinner if the load takes more than 400 ms so the screen isn't
     // just black. Most loads complete in <50 ms on-device.
     const spinnerHandle = this.time.delayedCall(400, () => this.showSpinner());
