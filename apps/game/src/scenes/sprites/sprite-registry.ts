@@ -17,32 +17,29 @@ const SPRITE_DIR = 'sprites/';
 
 /** Keys that finished loading as a real texture this session. */
 const loaded = new Set<string>();
-/** Keys we attempted (so a second scene doesn't re-queue them). */
-const attempted = new Set<string>();
 
 /**
  * Queues every manifest sprite for loading in a scene `preload()`. Safe to call
- * from multiple scenes; each key is attempted once. PNGs that 404 are recorded
- * as unavailable rather than throwing.
+ * from multiple scenes; Phaser's own loader deduplicates keys within a single
+ * load cycle, and we skip keys that are already in the texture cache or in
+ * `loaded`, so repeated calls are cheap. PNGs that 404 are silently skipped
+ * and retried on the next scene boot — drawSprite falls back to a primitive
+ * in the meantime.
  */
 export function queueSpriteLoads(scene: Phaser.Scene): void {
   scene.load.on(Phaser.Loader.Events.FILE_COMPLETE, (key: string) => {
     if (SPRITE_BY_KEY.has(key)) loaded.add(key);
   });
-  scene.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key: string }) => {
-    // Remove from attempted so the next scene/restart will retry.
-    // drawSprite falls back to a primitive in the meantime.
-    attempted.delete(file.key);
-  });
 
   for (const spec of SPRITE_MANIFEST) {
-    if (attempted.has(spec.key)) continue;
-    // Already in Phaser's cache from a prior scene — mark as loaded and skip.
+    // Skip keys already confirmed loaded this session.
+    if (loaded.has(spec.key)) continue;
+    // Skip keys already in Phaser's texture cache (loaded by a prior scene).
     if (scene.textures.exists(spec.key)) {
       loaded.add(spec.key);
       continue;
     }
-    attempted.add(spec.key);
+    // Queue the load — Phaser deduplicates within the same load cycle.
     scene.load.image(spec.key, `${SPRITE_DIR}${spec.key}.png`);
   }
 }
