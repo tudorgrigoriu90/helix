@@ -84,6 +84,14 @@ export interface EnemyState {
   readonly statuses: readonly ActiveStatus[];
   /** Scripted wind-up only; `null` for baseline decide-and-act enemies. */
   readonly telegraph: Telegraph | null;
+  /**
+   * Aggro state (GDD §6.1a). An enemy stays *dormant* — holding position, not
+   * acting — until it detects the player (within vision range + line of sight),
+   * then latches `aware: true` and chases for the rest of the encounter even if
+   * the player breaks line of sight. Optional: absent is treated as dormant, so
+   * pre-vision saves load without migration and self-correct on the next phase.
+   */
+  readonly aware?: boolean;
 }
 
 export type TurnPhase =

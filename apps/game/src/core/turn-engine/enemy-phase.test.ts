@@ -43,6 +43,9 @@ function enemy(
     stats: { str: 12, res: 3, agi: 8, int: 5 },
     statuses: [],
     telegraph: null,
+    // Default to already-aware so chase/flank tests exercise active combat;
+    // the vision-gate tests below opt out with `aware: false` explicitly.
+    aware: true,
     ...over,
   };
 }
@@ -250,6 +253,72 @@ describe('resolveEnemyPhase — T-64 (decide-and-act)', () => {
     const moves = result.effects.filter((e) => e.type === 'entityMoved');
     expect(moves[0]).toMatchObject({ entityId: 'a' });
     expect(moves[1]).toMatchObject({ entityId: 'b' });
+  });
+
+  // ── Vision & aggro-on-detect (T-441c) ────────────────────────────────────────
+
+  it('a dormant enemy out of vision range holds position and stays asleep', () => {
+    // 20-wide room; enemy 10 tiles from the player — well past the 6-tile vision
+    // range — so it cannot detect the player and does nothing.
+    const grid: GridState = { width: 20, height: 7, tiles: new Array<TileType>(20 * 7).fill('open') };
+    const state = baseState({
+      grid,
+      player: { ...baseState().player, pos: { x: 3, y: 3 } },
+      enemies: [enemy('e1', { x: 13, y: 3 }, { aware: false })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    expect(result.state.enemies[0]?.pos).toEqual({ x: 13, y: 3 }); // did not move
+    expect(result.state.enemies[0]?.aware).toBe(false); // still dormant
+    expect(result.effects).toEqual([]);
+  });
+
+  it('a dormant enemy wakes, alerts, and acts when the player enters vision', () => {
+    // Enemy 3 tiles away (within range, clear LOS) → detects, latches aware, and
+    // advances this same phase.
+    const state = baseState({ enemies: [enemy('e1', { x: 0, y: 3 }, { aware: false })] });
+    const result = resolveEnemyPhase(state, rng());
+    const e1 = result.state.enemies.find((e) => e.id === 'e1')!;
+    expect(e1.aware).toBe(true); // latched awake
+    expect(e1.pos).not.toEqual({ x: 0, y: 3 }); // stepped toward the player
+    expect(result.effects).toContainEqual({ type: 'enemyAlerted', enemyId: 'e1' });
+  });
+
+  it('a wall between enemy and player blocks detection (no line of sight)', () => {
+    // Enemy at (0,3), player at (4,3), within range — but a wall column at x=2
+    // breaks line of sight, so the enemy stays dormant.
+    const width = 7;
+    const height = 7;
+    const tiles = new Array<TileType>(width * height).fill('open');
+    for (let y = 0; y < height; y++) tiles[y * width + 2] = 'wall';
+    const grid: GridState = { width, height, tiles };
+    const state = baseState({
+      grid,
+      player: { ...baseState().player, pos: { x: 4, y: 3 } },
+      enemies: [enemy('e1', { x: 0, y: 3 }, { aware: false })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    expect(result.state.enemies[0]?.aware).toBe(false); // wall hid the player
+    expect(result.effects).toEqual([]);
+  });
+
+  it('an already-aware enemy keeps chasing even with no line of sight', () => {
+    // Awareness latches: once awake it pursues through walls / past vision range.
+    const grid: GridState = { width: 20, height: 7, tiles: new Array<TileType>(20 * 7).fill('open') };
+    const state = baseState({
+      grid,
+      player: { ...baseState().player, pos: { x: 3, y: 3 } },
+      enemies: [enemy('e1', { x: 13, y: 3 }, { aware: true })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    expect(result.state.enemies[0]?.pos).not.toEqual({ x: 13, y: 3 }); // still hunting
+  });
+
+  it('only emits the alert tell on the waking phase, not on later turns', () => {
+    const s1 = baseState({ enemies: [enemy('e1', { x: 1, y: 3 }, { aware: false })] });
+    const r1 = resolveEnemyPhase(s1, rng());
+    expect(r1.effects).toContainEqual({ type: 'enemyAlerted', enemyId: 'e1' });
+    const r2 = resolveEnemyPhase(r1.state, rng());
+    expect(r2.effects.some((e) => e.type === 'enemyAlerted')).toBe(false); // already awake
   });
 
   // ── Purity ─────────────────────────────────────────────────────────────────

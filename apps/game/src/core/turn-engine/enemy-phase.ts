@@ -4,6 +4,7 @@ import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import { chebyshev, inBounds, tileAt } from './grid';
 import { bfsDistanceField, fieldAt, UNREACHABLE } from './pathfind';
+import { canDetect } from './visibility';
 import { damageTo, isImmobilized } from './effective-stats';
 import { HAZARD_DAMAGE } from './combat';
 
@@ -59,8 +60,33 @@ function resolveEnemyAction(state: RunState, enemyId: string, claimed: Set<strin
   // could remove an entry between iterations. Branch intentionally uncovered.
   if (enemy === undefined || enemy.hp <= 0) return { state, effects: [] };
 
-  // Baseline chase AI, decided against the current board: strike if in melee
-  // reach, otherwise advance toward an open flanking position.
+  // Vision gate (T-441c, GDD §6.1a): a dormant enemy holds position until it
+  // detects the player. Awareness latches once triggered, so an alerted enemy
+  // keeps chasing even after the player breaks line of sight.
+  if (enemy.aware !== true) {
+    if (!canDetect(state.grid, enemy.pos, state.player.pos)) {
+      return { state, effects: [] }; // still asleep — does nothing this phase
+    }
+    // Just woke: latch awareness onto this enemy and emit an alert tell, then
+    // act on the *updated* state so the flag persists in the returned snapshot.
+    const woken = { ...enemy, aware: true };
+    const awareState: RunState = {
+      ...state,
+      enemies: state.enemies.map((e) => (e.id === enemy.id ? woken : e)),
+    };
+    const acted = act(awareState, woken, claimed);
+    return { state: acted.state, effects: [{ type: 'enemyAlerted', enemyId: enemy.id }, ...acted.effects] };
+  }
+
+  return act(state, enemy, claimed);
+}
+
+/**
+ * Baseline chase behaviour for an already-aware enemy, decided against the
+ * current board: strike if the player is in melee reach, otherwise advance
+ * toward an open flanking position.
+ */
+function act(state: RunState, enemy: EnemyState, claimed: Set<string>): EnemyPhaseResult {
   if (chebyshev(enemy.pos, state.player.pos) <= ENEMY_MELEE_RANGE) {
     return enemyAttack(state, enemy, enemy.stats.str);
   }

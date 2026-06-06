@@ -14,5 +14,6 @@ export type Effect =
   | { readonly type: 'victory' }
   | { readonly type: 'defeat'; readonly cause: DeathCause }
   | { readonly type: 'telegraphUpdated'; readonly enemyId: string; readonly telegraph: string | null }
+  | { readonly type: 'enemyAlerted'; readonly enemyId: string }
   | { readonly type: 'abilityUsed'; readonly entityId: string; readonly abilityId: string }
   | { readonly type: 'itemUsed'; readonly itemId: string };

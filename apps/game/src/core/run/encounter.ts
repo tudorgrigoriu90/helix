@@ -55,6 +55,8 @@ export function buildEncounterState(params: EncounterParams): RunState {
       stats: scaledStats(def.stats, floorNumber),
       statuses: [],
       telegraph: null,
+      // Enemies spawn dormant (GDD §6.1a) and wake when they detect the player.
+      aware: false,
     };
   });
 
