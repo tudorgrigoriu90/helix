@@ -55,7 +55,7 @@ export const billingCap = onMessagePublished(
     }
 
     const { costAmount, budgetAmount, currencyCode } = payload;
-    console.log(`[billing-cap] cost=$${costAmount} budget=$${budgetAmount} ${currencyCode}`);
+    console.warn(`[billing-cap] cost=$${costAmount} budget=$${budgetAmount} ${currencyCode}`);
 
     let result: Awaited<ReturnType<typeof handleBudgetAlert>>;
     try {
@@ -67,10 +67,10 @@ export const billingCap = onMessagePublished(
 
     switch (result) {
       case 'under-budget':
-        console.log('[billing-cap] under budget — no action');
+        console.warn('[billing-cap] under budget — no action');
         break;
       case 'already-disabled':
-        console.log('[billing-cap] billing already disabled — no-op');
+        console.warn('[billing-cap] billing already disabled — no-op');
         break;
       case 'disabled':
         console.error(
