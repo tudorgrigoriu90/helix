@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { addBackButton } from './settings-back-button';
 
 /**
  * S092 Accessibility settings — T-212 (GDD §17, NFR a11y).
@@ -29,6 +30,12 @@ const C = {
 
 type FontSize = 'small' | 'normal' | 'large';
 
+/** Preview point-size for each font-size choice. */
+const FONT_PX: Record<FontSize, number> = { small: 11, normal: 15, large: 21 };
+
+/** Higher-legibility stack used when the dyslexia-friendly toggle is on. */
+const DYSLEXIA_FONT = 'Verdana, Tahoma, sans-serif';
+
 export class AccessibilitySettingsScene extends Phaser.Scene {
   private meta: MetaState = newMetaState();
   private cogLoadReduced = false;
@@ -49,7 +56,8 @@ export class AccessibilitySettingsScene extends Phaser.Scene {
     this.buildCogLoad(132);
     this.buildDyslexia(224);
     this.buildFontSize(316);
-    this.buildBackButton();
+    this.buildPreview(420);
+    addBackButton(this, () => this.scene.start('SettingsScene', { meta: this.meta }));
   }
 
   private buildHeader(): void {
@@ -92,6 +100,25 @@ export class AccessibilitySettingsScene extends Phaser.Scene {
     });
   }
 
+  /** Live preview reflecting the current font-size (and dyslexia-font) choice,
+   *  so the controls visibly change something. */
+  private buildPreview(y: number): void {
+    const boxH = 96;
+    const g = this.add.graphics();
+    g.fillStyle(C.surface).fillRoundedRect(24, y, W - 48, boxH, 10);
+    g.lineStyle(1, C.border).strokeRoundedRect(24, y, W - 48, boxH, 10);
+
+    this.add.text(42, y + 12, 'PREVIEW', {
+      fontFamily: 'monospace', fontSize: '9px', color: C.dim, letterSpacing: 2,
+    });
+
+    const fontFamily = this.dyslexiaFont ? DYSLEXIA_FONT : 'monospace';
+    this.add.text(W / 2, y + 56, 'The VEIN whispers back.', {
+      fontFamily, fontSize: `${FONT_PX[this.fontSize]}px`, color: C.text,
+      align: 'center', wordWrap: { width: W - 80 },
+    }).setOrigin(0.5);
+  }
+
   private buildToggle(
     y: number,
     label: string,
@@ -126,12 +153,4 @@ export class AccessibilitySettingsScene extends Phaser.Scene {
     zone.on('pointerdown', () => { set(!get()); drawPill(); });
   }
 
-  private buildBackButton(): void {
-    const y = H - 52;
-    const t = this.add.text(CX, y, '← BACK', { fontFamily: 'monospace', fontSize: '11px', color: C.dim }).setOrigin(0.5);
-    const zone = this.add.zone(CX - 50, y - 12, 100, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    zone.on('pointerdown', () => this.scene.start('SettingsScene', { meta: this.meta }));
-    zone.on('pointerover', () => t.setColor(C.accent));
-    zone.on('pointerout',  () => t.setColor(C.dim));
-  }
 }

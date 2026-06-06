@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { addBackButton } from './settings-back-button';
 
 /**
  * S097 Support / contact — T-217.
@@ -43,7 +44,7 @@ export class SupportScene extends Phaser.Scene {
     this.add.graphics().fillStyle(C.bg).fillRect(0, 0, W, H);
     this.buildHeader();
     this.buildCards();
-    this.buildBackButton();
+    addBackButton(this, () => this.scene.start('SettingsScene', { meta: this.meta }));
   }
 
   private buildHeader(): void {
@@ -115,12 +116,4 @@ export class SupportScene extends Phaser.Scene {
     }).setOrigin(0.5, 0);
   }
 
-  private buildBackButton(): void {
-    const y = H - 52;
-    const t = this.add.text(CX, y, '← BACK', { fontFamily: 'monospace', fontSize: '11px', color: C.dim }).setOrigin(0.5);
-    const zone = this.add.zone(CX - 50, y - 12, 100, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    zone.on('pointerdown', () => this.scene.start('SettingsScene', { meta: this.meta }));
-    zone.on('pointerover', () => t.setColor(C.accent));
-    zone.on('pointerout',  () => t.setColor(C.dim));
-  }
 }

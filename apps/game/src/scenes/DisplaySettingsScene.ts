@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { addBackButton } from './settings-back-button';
 
 /**
  * S091 Display settings — T-211 (NFR a11y).
@@ -29,11 +30,11 @@ const C = {
 
 type ColorBlindMode = 'none' | 'deuteranopia' | 'protanopia' | 'tritanopia';
 
-const COLOR_BLIND_MODES: Array<{ id: ColorBlindMode; label: string }> = [
-  { id: 'none',         label: 'OFF'          },
-  { id: 'deuteranopia', label: 'Deuteranopia' },
-  { id: 'protanopia',   label: 'Protanopia'   },
-  { id: 'tritanopia',   label: 'Tritanopia'   },
+const COLOR_BLIND_MODES: Array<{ id: ColorBlindMode; label: string; note: string }> = [
+  { id: 'none',         label: 'OFF',          note: 'Default palette'           },
+  { id: 'deuteranopia', label: 'DEUTERANOPIA', note: 'Red-green · most common'   },
+  { id: 'protanopia',   label: 'PROTANOPIA',   note: 'Red-weak'                  },
+  { id: 'tritanopia',   label: 'TRITANOPIA',   note: 'Blue-yellow · rare'        },
 ];
 
 export class DisplaySettingsScene extends Phaser.Scene {
@@ -54,7 +55,7 @@ export class DisplaySettingsScene extends Phaser.Scene {
     this.buildHeader();
     this.buildColorBlind();
     this.buildReducedMotion();
-    this.buildBackButton();
+    addBackButton(this, () => this.scene.start('SettingsScene', { meta: this.meta }));
   }
 
   private buildHeader(): void {
@@ -65,41 +66,41 @@ export class DisplaySettingsScene extends Phaser.Scene {
   }
 
   private buildColorBlind(): void {
-    const topY = 132;
+    const topY = 130;
     this.add.text(24, topY, 'COLOUR-BLIND MODE', {
       fontFamily: 'monospace', fontSize: '11px', color: C.dim, letterSpacing: 2,
     });
-    this.add.text(24, topY + 20, 'Adjusts palette to simulate each mode.', {
+    this.add.text(24, topY + 20, 'Adjusts the palette to improve contrast.', {
       fontFamily: 'monospace', fontSize: '10px', color: C.dim,
     });
 
-    const btnY = topY + 50;
-    const btnW = (W - 48 - 12 * 3) / 4;
+    const rowH = 46;
+    const gap = 8;
     COLOR_BLIND_MODES.forEach((mode, i) => {
-      const x = 24 + i * (btnW + 12);
+      const y = topY + 48 + i * (rowH + gap);
+      const active = this.colorBlindMode === mode.id;
       const g = this.add.graphics();
-      const redraw = (): void => {
-        g.clear();
-        const active = this.colorBlindMode === mode.id;
-        g.fillStyle(active ? 0x1a3028 : C.surface).fillRoundedRect(x, btnY, btnW, 40, 8);
-        g.lineStyle(active ? 2 : 1, active ? C.accentN : C.border).strokeRoundedRect(x, btnY, btnW, 40, 8);
-      };
-      redraw();
-      const t = this.add.text(x + btnW / 2, btnY + 20, mode.label, {
-        fontFamily: 'monospace', fontSize: '10px', color: this.colorBlindMode === mode.id ? C.accent : C.dim,
-      }).setOrigin(0.5);
-      const zone = this.add.zone(x, btnY, btnW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      g.fillStyle(active ? 0x1a3028 : C.surface).fillRoundedRect(24, y, W - 48, rowH, 8);
+      g.lineStyle(active ? 2 : 1, active ? C.accentN : C.border).strokeRoundedRect(24, y, W - 48, rowH, 8);
+
+      this.add.text(42, y + rowH / 2, mode.label, {
+        fontFamily: 'monospace', fontSize: '12px', color: active ? C.accent : C.text, letterSpacing: 1,
+      }).setOrigin(0, 0.5);
+      this.add.text(W - 42, y + rowH / 2, mode.note, {
+        fontFamily: 'monospace', fontSize: '10px', color: C.dim,
+      }).setOrigin(1, 0.5);
+
+      const zone = this.add.zone(24, y, W - 48, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => {
         this.colorBlindMode = mode.id;
-        // Rebuild to refresh all buttons' appearance
         this.scene.restart({ meta: this.meta });
       });
-      void t; void redraw;
     });
   }
 
   private buildReducedMotion(): void {
-    const y = 284;
+    // Below the 4 colour-blind rows (which end at ~378).
+    const y = 398;
     this.buildToggle(y, 'REDUCED MOTION', 'Skips non-essential animations.', () => this.reducedMotion, (v) => { this.reducedMotion = v; });
   }
 
@@ -141,12 +142,4 @@ export class DisplaySettingsScene extends Phaser.Scene {
     zone.on('pointerdown', () => { set(!get()); drawPill(); });
   }
 
-  private buildBackButton(): void {
-    const y = H - 52;
-    const t = this.add.text(CX, y, '← BACK', { fontFamily: 'monospace', fontSize: '11px', color: C.dim }).setOrigin(0.5);
-    const zone = this.add.zone(CX - 50, y - 12, 100, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    zone.on('pointerdown', () => this.scene.start('SettingsScene', { meta: this.meta }));
-    zone.on('pointerover', () => t.setColor(C.accent));
-    zone.on('pointerout',  () => t.setColor(C.dim));
-  }
 }

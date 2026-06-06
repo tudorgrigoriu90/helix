@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { addBackButton } from './settings-back-button';
 import {
   getCategoryVolume,
   setCategoryVolume,
@@ -59,7 +60,7 @@ export class AudioSettingsScene extends Phaser.Scene {
     this.add.graphics().fillStyle(C.bg).fillRect(0, 0, W, H);
     this.buildHeader();
     SLIDERS.forEach((def, i) => this.buildSlider(def, 200 + i * 130));
-    this.buildBackButton();
+    addBackButton(this, () => this.scene.start('SettingsScene', { meta: this.meta }));
   }
 
   // ── Header ───────────────────────────────────────────────────────────────
@@ -130,14 +131,4 @@ export class AudioSettingsScene extends Phaser.Scene {
     this.input.on(Phaser.Input.Events.POINTER_UP, () => { active = false; });
   }
 
-  // ── Back button ───────────────────────────────────────────────────────────
-
-  private buildBackButton(): void {
-    const y = H - 52;
-    const t = this.add.text(CX, y, '← BACK', { fontFamily: 'monospace', fontSize: '11px', color: C.dim }).setOrigin(0.5);
-    const zone = this.add.zone(CX - 50, y - 12, 100, 32).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-    zone.on('pointerdown', () => this.scene.start('SettingsScene', { meta: this.meta }));
-    zone.on('pointerover', () => t.setColor(C.accent));
-    zone.on('pointerout',  () => t.setColor(C.dim));
-  }
 }
