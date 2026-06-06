@@ -67,6 +67,14 @@ The verdict from that slice: the loop holds up — which is why the **Genetic Mu
 
 Status markers in the tables below were reconciled against git history on 2026-05-29; rows that shipped during the vertical-slice push but were left blank have been flipped to DONE with their commit noted.
 
+### Layout & Button-Format Pass (2026-06-06)
+
+Playtest screenshot of the VEIN Dispenser showed cards overflowing under a non-standard ad button and the LEAVE button. A thorough sweep of every full-screen view turned up several fixed-pitch list layouts that overflow with realistic item counts, plus two inconsistent back-button formats. Three commits:
+
+- **In-run list overflow (shop / inventory / loot / swap).** The Dispenser stocked up to 6 items (GDD §10.3) at a 66px pitch but only ~4 fit before the bottom button row; the inline blue "WATCH AD — REFRESH STOCK" button (a one-off full-width format) sat *inside* the stage and the last cards ran under it and under LEAVE. The inventory was worse — up to 11 items (6 consumable + 3 passive + 2 equipment slot limits) at a fixed 60px pitch ran off-screen past CLOSE. Added a shared `listMetrics(top, count, naturalStep)` helper that compresses the row pitch so any list fits between its top and the stage bottom, never colliding with the bottom button row. Applied to shop, inventory, swap, and loot; rows keep natural size until the list is full, then shrink, and below 44px the `itemRow` two-line layout collapses to a single centred line. The shop's ad refresh now shares the standard `button()` row next to LEAVE (`↻ REFRESH`) instead of its own style.
+- **Unified back-button format (Settings root + Origin Select).** Both used a tiny 11px text-only "← BACK" (80×28 zone) while all seven settings sub-scenes use the boxed `addBackButton` (200×50 with hover states). Both now call `addBackButton` for one consistent format. SettingsScene also overflowed — 7 rows at an 84px+12 pitch ended at y=792 under the old back text; rows compressed to 76px (88px pitch) so the last ends ~736, clear of the boxed back at y=772. OriginSelect's CONFIRM moved up 12px (H-132) so the boxed back at y=776 sits cleanly below it.
+- Verified: typecheck + eslint + web build all green.
+
 ### Room Re-entry Exploit Fix (2026-06-06)
 
 Two exploitable bugs fixed — rooms that grant one-time rewards (safe-room heal, event-room VEIN/HP choice) were firing again on every re-entry:
