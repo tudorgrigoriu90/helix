@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { addBackButton } from './settings-back-button';
 
 /**
  * S083 Settings root — T-202.
@@ -64,7 +65,7 @@ export class SettingsScene extends Phaser.Scene {
     this.add.graphics().fillStyle(C.bg).fillRect(0, 0, W, H);
     this.buildHeader();
     this.buildRows();
-    this.buildBackButton();
+    addBackButton(this, () => this.scene.start('HubScene', { meta: this.meta }), 772);
   }
 
   // ── Header ───────────────────────────────────────────────────────────────
@@ -93,8 +94,10 @@ export class SettingsScene extends Phaser.Scene {
   // ── Category rows ──────────────────────────────────────────────────────────
 
   private buildRows(): void {
+    // 7 rows must clear the boxed back button at y=772; a 76px row + 12px gap
+    // (88px pitch) ends the last row at ~736, leaving a clean margin.
     const top = 132;
-    const rowH = 84;
+    const rowH = 76;
     const gap = 12;
 
     ROWS.forEach((row, i) => {
@@ -148,23 +151,4 @@ export class SettingsScene extends Phaser.Scene {
     });
   }
 
-  // ── Back button ───────────────────────────────────────────────────────────
-
-  private buildBackButton(): void {
-    const y = H - 52;
-    const backText = this.add.text(CX, y, '← BACK', {
-      fontFamily: 'monospace', fontSize: '11px', color: C.dim,
-    }).setOrigin(0.5);
-
-    const zone = this.add
-      .zone(CX - 40, y - 10, 80, 28)
-      .setOrigin(0, 0)
-      .setInteractive({ useHandCursor: true });
-
-    zone.on('pointerdown', () => {
-      this.scene.start('HubScene', { meta: this.meta });
-    });
-    zone.on('pointerover', () => backText.setColor(C.accent));
-    zone.on('pointerout', () => backText.setColor(C.dim));
-  }
 }

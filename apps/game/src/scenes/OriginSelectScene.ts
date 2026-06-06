@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { addBackButton } from './settings-back-button';
 
 /**
  * S018 Origin Select — T-145.
@@ -74,7 +75,7 @@ export class OriginSelectScene extends Phaser.Scene {
     this.buildCarousel();
     this.buildDots();
     this.buildConfirmButton();
-    this.buildBackButton();
+    addBackButton(this, () => this.scene.start('HubScene', { meta: this.meta }), 776);
   }
 
   // ── Header ───────────────────────────────────────────────────────────────
@@ -211,7 +212,7 @@ export class OriginSelectScene extends Phaser.Scene {
   // ── Confirm button ────────────────────────────────────────────────────────
 
   private buildConfirmButton(): void {
-    const btnY = H - 120;
+    const btnY = H - 132; // sits above the boxed back button at y=776
     const btnW = 260;
     const btnX = CX - btnW / 2;
     const btnH = 56;
@@ -247,23 +248,4 @@ export class OriginSelectScene extends Phaser.Scene {
     });
   }
 
-  // ── Back button ───────────────────────────────────────────────────────────
-
-  private buildBackButton(): void {
-    const y = H - 52;
-    const backText = this.add.text(CX, y, '← BACK', {
-      fontFamily: 'monospace', fontSize: '11px', color: C.dim,
-    }).setOrigin(0.5);
-
-    const zone = this.add
-      .zone(CX - 40, y - 10, 80, 28)
-      .setOrigin(0, 0)
-      .setInteractive({ useHandCursor: true });
-
-    zone.on('pointerdown', () => {
-      this.scene.start('HubScene', { meta: this.meta });
-    });
-    zone.on('pointerover', () => backText.setColor(C.accent));
-    zone.on('pointerout', () => backText.setColor(C.dim));
-  }
 }
