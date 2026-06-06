@@ -67,6 +67,10 @@ The verdict from that slice: the loop holds up — which is why the **Genetic Mu
 
 Status markers in the tables below were reconciled against git history on 2026-05-29; rows that shipped during the vertical-slice push but were left blank have been flipped to DONE with their commit noted.
 
+### Blaze-Gated Features Parked (2026-06-06)
+
+Decision: remain on Firebase **Spark (free)** for the foreseeable future. All features that require Firebase Blaze (pay-as-you-go) — Cloud Functions, leaderboards, daily/weekly challenges, Sigma Echo run upload, server-side receipt validation — are **parked until post-launch**. Remote Config kill-switches for all five features are already hard-coded `false` in the binary (T-40), so no Blaze feature can accidentally activate. The billing-cap Cloud Function (T-38) is implemented and ready to deploy the moment Blaze is enabled; budget-alert setup (T-37) becomes relevant at that point too. Firestore, Auth, Hosting, Analytics, and Remote Config all run on Spark without restriction for pre-launch and closed-alpha scale.
+
 ### Coverage Gate (T-390) + Schema Backlog Reconciliation (2026-06-06)
 
 T-389 (Vitest config) and T-282/T-285/T-286 (content schemas) were already fully implemented but left blank in the tables; marked DONE. T-390 wired properly:
@@ -201,9 +205,9 @@ Two playtest bugs fixed and the player-facing shell de-cluttered, one commit:
 | ID    | Title                                                                 | Role     | Priority | Refs       | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
 | T-35  | ~~Create Firebase project (Spark free tier)~~ — **DONE 2026-05-28.** Project ID: `strand-descent`. `firebase.json` + `.firebaserc` committed to main. | DevOps | P0 | TDD §2.2 | DONE |
-| T-36  | Enable: Auth (anonymous only), Firestore, Functions (Node 20), Hosting, Analytics, Crashlytics, FCM, Remote Config — **PARTIAL 2026-05-28.** Hosting enabled and wired to CI (T-29). Remaining services (Auth, Firestore, Functions, Analytics, Crashlytics, FCM, Remote Config) to be enabled before E-6 backend work begins. | DevOps | P0 | TDD §2.2 | PARTIAL |
-| T-37  | Configure budget alerts at $5 / $20 / $50 thresholds                  | DevOps   | P0       | TDD §11.7  | NFR P3 |
-| T-38  | ~~Set hard billing cap at $50/month via Cloud Billing API~~ — **DONE 2026-06-06.** `functions/` Cloud Functions workspace added to pnpm monorepo. `functions/src/billing-cap-handler.ts`: pure `handleBudgetAlert(payload, client, projectId)` logic — returns `'under-budget'` / `'already-disabled'` / `'disabled'` (strict `>` comparison, idempotent). `functions/src/billing-cap.ts`: `onMessagePublished({ topic: 'billing-budget' })` Gen-2 trigger wires the Google Cloud Billing API client and delegates to the handler; malformed payloads and API errors are caught, never throw. `functions/src/index.ts` re-exports. 5 unit tests, all green. `firebase.json` updated with `functions` block. **Director prerequisites: (1) upgrade to Blaze, (2) create $50 budget "Monthly Cap" with Pub/Sub topic `billing-budget`, (3) grant the Cloud Functions service account `roles/billing.projectManager` on the billing account, (4) `firebase deploy --only functions`.** | DevOps   | P0       | TDD §11.7  | DONE |
+| T-36  | Enable: Auth (anonymous only), Firestore, Functions (Node 20), Hosting, Analytics, Crashlytics, FCM, Remote Config — **PARTIAL 2026-05-28; updated 2026-06-06.** Hosting enabled and wired to CI (T-29). Auth (anonymous) and Firestore enabled by Director (confirmed). Functions enablement **deferred** — Blaze upgrade parked until post-launch, so Cloud Functions cannot be deployed yet. Analytics, Remote Config enabled. Crashlytics/FCM deferred (native-only, needed for T-251 and push notifications). | DevOps | P0 | TDD §2.2 | PARTIAL |
+| T-37  | Configure budget alerts at $5 / $20 / $50 thresholds — **PARKED (2026-06-06).** Only relevant once Blaze is enabled. Do this immediately before upgrading; do not upgrade without it. | DevOps   | P0       | TDD §11.7  | PARKED — Blaze required |
+| T-38  | ~~Set hard billing cap at $50/month via Cloud Billing API~~ — **CODE DONE 2026-06-06; DEPLOY PARKED.** `functions/src/billing-cap-handler.ts` + `billing-cap.ts` + 5 tests all committed. Deploy is blocked until Blaze is enabled (Cloud Functions require Blaze). **Do T-37 + Blaze upgrade first, then: `firebase deploy --only functions`.** | DevOps   | P0       | TDD §11.7  | PARKED (deploy) |
 | T-39  | ~~Apply Firestore Security Rules per TDD §17.6~~ — **DONE 2026-06-06.** `firestore.rules` (+ empty `firestore.indexes.json`), wired into `firebase.json` under a `firestore` block. Default-deny; `isOwner(uid)` gates `users/{uid}` and all subcollections (per-uid isolation, **satisfies T-265**); `runs_anon` public-read + auth-create only (no client update/delete); `daily_signals`/`weekly_challenges`/`leaderboards` public-read, client-write denied (CF/Admin-SDK only, **satisfies T-266**). Deploy with `firebase deploy --only firestore:rules`. | Backend  | P1       | TDD §17.6  | DONE |
 | T-40  | ~~Configure Remote Config defaults (all `feature.*` = false in binary)~~ — **DONE 2026-06-06.** `platform/firebase/remote-config.ts`: `FEATURE_DEFAULTS` hard-codes all five kill-switches (`feature.sigma_echoes`/`daily_signal`/`weekly_challenge`/`cloud_sync`/`leaderboards`) to `false`; `initRemoteConfig()` fetch-and-activates best-effort (non-blocking, resolves false on any failure); `featureEnabled(flag)` reads the activated value or falls back to the OFF default (non-browser / pre-activation / error). Wired into `GameBootScene.startBoot()`. A RC outage or pre-fetch state can never enable a backend feature (TDD §11.6). 4 fail-safe tests; typecheck + lint + web build green. **Director: set these 5 params to your chosen values in the Firebase console (defaults stay OFF until then).** | Backend  | P1       | TDD §11.6  | DONE |
 
@@ -569,8 +573,8 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-217 | ~~S097 Support / contact~~ — **DONE 2026-06-05.** New `SupportScene`: three contact-row cards (GENERAL SUPPORT / BUG REPORTS / PRIVACY INQUIRIES) each with a `mailto:` link (`window.open`), and a note about App Store / Play Store reviews. Required for App Store / Play Store compliance (support URL). SettingsScene now has a 7th SUPPORT row. | Frontend | P0       | UFD 05     | DONE |
 | T-218 | S098 Sync OK                                                                   | Frontend | P2       | UFD 05     | |
 | T-219 | S099 Sync conflict modal (contradictory only)                                  | Frontend | P2       | UFD 05     | |
-| T-220 | S110 Data export confirm (hashed UID via Cloud Function)                       | Frontend | P2       | UFD 05     | NFR P6 |
-| T-221 | S111 Delete account (7-day soft delete + hard delete CF)                       | Frontend | P2       | UFD 05     | NFR P6 |
+| T-220 | S110 Data export confirm (hashed UID via Cloud Function) — **PARKED (2026-06-06).** Depends on T-274 CF; needs Blaze. | Frontend | P4       | UFD 05     | PARKED — Blaze required |
+| T-221 | S111 Delete account (7-day soft delete + hard delete CF) — **PARKED (2026-06-06).** Depends on T-275 CF; needs Blaze. | Frontend | P4       | UFD 05     | PARKED — Blaze required |
 
 ---
 
@@ -647,16 +651,18 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 ## E-6 — Backend (Firebase)
 
+> **PARKED (2026-06-06) — Blaze required.** The entire E-6 backend (Cloud Functions, leaderboards, daily/weekly challenges, Sigma Echo run upload, cache layer) is parked until post-launch when the project upgrades to Firebase Blaze. Security rules (T-265/T-266) and Remote Config kill-switches (T-279/T-280) are already done and enforce the safe default-OFF posture. T-259/T-260 (user schema) proceeds independently on Spark as part of cloud-sync (S-5.2).
+
 ### S-6.1 — Firestore schema & rules
 
 | ID    | Title                                                                 | Role     | Priority | Refs       | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | ---------- | ----- |
 | T-259 | `users/{uid}` collection schema                                       | Backend  | P1       | TDD §11.2  | |
 | T-260 | `users/{uid}/meta/state` mirror                                       | Backend  | P1       | TDD §11.2  | |
-| T-261 | `runs_anon/{runId}` collection (Sigma Echo)                           | Backend  | P1       | TDD §11.2  | No uid linkage stored |
-| T-262 | `daily_signals/{date}` collection                                     | Backend  | P1       | TDD §11.2  | |
-| T-263 | `weekly_challenges/{isoWeek}` collection                              | Backend  | P1       | TDD §11.2  | |
-| T-264 | `leaderboards/{boardId}/entries/{entryId}` collections                | Backend  | P1       | TDD §11.2  | |
+| T-261 | `runs_anon/{runId}` collection (Sigma Echo) — **PARKED (2026-06-06).** Written by CF only; needs Blaze. | Backend  | P4       | TDD §11.2  | PARKED — Blaze required |
+| T-262 | `daily_signals/{date}` collection — **PARKED (2026-06-06).** Generated by scheduled CF; needs Blaze. | Backend  | P4       | TDD §11.2  | PARKED — Blaze required |
+| T-263 | `weekly_challenges/{isoWeek}` collection — **PARKED (2026-06-06).** Generated by scheduled CF; needs Blaze. | Backend  | P4       | TDD §11.2  | PARKED — Blaze required |
+| T-264 | `leaderboards/{boardId}/entries/{entryId}` collections — **PARKED (2026-06-06).** Written by CF only; needs Blaze. | Backend  | P4       | TDD §11.2  | PARKED — Blaze required |
 | T-265 | ~~Security Rules: per-uid read/write isolation~~ — **DONE 2026-06-06** (with T-39). `isOwner(uid)` gates `users/{uid}` + all subcollections in `firestore.rules`. | Backend  | P1       | TDD §17.6  | DONE |
 | T-266 | ~~Security Rules: leaderboards read-only client; write via CF only~~ — **DONE 2026-06-06** (with T-39). `leaderboards/{boardId}` + `entries` are public-read, client-write denied (Admin SDK only) in `firestore.rules`. | Backend  | P1       | TDD §17.6  | DONE |
 
@@ -664,36 +670,36 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-267 | `cache.ts` `fetchCached<T>(key, ttl, fetcher)`         | Game Engineer | P1 | TDD §12  | NFR P3 |
-| T-268 | Stale-while-revalidate behavior                        | Game Engineer | P1 | TDD §12  | |
-| T-269 | Cache TTLs per resource (R3-R6 rules)                  | Game Engineer | P1 | TDD §11.4 | |
+| T-267 | `cache.ts` `fetchCached<T>(key, ttl, fetcher)` — **PARKED (2026-06-06).** No backend resources to cache until Blaze features land. | Game Engineer | P4 | TDD §12  | PARKED — Blaze required |
+| T-268 | Stale-while-revalidate behavior — **PARKED (2026-06-06).** | Game Engineer | P4 | TDD §12  | PARKED — Blaze required |
+| T-269 | Cache TTLs per resource (R3-R6 rules) — **PARKED (2026-06-06).** | Game Engineer | P4 | TDD §11.4 | PARKED — Blaze required |
 
 ### S-6.3 — Cloud Functions
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-270 | `generateDailySignal` scheduled function (00:00 UTC)   | Backend  | P1       | TDD §11.3  | |
-| T-271 | `generateWeeklyChallenge` scheduled function (Mon 00:00 UTC) | Backend | P1 | TDD §11.3  | |
-| T-272 | `validatePurchase` triggered function (Apple/Google receipt verification) | Backend | P2 | TDD §11.3, §17.5 | NFR P6 |
-| T-273 | `pruneOldRuns` scheduled weekly (>30d cleanup)         | Backend  | P2       | TDD §11.3  | |
-| T-274 | Data export Cloud Function (hashed UID return)         | Backend  | P2       | TDD §17.4  | NFR P6 |
-| T-275 | Account-delete Cloud Function (7-day soft + hard delete) | Backend | P2 | TDD §17.4 | NFR P6 |
+| T-270 | `generateDailySignal` scheduled function (00:00 UTC) — **PARKED (2026-06-06).** Needs Blaze. | Backend  | P4       | TDD §11.3  | PARKED — Blaze required |
+| T-271 | `generateWeeklyChallenge` scheduled function (Mon 00:00 UTC) — **PARKED (2026-06-06).** Needs Blaze. | Backend | P4 | TDD §11.3  | PARKED — Blaze required |
+| T-272 | `validatePurchase` triggered function (Apple/Google receipt verification) — **PARKED (2026-06-06).** Needs Blaze. | Backend | P4 | TDD §11.3, §17.5 | PARKED — Blaze required |
+| T-273 | `pruneOldRuns` scheduled weekly (>30d cleanup) — **PARKED (2026-06-06).** Needs Blaze. | Backend  | P4       | TDD §11.3  | PARKED — Blaze required |
+| T-274 | Data export Cloud Function (hashed UID return) — **PARKED (2026-06-06).** Needs Blaze. | Backend  | P4       | TDD §17.4  | PARKED — Blaze required |
+| T-275 | Account-delete Cloud Function (7-day soft + hard delete) — **PARKED (2026-06-06).** Needs Blaze. | Backend | P4 | TDD §17.4 | PARKED — Blaze required |
 
 ### S-6.4 — Sigma Echo system
 
 | ID    | Title                                                                 | Role     | Priority | Refs           | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | -------------- | ----- |
-| T-276 | Anonymized run upload on run completion (build, floors, name, death cause) | Backend | P1 | TDD §11.2, GDD §10.4 | NFR P6 |
-| T-277 | Echo fetch query (capped 3/session client-side)                       | Backend  | P1       | TDD §11.4, R2  | NFR P3 |
-| T-278 | 24h client-side cache                                                 | Game Engineer | P1 | TDD §11.4 | |
+| T-276 | Anonymized run upload on run completion (build, floors, name, death cause) — **PARKED (2026-06-06).** Writes to `runs_anon`; needs Blaze + CF. | Backend | P4 | TDD §11.2, GDD §10.4 | PARKED — Blaze required |
+| T-277 | Echo fetch query (capped 3/session client-side) — **PARKED (2026-06-06).** No data until T-276 lands. | Backend  | P4       | TDD §11.4, R2  | PARKED — Blaze required |
+| T-278 | 24h client-side cache — **PARKED (2026-06-06).** Depends on T-276/T-277. | Game Engineer | P4 | TDD §11.4 | PARKED — Blaze required |
 
 ### S-6.5 — Remote Config kill switches
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-279 | All `feature.*` flags default OFF in binary            | Backend  | P1       | TDD §11.6  | NFR P3 |
-| T-280 | Flag fetch + cache integration                         | Game Engineer | P1 | TDD §11.6 | |
-| T-281 | Runtime kill-switch hooks per backend feature          | Game Engineer | P1 | TDD §11.6 | |
+| T-279 | ~~All `feature.*` flags default OFF in binary~~ — **DONE 2026-06-06** (with T-40). All 5 kill-switches hard-coded `false` in `FEATURE_DEFAULTS`. | Backend  | P1       | TDD §11.6  | DONE |
+| T-280 | ~~Flag fetch + cache integration~~ — **DONE 2026-06-06** (with T-40). `initRemoteConfig()` fetches and activates on boot; `featureEnabled(flag)` reads live value or falls back to OFF default. | Game Engineer | P1 | TDD §11.6 | DONE |
+| T-281 | Runtime kill-switch hooks per backend feature — **PARKED (2026-06-06).** Hook points only matter when a Blaze feature is ready to be gated; implement alongside each feature. | Game Engineer | P4 | TDD §11.6 | PARKED — Blaze required |
 
 ---
 
@@ -834,7 +840,7 @@ See T-294, T-300, T-310 in E-7. Codex stays in-house (Director's voice).
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-345 | App Store Connect SKU registration (Pass m/y + cosmetics + Shards) | Director | P2 | TDD §2.3 | |
 | T-346 | Google Play Console SKU registration (same set)        | Director | P2       | TDD §2.3   | |
-| T-347 | Server-side receipt validation in Cloud Function (T-272 above) | Backend | P2 | TDD §17.5 | NFR P6 |
+| T-347 | Server-side receipt validation in Cloud Function (T-272 above) — **PARKED (2026-06-06).** Depends on T-272; needs Blaze. | Backend | P4 | TDD §17.5 | PARKED — Blaze required |
 | T-348 | Restore purchases flow                                 | Frontend | P2       | TDD §10.3  | |
 
 ### S-9.4 — Pass cosmetic content
@@ -874,8 +880,8 @@ See T-294, T-300, T-310 in E-7. Codex stays in-house (Director's voice).
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-362 | S140 Standard share                                    | Frontend | P1       | UFD 08     | |
-| T-363 | S141 Daily share (shows global rank if leaderboard cached) | Frontend | P2  | UFD 08     | |
-| T-364 | S142 Weekly share (top-100 badge if applicable)        | Frontend | P2       | UFD 08     | |
+| T-363 | S141 Daily share (shows global rank if leaderboard cached) — **PARKED (2026-06-06).** Depends on leaderboard data (T-264/T-270/T-271); needs Blaze. | Frontend | P4  | UFD 08     | PARKED — Blaze required |
+| T-364 | S142 Weekly share (top-100 badge if applicable) — **PARKED (2026-06-06).** Same dependency as T-363. | Frontend | P4       | UFD 08     | PARKED — Blaze required |
 | T-365 | S143 Portrait gen surface                              | Frontend | P1       | UFD 08     | |
 | T-366 | S144 Share screen UI (format toggle, frame, save, share, done) | Frontend | P1 | UFD 08  | |
 | T-367 | S145 Frame selector (Pass frames blurred for non-subs) | Frontend | P2       | UFD 08     | |
