@@ -8,8 +8,8 @@ import { metaCodec, newMetaState } from '../core/save';
 import { runSessionCodec } from '../core/run/run-session-save';
 import { decideResume } from '../core/run/resume-decision';
 import { createWebStorageAdapter } from '../platform/storage-web';
-import { setAnalyticsAdapter, logEvent } from '../core/platform/analytics-adapter';
-import { consoleAnalytics } from '../platform/analytics-console';
+import { logEvent } from '../core/platform/analytics-adapter';
+import { installAnalytics } from '../platform/analytics-bootstrap';
 import { ensureAnonymousAuth } from '../platform/firebase/auth';
 
 /**
@@ -93,7 +93,7 @@ export class GameBootScene extends Phaser.Scene {
     const stored = storedConsent();
     if (stored !== null) {
       // Already decided on this device — install adapter if granted, then boot.
-      if (stored === 'granted') setAnalyticsAdapter(consoleAnalytics);
+      if (stored === 'granted') installAnalytics();
       this.startBoot();
       return;
     }
@@ -101,7 +101,7 @@ export class GameBootScene extends Phaser.Scene {
       this.showConsentModal();
     } else {
       // Outside EU/CA — implied consent; install adapter and proceed.
-      setAnalyticsAdapter(consoleAnalytics);
+      installAnalytics();
       this.startBoot();
     }
   }
@@ -245,7 +245,7 @@ export class GameBootScene extends Phaser.Scene {
     const acceptZ = this.add.zone(btnX, btnY, btnW, 46).setOrigin(0, 0).setInteractive({ useHandCursor: true });
     acceptZ.on('pointerdown', () => {
       storeConsent('granted');
-      setAnalyticsAdapter(consoleAnalytics);
+      installAnalytics();
       logEvent('consent_decision', { decision: 'granted' });
       this.startBoot();
     });
