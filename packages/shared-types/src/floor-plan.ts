@@ -46,6 +46,12 @@ export interface PopulatedRoom {
   readonly enemies: readonly EnemySpawn[];
   /** Boss-room door is locked until the floor is cleared (T-77 / TDD §7.4). */
   readonly locked: boolean;
+  /**
+   * A collectible Codex Fragment waits in this room (GDD §7.2 step 6 — 0–4 per
+   * floor, never in the boss room). Absent/false means none. Collecting it adds
+   * a codex entry to MetaState. Optional so pre-fragment floors/saves stay valid.
+   */
+  readonly codexFragment?: boolean;
 }
 
 /** A complete, playable floor. */

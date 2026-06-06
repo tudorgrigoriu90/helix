@@ -6,6 +6,7 @@ import { placeRooms } from './room-placement';
 import { validateConnectivity } from './connectivity';
 import { fillRoomTypes } from './room-fill';
 import { buildRoom } from './encounter';
+import { placeCodexFragments } from './codex-fragments';
 
 /**
  * Floor generation orchestrator — T-79 (TDD §7.1).
@@ -55,10 +56,13 @@ function assemble(
   rng: Mulberry32,
   fromFallback: boolean,
 ): PopulatedFloor {
+  const rooms = typed.map((t) => buildRoom(t, template, rng));
   return {
     floor: template.floor,
     zone: template.zone,
-    rooms: typed.map((t) => buildRoom(t, template, rng)),
+    // Step 6 (GDD §7.2): scatter 0–4 Codex Fragments across non-boss rooms.
+    // Last step so it can't invalidate topology/minima.
+    rooms: placeCodexFragments(rooms, rng),
     edges: graph.edges,
     startRoomId: graph.startRoomId,
     bossRoomId: graph.bossRoomId,
