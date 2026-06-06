@@ -17,6 +17,7 @@
     "build:ios": "pnpm --filter @helix/game build:ios",
     "build:android": "pnpm --filter @helix/game build:android",
     "test": "pnpm -r test",
+    "test:coverage": "pnpm --filter @helix/game test:coverage",
     "test:watch": "pnpm -r test:watch",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",

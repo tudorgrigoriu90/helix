@@ -33,6 +33,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Coverage gate (≥80% lines on /core/)
+        run: pnpm test:coverage
+
       - name: Determinism replay (100 fixed seeds)
         run: pnpm --filter @helix/game test:determinism
 
