@@ -1,9 +1,21 @@
 {
-  "player": [25, 0],
-  "filterer": [25, 8],
-  "cave_crawler": [26, 5],
-  "acid_spitter": [18, 9],
-  "scavenger": [18, 8],
-  "shell_brute": [30, 9],
-  "pressure_warden": [24, 9]
+  "player":            [25, 0],
+  "filterer":          [25, 8],
+  "cave_crawler":      [26, 5],
+  "acid_spitter":      [18, 9],
+  "scavenger":         [18, 8],
+  "shell_brute":       [30, 9],
+  "pressure_warden":   [24, 9],
+
+  "tile_open":         [18, 0],
+  "tile_wall":         [16, 0],
+  "tile_hazard":       [15, 10],
+
+  "room_combat":       [30, 11],
+  "room_loot":         [23,  0],
+  "room_safe":         [39, 10],
+  "room_merchant":     [22,  4],
+  "room_trap":         [35, 21],
+  "room_lace_event":   [23,  1],
+  "room_boss":         [36, 21]
 }
