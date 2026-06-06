@@ -349,8 +349,8 @@ export class RunSession {
     }
     this.current = roomId;
     this.grantLootRoom(this.current); // before auto-clear (which marks it looted)
+    this.restIfSafe(this.current);    // before auto-clear (once-per-room guard applies)
     this.autoClearIfTrivial(this.current);
-    this.restIfSafe(this.current);
   }
 
   /** On first entry to a loot room, drop 1 guaranteed floor-tier item onto the
@@ -809,8 +809,8 @@ export class RunSession {
     this.combatState = null; // a new floor is never mid-combat
     this.combatRngState = 0;
     this.pendingLoot = []; // uncollected loot doesn't follow you down a floor
+    this.restIfSafe(this.current);    // before auto-clear (once-per-room guard applies)
     this.autoClearIfTrivial(this.current);
-    this.restIfSafe(this.current);
     this.status = 'exploring';
   }
 
@@ -831,10 +831,10 @@ export class RunSession {
   }
 
   /** Safe rooms are rest points — entering one restores 25% of max HP (UFD S026).
-   *  Returns the amount of HP actually recovered (0 if not a safe room or already
-   *  at full), so the Safe Room screen can surface the gain (T-178). */
+   *  Fires only on first entry (cleared guard); subsequent visits return 0 so the
+   *  Safe Room screen shows "INTEGRITY ALREADY FULL". */
   private restIfSafe(id: string): number {
-    if (this.roomById(id).type !== 'safe') return 0;
+    if (this.roomById(id).type !== 'safe' || this.cleared.has(id)) return 0;
     const before = this.player.hp;
     const heal = Math.floor(this.player.maxHp * SAFE_ROOM_HEAL_FRACTION);
     const hp = Math.min(this.player.hp + heal, this.player.maxHp);

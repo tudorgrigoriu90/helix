@@ -67,6 +67,14 @@ The verdict from that slice: the loop holds up — which is why the **Genetic Mu
 
 Status markers in the tables below were reconciled against git history on 2026-05-29; rows that shipped during the vertical-slice push but were left blank have been flipped to DONE with their commit noted.
 
+### Room Re-entry Exploit Fix (2026-06-06)
+
+Two exploitable bugs fixed — rooms that grant one-time rewards (safe-room heal, event-room VEIN/HP choice) were firing again on every re-entry:
+
+- **Safe rooms healed 25% HP on every re-entry.** `RunSession.restIfSafe` had no "already visited" guard, and was called _after_ `autoClearIfTrivial` in `loadFloor` — so even adding a `cleared` check wouldn't have fired correctly. Fix: (1) added `|| this.cleared.has(id)` guard to `restIfSafe`; (2) reordered `restIfSafe` to be called _before_ `autoClearIfTrivial` in both `moveTo` and `loadFloor`, matching the same once-per-room pattern already used by `grantLootRoom`. Safe rooms now heal exactly once; subsequent visits correctly show "INTEGRITY ALREADY FULL."
+- **Event rooms (lace_event) allowed claiming VEIN / healing rewards on every re-entry.** `GameScene.enterRoom` called `openEventRoom()` unconditionally on any event-room entry, letting players re-pick rewards. Fix: `enterRoom` now captures `alreadyCleared = snapshot.clearedRoomIds.includes(id)` _before_ calling `session.moveTo()` (which auto-clears trivial rooms), and gates `openEventRoom()` behind `!alreadyCleared`. Re-entering a used event room falls through to the map view silently.
+- **Loot rooms were already correct.** `grantLootRoom` uses the same cleared guard and is called before auto-clear; the "infinite loot" perception likely came from the safe-room and event-room bugs above. No change needed to loot room logic.
+
 ### Combat & Menu Polish (2026-06-04)
 
 Two playtest bugs fixed and the player-facing shell de-cluttered, one commit:

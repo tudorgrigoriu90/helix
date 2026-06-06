@@ -432,8 +432,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private enterRoom(id: string): void {
-    // Capture HP before the move so the Safe Room screen can report the heal —
-    // moveTo() auto-rests in safe rooms (RunSession.restIfSafe, 25% max HP).
+    // Capture whether this room was already cleared before moving — used below
+    // to gate once-only interactions (event choices, safe-room healing).
+    const alreadyCleared = this.session.snapshot.clearedRoomIds.includes(id);
     const hpBefore = this.session.snapshot.player.hp;
     this.session.moveTo(id);
     const room = this.session.currentRoom();
@@ -443,7 +444,7 @@ export class GameScene extends Phaser.Scene {
     });
     const encounter = this.session.beginEncounter();
     if (encounter === null) {
-      if (room.type === 'lace_event') this.openEventRoom();
+      if (room.type === 'lace_event' && !alreadyCleared) this.openEventRoom();
       else if (room.type === 'merchant') this.openDispenser();
       else if (room.type === 'safe') this.openSafeRoom(this.session.snapshot.player.hp - hpBefore);
       if (this.view !== 'event' && this.view !== 'safe') {
