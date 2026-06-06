@@ -2810,80 +2810,74 @@ export class GameScene extends Phaser.Scene {
 
     if (stock.length === 0) {
       this.transient.push(this.add.text(W / 2, STAGE_Y + 120, 'sold out', { fontFamily: 'monospace', fontSize: '12px', color: C.dim }).setOrigin(0.5));
-    } else {
-      const rowH = 58;
-      const rowW = W - 32;
-      const top = STAGE_Y + 60;
-
-      stock.forEach((item, i) => {
-        const price = this.session.dispenserPriceOf(item);
-        const afford = vein >= price;
-        const look = rarityLook(item.rarity);
-        const accent = afford ? look.hex : GC.edge;
-        const x = 16;
-        const y = top + i * (rowH + 8);
-        const cx = x + rowW / 2;
-        const cy = y + rowH / 2;
-
-        // Own Graphics per card — scale-pop entrance.
-        const card = this.add.graphics().setAlpha(0).setScale(0.88).setPosition(cx, cy);
-        card.fillStyle(afford ? 0x12243a : 0x0e1626).fillRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8);
-        card.lineStyle(2, accent, afford ? 1 : 0.4).strokeRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8);
-        card.fillStyle(accent, afford ? 0.9 : 0.3).fillRoundedRect(-rowW / 2, -rowH / 2, 4, rowH, 2);
-
-        const nameT = this.add.text(x + 14, y + 10, item.name, { fontFamily: 'monospace', fontSize: '12px', color: afford ? C.text : C.dim }).setAlpha(0);
-        const tagT = this.add.text(x + 14, y + 30, `${item.category} · ${look.label}`, { fontFamily: 'monospace', fontSize: '9px', color: afford ? look.color : C.dim }).setAlpha(0);
-        const priceT = this.add.text(x + rowW - 12, cy, affordLabel(price, vein), {
-          fontFamily: 'monospace', fontSize: '11px', color: afford ? C.green : C.red,
-        }).setOrigin(1, 0.5).setAlpha(0);
-        this.transient.push(card, nameT, tagT, priceT);
-        this.tweens.add({ targets: card, alpha: 1, scale: 1, duration: 240, delay: i * 70, ease: 'Back.easeOut' });
-        this.tweens.add({ targets: [nameT, tagT, priceT], alpha: 1, duration: 200, delay: i * 70 + 80, ease: 'Sine.easeOut' });
-
-        if (afford) {
-          const z = this.add.zone(x, y, rowW, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-          z.on('pointerdown', () => this.buyItem(item));
-          this.buttonZones.push(z);
-        }
-      });
+      return;
     }
 
-    // T-177: ad refresh button — one per visit, only while the ad service is available.
-    const adDecision = adService.canOffer();
-    const refreshAvail = adDecision.allowed && !this.shopAdRefreshUsed;
-    const adBtnY = STAGE_Y + STAGE_H - 62;
-    const adBtnW = W - 80;
-    const adBtnX = 40;
-    const adG = this.add.graphics().setAlpha(refreshAvail ? 0 : 0.35);
-    adG.fillStyle(0x0e1626).fillRoundedRect(adBtnX, adBtnY, adBtnW, 40, 8);
-    adG.lineStyle(1, refreshAvail ? 0x44ccff : GC.edge).strokeRoundedRect(adBtnX, adBtnY, adBtnW, 40, 8);
-    const adLabel = this.shopAdRefreshUsed ? 'REFRESH USED' : '▶ WATCH AD — REFRESH STOCK';
-    const adT = this.add.text(W / 2, adBtnY + 20, adLabel, {
-      fontFamily: 'monospace', fontSize: '11px', color: refreshAvail ? '#44ccff' : C.dim,
-    }).setOrigin(0.5).setAlpha(refreshAvail ? 0 : 0.5);
-    this.transient.push(adG, adT);
-    if (refreshAvail) {
-      this.tweens.add({ targets: [adG, adT], alpha: 1, duration: 260, delay: 200, ease: 'Sine.easeOut' });
-      const adZ = this.add.zone(adBtnX, adBtnY, adBtnW, 40).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-      adZ.on('pointerdown', () => void this.shopAdRefresh());
-      this.buttonZones.push(adZ);
-    }
+    // Bounded list: compress the row pitch so a full 4–6 item shelf always fits
+    // the stage without colliding with the bottom button row. The natural pitch
+    // is 66px and only shrinks when the shelf is full. LEAVE + the T-177 ad
+    // refresh both live in renderButtons() now, so the cards own the whole stage.
+    const top = STAGE_Y + 56;
+    const { step, rowH } = this.listMetrics(top, stock.length, 66);
+    const rowW = W - 32;
+
+    stock.forEach((item, i) => {
+      const price = this.session.dispenserPriceOf(item);
+      const afford = vein >= price;
+      const look = rarityLook(item.rarity);
+      const accent = afford ? look.hex : GC.edge;
+      const x = 16;
+      const y = top + i * step;
+      const cx = x + rowW / 2;
+      const cy = y + rowH / 2;
+
+      // Own Graphics per card — scale-pop entrance.
+      const card = this.add.graphics().setAlpha(0).setScale(0.88).setPosition(cx, cy);
+      card.fillStyle(afford ? 0x12243a : 0x0e1626).fillRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8);
+      card.lineStyle(2, accent, afford ? 1 : 0.4).strokeRoundedRect(-rowW / 2, -rowH / 2, rowW, rowH, 8);
+      card.fillStyle(accent, afford ? 0.9 : 0.3).fillRoundedRect(-rowW / 2, -rowH / 2, 4, rowH, 2);
+
+      const nameT = this.add.text(x + 14, cy - 10, item.name, { fontFamily: 'monospace', fontSize: '12px', color: afford ? C.text : C.dim }).setOrigin(0, 0.5).setAlpha(0);
+      const tagT = this.add.text(x + 14, cy + 9, `${item.category} · ${look.label}`, { fontFamily: 'monospace', fontSize: '9px', color: afford ? look.color : C.dim }).setOrigin(0, 0.5).setAlpha(0);
+      const priceT = this.add.text(x + rowW - 12, cy, affordLabel(price, vein), {
+        fontFamily: 'monospace', fontSize: '11px', color: afford ? C.green : C.red,
+      }).setOrigin(1, 0.5).setAlpha(0);
+      this.transient.push(card, nameT, tagT, priceT);
+      this.tweens.add({ targets: card, alpha: 1, scale: 1, duration: 240, delay: i * 70, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: [nameT, tagT, priceT], alpha: 1, duration: 200, delay: i * 70 + 80, ease: 'Sine.easeOut' });
+
+      if (afford) {
+        const z = this.add.zone(x, y, rowW, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+        z.on('pointerdown', () => this.buyItem(item));
+        this.buttonZones.push(z);
+      }
+    });
   }
 
-  private itemRow(item: ItemDef, i: number, top: number, onTap?: () => void): void {
+  private itemRow(item: ItemDef, i: number, top: number, step: number, rowH: number, onTap?: () => void): void {
     const x = 16;
-    const y = top + i * 60;
+    const y = top + i * step;
     const w = W - 32;
+    const cy = y + rowH / 2;
     const cursed = item.cursed === true;
-    this.stage.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(x, y, w, 52, 8);
-    this.stage.lineStyle(1, cursed ? GC.boss : GC.btnBrd).strokeRoundedRect(x, y, w, 52, 8);
-    this.transient.push(
-      this.add.text(x + 12, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }),
-      this.add.text(x + 12, y + 28, `${item.category} · ${item.rarity}${cursed ? ' · CURSED' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }),
-      this.add.text(x + w - 12, y + 26, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5),
-    );
+    this.stage.fillStyle(cursed ? 0x2a1320 : 0x12243a).fillRoundedRect(x, y, w, rowH, 8);
+    this.stage.lineStyle(1, cursed ? GC.boss : GC.btnBrd).strokeRoundedRect(x, y, w, rowH, 8);
+    // When the list is full the rows compress; below ~44px the two-line layout
+    // no longer fits, so name + tag collapse onto a single centred line.
+    if (rowH < 44) {
+      this.transient.push(
+        this.add.text(x + 12, cy, item.name, { fontFamily: 'monospace', fontSize: '11px', color: cursed ? C.red : C.text }).setOrigin(0, 0.5),
+        this.add.text(x + w - 12, cy, `${item.category} · ${item.rarity}${cursed ? ' · CURSED' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }).setOrigin(1, 0.5),
+      );
+    } else {
+      this.transient.push(
+        this.add.text(x + 12, cy - 10, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setOrigin(0, 0.5),
+        this.add.text(x + 12, cy + 9, `${item.category} · ${item.rarity}${cursed ? ' · CURSED' : ''}`, { fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : C.dim }).setOrigin(0, 0.5),
+        this.add.text(x + w - 12, cy, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5),
+      );
+    }
     if (onTap !== undefined) {
-      const z = this.add.zone(x, y, w, 52).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+      const z = this.add.zone(x, y, w, rowH).setOrigin(0, 0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', onTap);
       this.buttonZones.push(z);
     }
@@ -2897,13 +2891,14 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: [hdr, sub], alpha: 1, duration: 200, ease: 'Sine.easeOut' });
 
     const cardW = W - 32;
-    const cardH = 52;
+    const top = STAGE_Y + 60;
+    const { step, rowH: cardH } = this.listMetrics(top, pending.length, 60);
 
     // S027: each item card pops in with a Back-eased scale + fade, staggered;
     // rarity drives the accent colour, a banner, and (rare+) a pulsing aura.
     pending.forEach((item, i) => {
       const x = 16;
-      const y = STAGE_Y + 60 + i * 60;
+      const y = top + i * step;
       const cx = x + cardW / 2;
       const cy = y + cardH / 2;
       const cursed = item.cursed === true;
@@ -2931,11 +2926,11 @@ export class GameScene extends Phaser.Scene {
       card.fillStyle(accent, 0.9).fillRoundedRect(-cardW / 2, -cardH / 2, 4, cardH, 2); // rarity spine
       card.setPosition(cx, cy);
 
-      const nameT = this.add.text(x + 14, y + 9, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setAlpha(0);
+      const nameT = this.add.text(x + 14, cy - 10, item.name, { fontFamily: 'monospace', fontSize: '12px', color: cursed ? C.red : C.text }).setOrigin(0, 0.5).setAlpha(0);
       const rarityTag = cursed ? 'CURSED' : look.label;
-      const tagT = this.add.text(x + 14, y + 28, `${item.category} · ${rarityTag}`, {
+      const tagT = this.add.text(x + 14, cy + 9, `${item.category} · ${rarityTag}`, {
         fontFamily: 'monospace', fontSize: '9px', color: cursed ? C.red : look.color,
-      }).setAlpha(0);
+      }).setOrigin(0, 0.5).setAlpha(0);
       const modT = this.add.text(x + cardW - 12, cy, GameScene.modifierLine(item), { fontFamily: 'monospace', fontSize: '10px', color: C.green }).setOrigin(1, 0.5).setAlpha(0);
 
       this.transient.push(card, nameT, tagT, modT);
@@ -2959,7 +2954,9 @@ export class GameScene extends Phaser.Scene {
       this.add.text(W / 2, STAGE_Y + 50, `take ${incoming.name} — tap below to swap`, { fontFamily: 'monospace', fontSize: '10px', color: C.yellow }).setOrigin(0.5, 0),
     );
     const carried = this.session.snapshot.player.items.filter((i) => i.category === incoming.category);
-    carried.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 78, item.cursed === true ? undefined : () => this.onSwapPick(item.id)));
+    const top = STAGE_Y + 78;
+    const { step, rowH } = this.listMetrics(top, carried.length, 60);
+    carried.forEach((item, i) => this.itemRow(item, i, top, step, rowH, item.cursed === true ? undefined : () => this.onSwapPick(item.id)));
   }
 
   private renderInventory(): void {
@@ -2975,7 +2972,9 @@ export class GameScene extends Phaser.Scene {
       this.transient.push(this.add.text(W / 2, STAGE_Y + 120, 'empty', { fontFamily: 'monospace', fontSize: '12px', color: C.dim }).setOrigin(0.5));
       return;
     }
-    items.forEach((item, i) => this.itemRow(item, i, STAGE_Y + 72, item.cursed === true ? undefined : () => this.onDropFromInventory(item.id)));
+    const top = STAGE_Y + 72;
+    const { step, rowH } = this.listMetrics(top, items.length, 60);
+    items.forEach((item, i) => this.itemRow(item, i, top, step, rowH, item.cursed === true ? undefined : () => this.onDropFromInventory(item.id)));
   }
 
   private strandCardRect(i: number): { x: number; y: number; w: number; h: number } {
@@ -3374,7 +3373,16 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.view === 'safe') { this.button(20, 'CONTINUE', C.green, () => this.leaveSafeRoom()); return; }
-    if (this.view === 'shop') { this.button(20, 'LEAVE', C.green, () => this.leaveDispenser()); return; }
+    if (this.view === 'shop') {
+      this.button(20, 'LEAVE', C.green, () => this.leaveDispenser());
+      // T-177: ad refresh shares the standard button row (one per visit, only
+      // while the ad service can offer) so it matches LEAVE instead of being a
+      // second, differently-styled button overlapping the shelf.
+      if (adService.canOffer().allowed && !this.shopAdRefreshUsed) {
+        this.button(210, '↻ REFRESH', C.yellow, () => void this.shopAdRefresh());
+      }
+      return;
+    }
     if (this.view === 'loot') { this.button(20, 'LEAVE', C.dim, () => this.leaveLoot()); return; }
     if (this.view === 'swap') { this.button(20, 'LEAVE IT', C.dim, () => this.leaveSwap()); return; }
     if (this.view === 'inventory') { this.button(20, 'CLOSE', C.green, () => this.closeInventory()); return; }
@@ -3383,6 +3391,16 @@ export class GameScene extends Phaser.Scene {
       this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
       return;
     }
+  }
+
+  /** Row pitch + card height that fit `count` rows between `top` and the stage
+   *  bottom, never exceeding the natural pitch. Keeps list views (shop, loot,
+   *  inventory, swap) off the bottom button row no matter how many items show. */
+  private listMetrics(top: number, count: number, naturalStep = 60, gap = 8): { step: number; rowH: number } {
+    if (count <= 0) return { step: naturalStep, rowH: naturalStep - gap };
+    const avail = STAGE_Y + STAGE_H - top;
+    const step = Math.min(naturalStep, Math.floor(avail / count));
+    return { step, rowH: step - gap };
   }
 
   private button(x: number, label: string, color: string, onTap: () => void): void {
