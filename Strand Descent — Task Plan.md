@@ -204,7 +204,7 @@ Two playtest bugs fixed and the player-facing shell de-cluttered, one commit:
 | T-36  | Enable: Auth (anonymous only), Firestore, Functions (Node 20), Hosting, Analytics, Crashlytics, FCM, Remote Config — **PARTIAL 2026-05-28.** Hosting enabled and wired to CI (T-29). Remaining services (Auth, Firestore, Functions, Analytics, Crashlytics, FCM, Remote Config) to be enabled before E-6 backend work begins. | DevOps | P0 | TDD §2.2 | PARTIAL |
 | T-37  | Configure budget alerts at $5 / $20 / $50 thresholds                  | DevOps   | P0       | TDD §11.7  | NFR P3 |
 | T-38  | Set hard billing cap at $50/month via Cloud Billing API               | DevOps   | P0       | TDD §11.7  | NFR P3 |
-| T-39  | Apply Firestore Security Rules per TDD §17.6                          | Backend  | P1       | TDD §17.6  | |
+| T-39  | ~~Apply Firestore Security Rules per TDD §17.6~~ — **DONE 2026-06-06.** `firestore.rules` (+ empty `firestore.indexes.json`), wired into `firebase.json` under a `firestore` block. Default-deny; `isOwner(uid)` gates `users/{uid}` and all subcollections (per-uid isolation, **satisfies T-265**); `runs_anon` public-read + auth-create only (no client update/delete); `daily_signals`/`weekly_challenges`/`leaderboards` public-read, client-write denied (CF/Admin-SDK only, **satisfies T-266**). Deploy with `firebase deploy --only firestore:rules`. | Backend  | P1       | TDD §17.6  | DONE |
 | T-40  | Configure Remote Config defaults (all `feature.*` = false in binary)  | Backend  | P1       | TDD §11.6  | |
 
 ### S-2.4 — Developer accounts & signing
@@ -657,8 +657,8 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-262 | `daily_signals/{date}` collection                                     | Backend  | P1       | TDD §11.2  | |
 | T-263 | `weekly_challenges/{isoWeek}` collection                              | Backend  | P1       | TDD §11.2  | |
 | T-264 | `leaderboards/{boardId}/entries/{entryId}` collections                | Backend  | P1       | TDD §11.2  | |
-| T-265 | Security Rules: per-uid read/write isolation                          | Backend  | P1       | TDD §17.6  | NFR P6 |
-| T-266 | Security Rules: leaderboards read-only client; write via CF only      | Backend  | P1       | TDD §17.6  | |
+| T-265 | ~~Security Rules: per-uid read/write isolation~~ — **DONE 2026-06-06** (with T-39). `isOwner(uid)` gates `users/{uid}` + all subcollections in `firestore.rules`. | Backend  | P1       | TDD §17.6  | DONE |
+| T-266 | ~~Security Rules: leaderboards read-only client; write via CF only~~ — **DONE 2026-06-06** (with T-39). `leaderboards/{boardId}` + `entries` are public-read, client-write denied (Admin SDK only) in `firestore.rules`. | Backend  | P1       | TDD §17.6  | DONE |
 
 ### S-6.2 — Cache layer
 

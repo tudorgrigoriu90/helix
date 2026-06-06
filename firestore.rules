@@ -1,0 +1,60 @@
+rules_version = '2';
+
+// Strand Descent — Firestore Security Rules (T-39, TDD §17.6).
+//
+// Model: anonymous-auth only (TDD §11.1). The anonymous UID is the sole
+// identity. Everything defaults to *deny* — a path is accessible only if a
+// rule below explicitly grants it. Privileged writes (leaderboards, daily /
+// weekly content) happen exclusively through Cloud Functions, which use the
+// Admin SDK and bypass these rules, so all client writes to them are denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // True when the request is the signed-in owner of `uid`.
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // users/{uid} and everything beneath it (meta/state, etc.) — readable and
+    // writable only by that uid. Per-uid isolation (NFR P6).
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // runs_anon — anonymised completed runs for the Sigma Echo feature.
+    // Readable by everyone; any authenticated user may create one. No client
+    // updates or deletes (old runs are pruned by a scheduled Cloud Function).
+    match /runs_anon/{runId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    // Pre-generated daily / weekly content — public read, Cloud-Function write.
+    match /daily_signals/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /weekly_challenges/{isoWeek} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Leaderboards — public read; writes only via Cloud Functions. Covers both
+    // the board documents and their entries subcollection.
+    match /leaderboards/{boardId} {
+      allow read: if true;
+      allow write: if false;
+      match /entries/{entryId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // Anything not matched above is denied by default (no trailing catch-all
+    // needed — absence of an allow rule is a deny in Firestore).
+  }
+}
