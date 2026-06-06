@@ -67,6 +67,15 @@ The verdict from that slice: the loop holds up — which is why the **Genetic Mu
 
 Status markers in the tables below were reconciled against git history on 2026-05-29; rows that shipped during the vertical-slice push but were left blank have been flipped to DONE with their commit noted.
 
+### Coverage Gate (T-390) + Schema Backlog Reconciliation (2026-06-06)
+
+T-389 (Vitest config) and T-282/T-285/T-286 (content schemas) were already fully implemented but left blank in the tables; marked DONE. T-390 wired properly:
+
+- **9 new tests** for `core/platform/analytics-debug-log` (circular buffer) and `core/platform/analytics-adapter` (logEvent + adapter forwarding) — the only non-type `/core/` code that lacked test coverage.
+- `vitest.config.ts`: raised `thresholds.lines` from 0 → 80; broadened the barrel exclusion to `src/core/**/index.ts` (matches all barrel re-exports, not just the turn-engine one).
+- `test:coverage` script added to `apps/game/package.json` and root `package.json` (`pnpm test:coverage`); a dedicated "Coverage gate (≥80% lines on /core/)" step added to `ci.yml`.
+- Measured after changes: **98.35% line coverage** on `/core/` (threshold 80). 
+
 ### Layout & Button-Format Pass (2026-06-06)
 
 Playtest screenshot of the VEIN Dispenser showed cards overflowing under a non-standard ad button and the LEAVE button. A thorough sweep of every full-screen view turned up several fixed-pitch list layouts that overflow with realistic item counts, plus two inconsistent back-button formats. Three commits:
@@ -696,11 +705,11 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-282 | Mutation schema                                        | Game Engineer | P0 | TDD §8.1   | |
+| T-282 | ~~Mutation schema~~ — **DONE 2026-05-29.** `MutationDef` schema in `@shared-types/mutation`; `parseMutationDef(input)` loader in `core/content/mutation-loader.ts` — discriminated-union, never-throws, validates modifier shape, granted-ability shape, stat deltas, and enum fields. Wired into the content-bundle gate (`content-bundle.test.ts`) alongside enemies/items/floors. Completed as part of S-3.4 (T-83). | Game Engineer | P0 | TDD §8.1   | DONE |
 | T-283 | ~~Enemy schema~~ — **DONE 2026-05-28.** `EnemyDef` schema in `@shared-types/enemy` (schemaVersion, id, name, tier `grunt\|elite\|boss`, zone, maxHp, EntityStats, damageType, aestheticTags) + `parseEnemyDef(input)` loader in `apps/game/src/core/content/enemy-loader.ts` — discriminated-union, never-throws, mirrors the floor-template loader (T-70). Shared content-loader plumbing (error model + predicates + field readers) extracted to `core/content/validation.ts` for reuse by the item loader (T-284) and beyond. Runtime `EnemyState` is instantiated from a def at encounter start; per-floor stat scaling deferred to T-78. 10 tests (happy path, JSON-string input, all error codes, stats-block validation, enum rejection). | Game Engineer | P0 | GDD §8     | DONE |
 | T-284 | ~~Item schema~~ — **DONE 2026-05-28.** Extended `ItemDef` in `@shared-types/item` with `name` + `rarity` (`ItemRarity` = common/uncommon/rare/legendary) and added `parseItemDef(input)` in `core/content/item-loader.ts`. Loader validates the on-disk `schemaVersion` then **strips** it — schemaVersion is a file-format concern, not part of the inventory/save shape (NFR P8), unlike `EnemyDef` which is pure content and keeps it. Validates effect against category (consumables require a valid `heal`/`damage`/`applyStatus` effect with bounded amounts + enum damage/status; passive/equipment must be null). Updated the existing turn-engine item/perf/determinism fixtures for the two new fields. 9 tests. Full suite green at 295. | Game Engineer | P0 | GDD §9     | DONE |
-| T-285 | Floor template schema                                  | Game Engineer | P0 | TDD §7.1   | |
-| T-286 | LACE line schema                                       | Game Engineer | P0 | TDD §9.2   | |
+| T-285 | ~~Floor template schema~~ — **DONE 2026-05-28.** `FloorTemplate` type in `@shared-types/floor-template`; `parseFloorTemplate(input)` loader in `core/floor-gen/floor-template-loader.ts` — validates room-count range, connectivity rule, room-type mix, zone enum, and enemy/boss pool arrays. Full test suite in `floor-template-loader.test.ts`. | Game Engineer | P0 | TDD §7.1   | DONE |
+| T-286 | ~~LACE line schema~~ — **DONE 2026-05-28.** `LaceLine` type in `@shared-types/lace-line`; `parseLaceLines(input)` loader in `core/lace/lace-loader.ts` — validates mood/context enums, weight > 0, id uniqueness, and tag arrays. Used by `LaceNarrator` to load the shipped line bundles. | Game Engineer | P0 | TDD §9.2   | DONE |
 | T-287 | Organism name table schemas (prefix/trait/suffix)      | Game Engineer | P1 | UFD §3     | |
 | T-288 | ~~Cross-reference validator (mutation IDs in floors exist, etc.)~~ — **DONE 2026-05-28.** `crossReferenceContent({enemies, items, floors})` in `core/content/cross-reference.ts` — pure + total (reports all problems): every floor `enemyPool`/`bossId` resolves to a real enemy, `bossId` is boss-tier, enemy/item ids unique. **Wired the real `pnpm validate` gate**, replacing the echo stub: root `validate` → `@helix/game validate:content` → `content-bundle.test.ts`, which loads every shipped enemy/item/floor file through its schema loader then cross-references the bundle. Runs in `pnpm test` too. content README + content-package script updated. 6 unit tests + 4 bundle-gate tests. (Mutation/LACE/organism-name schemas T-282/T-286/T-287 still pending — added to the bundle when they land.) Full suite 311 green. | DevOps | P0 | TDD §14.1 | DONE |
 
@@ -917,8 +926,8 @@ See T-294, T-300, T-310 in E-7. Codex stays in-house (Director's voice).
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-389 | Vitest config + global fixtures                        | QA       | P0       | TDD §16.1  | |
-| T-390 | 80% line coverage gate on `/core/`                     | QA       | P0       | TDD §16.1  | |
+| T-389 | ~~Vitest config + global fixtures~~ — **DONE 2026-05-28.** `apps/game/vitest.config.ts`: v8 coverage provider, `src/core/**` include, path aliases, `globals: true`, `passWithNoTests`. Completed early alongside T-30 (determinism gate). | QA       | P0       | TDD §16.1  | DONE |
+| T-390 | ~~80% line coverage gate on `/core/`~~ — **DONE 2026-06-06.** `@vitest/coverage-v8` already installed; raised `thresholds.lines` from 0 → 80 in `vitest.config.ts`; added barrel-index exclusion pattern `src/core/**/index.ts` for consistency; added 9 tests for `analytics-debug-log` + `analytics-adapter` (the only non-type `/core/` code without coverage); added `test:coverage` script to `apps/game/package.json` and root `package.json`; wired as a CI step in `ci.yml`. Measured line coverage: 98.35% (threshold 80). | QA       | P0       | TDD §16.1  | DONE |
 | T-391 | Run simulator (headless full-run replay with scripted inputs) — **PARTIAL 2026-05-28.** The combat-level headless replay landed early in the strengthened determinism gate (T-30): a fixed-policy headless run to a terminal state + action-log replay asserting seed + log → identical `RunState`, in `determinism-replay.test.ts`. Remaining for full T-391: a *whole-run* simulator spanning multiple floors (floor-gen → combat → room transitions → mutation/Strand events) once those systems land. | QA | P1     | TDD §16.2  | PARTIAL |
 | T-392 | Mutation combination stress test (random N-mutation builds) | QA  | P1       | TDD §16.2  | |
 | T-393 | Save-migration fixture suite (every prior schemaVersion → current) | QA | P1 | TDD §5.6   | |
