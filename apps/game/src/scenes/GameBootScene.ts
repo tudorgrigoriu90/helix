@@ -11,6 +11,7 @@ import { createWebStorageAdapter } from '../platform/storage-web';
 import { logEvent } from '../core/platform/analytics-adapter';
 import { installAnalytics } from '../platform/analytics-bootstrap';
 import { ensureAnonymousAuth } from '../platform/firebase/auth';
+import { initRemoteConfig } from '../platform/firebase/remote-config';
 
 /**
  * Boot manager — T-129/T-130/T-132/T-134/T-136.
@@ -111,6 +112,10 @@ export class GameBootScene extends Phaser.Scene {
     // non-blocking — the save/resume load and routing never wait on the network,
     // and the game runs fully offline if sign-in fails.
     void ensureAnonymousAuth();
+
+    // T-40: refresh the Remote Config kill-switches in the background. Flags
+    // stay at their in-binary OFF defaults until (and unless) this completes.
+    void initRemoteConfig();
 
     // Show a spinner if the load takes more than 400 ms so the screen isn't
     // just black. Most loads complete in <50 ms on-device.
