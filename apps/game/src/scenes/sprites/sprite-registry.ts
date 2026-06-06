@@ -29,13 +29,19 @@ export function queueSpriteLoads(scene: Phaser.Scene): void {
   scene.load.on(Phaser.Loader.Events.FILE_COMPLETE, (key: string) => {
     if (SPRITE_BY_KEY.has(key)) loaded.add(key);
   });
-  // A missing file fires FILE_LOAD_ERROR — swallow it; fallback rendering covers it.
-  scene.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, () => {
-    /* intentionally ignored — drawSprite falls back to a primitive */
+  scene.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: { key: string }) => {
+    // Remove from attempted so the next scene/restart will retry.
+    // drawSprite falls back to a primitive in the meantime.
+    attempted.delete(file.key);
   });
 
   for (const spec of SPRITE_MANIFEST) {
     if (attempted.has(spec.key)) continue;
+    // Already in Phaser's cache from a prior scene — mark as loaded and skip.
+    if (scene.textures.exists(spec.key)) {
+      loaded.add(spec.key);
+      continue;
+    }
     attempted.add(spec.key);
     scene.load.image(spec.key, `${SPRITE_DIR}${spec.key}.png`);
   }
