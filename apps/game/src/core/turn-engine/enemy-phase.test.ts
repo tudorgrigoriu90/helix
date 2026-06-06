@@ -135,6 +135,34 @@ describe('resolveEnemyPhase — T-64 (decide-and-act)', () => {
     expect(result.state.enemies[0]?.pos).toEqual({ x: 2, y: 1 }); // routes around toward a flank
   });
 
+  it('detours around a wall barrier the crow-flies metric would stall against (T-441e)', () => {
+    // A vertical wall (x=2) separates the enemy from the player, with the only
+    // gap at the top (y=0). A naive Chebyshev chase points straight right into
+    // the wall and stalls; BFS routes the enemy up toward the gap instead.
+    //   col:  0 1 2 3 4 5 6
+    //   y=0:  . . . . . . .   ← the gap
+    //   y=1:  . . # . . . .
+    //   y=2:  . E # . P . .
+    //   y=3:  . . # . . . .
+    //   y=4:  . . # . . . .
+    const width = 7;
+    const height = 5;
+    const tiles = new Array<TileType>(width * height).fill('open');
+    for (let y = 1; y < height; y++) tiles[y * width + 2] = 'wall';
+    const grid: GridState = { width, height, tiles };
+    const state = baseState({
+      grid,
+      player: { ...baseState().player, pos: { x: 4, y: 2 } },
+      enemies: [enemy('e1', { x: 1, y: 2 })],
+    });
+    const result = resolveEnemyPhase(state, rng());
+    const e1 = result.state.enemies.find((e) => e.id === 'e1')!;
+    // It must move (not freeze) and head toward the gap (upward), reducing the
+    // true path distance rather than pressing uselessly against the wall at x=2.
+    expect(e1.pos).not.toEqual({ x: 1, y: 2 }); // did not stall
+    expect(e1.pos.y).toBeLessThan(2); // stepped up toward the only opening
+  });
+
   it('routes around an ally instead of piling onto its tile', () => {
     // (2,2) is held by e2, so e1 peels to (2,1) to reach an open flank rather
     // than stacking up behind its ally in a queue.

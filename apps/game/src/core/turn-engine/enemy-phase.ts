@@ -3,6 +3,7 @@ import type { Position } from '@shared-types/action';
 import type { Mulberry32 } from '../rng/mulberry32';
 import type { Effect } from './effect';
 import { chebyshev, inBounds, tileAt } from './grid';
+import { bfsDistanceField, fieldAt, UNREACHABLE } from './pathfind';
 import { damageTo, isImmobilized } from './effective-stats';
 import { HAZARD_DAMAGE } from './combat';
 
@@ -117,6 +118,11 @@ function reserveAttackSlot(state: RunState, enemy: EnemyState, claimed: Set<stri
  * slot around the player (reserved via {@link reserveAttackSlot}) instead of the
  * player's exact tile, so a pack fans out and surrounds rather than funnelling
  * into a queue. Falls back to the player's tile as the goal when no slot is free.
+ *
+ * Distance to the goal is the wall-aware BFS shortest path (T-441e), not the
+ * crow-flies Chebyshev estimate, so an enemy routes *around* an obstacle instead
+ * of stalling against it. On open terrain the two metrics coincide, so the
+ * surround/flank behaviour below is unchanged where there are no walls.
  */
 function enemyAdvance(state: RunState, enemy: EnemyState, claimed: Set<string>): EnemyPhaseResult {
   if (isImmobilized(enemy)) return { state, effects: [] };
@@ -125,11 +131,21 @@ function enemyAdvance(state: RunState, enemy: EnemyState, claimed: Set<string>):
   const goal: Position = slot ?? state.player.pos;
   if (slot !== null) claimed.add(tileKey(slot));
 
+  // Wall-aware shortest-path distance to the goal. A tile the goal can't reach
+  // falls back to a crow-flies estimate offset beyond any reachable distance, so
+  // a walled-off enemy still drifts goal-ward rather than freezing, but always
+  // prefers a tile on a real path when one exists.
+  const field = bfsDistanceField(state.grid, goal);
+  const cost = (p: Position): number => {
+    const d = fieldAt(field, state.grid, p);
+    return d === UNREACHABLE ? state.grid.width * state.grid.height + chebyshev(p, goal) : d;
+  };
+
   // Pick the free adjacent tile that gets closest to the chosen goal. Ties on
-  // step-count (Chebyshev) break toward the tile that also closes the lateral
-  // (Manhattan) gap, so an enemy heading for an off-axis slot peels sideways
-  // toward its own flank instead of marching down the centre lane in a queue.
-  const cur = chebyshev(enemy.pos, goal);
+  // path distance break toward the tile that also closes the lateral (Manhattan)
+  // gap, so an enemy heading for an off-axis slot peels sideways toward its own
+  // flank instead of marching down the centre lane in a queue.
+  const cur = cost(enemy.pos);
   let to: Position | null = null;
   let bestDist = Infinity;
   let bestManhattan = Infinity;
@@ -138,7 +154,7 @@ function enemyAdvance(state: RunState, enemy: EnemyState, claimed: Set<string>):
     if (!inBounds(state.grid, cand) || tileAt(state.grid, cand) === 'wall') continue;
     if (cand.x === state.player.pos.x && cand.y === state.player.pos.y) continue; // never onto the player
     if (occupiedByOther(state, cand, enemy.id)) continue;
-    const d = chebyshev(cand, goal);
+    const d = cost(cand);
     const m = Math.abs(cand.x - goal.x) + Math.abs(cand.y - goal.y);
     if (d < bestDist || (d === bestDist && m < bestManhattan)) {
       bestDist = d; bestManhattan = m; to = cand; // first dir wins remaining ties (ortho preferred)
