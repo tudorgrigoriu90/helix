@@ -11,6 +11,7 @@ import { parseMutationDef } from './mutation-loader';
 import { parseFloorTemplate } from '../floor-gen';
 import { parseLaceLines } from '../lace';
 import { crossReferenceContent } from './cross-reference';
+import { parsePrefixTable, parseTraitTable, parseSuffixTable, NAME_TABLE_FAMILIES } from '../name-gen/name-tables';
 
 /**
  * Content bundle gate — the real `pnpm validate` target (T-288).
@@ -78,5 +79,39 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
   it('the bundle has no dangling cross-references', () => {
     const errors = crossReferenceContent({ enemies, items, floors, mutations });
     expect(errors, errors.map((e) => e.message).join('\n')).toEqual([]);
+  });
+});
+
+// ── Organism-name tables (T-287) ─────────────────────────────────────────────
+
+const NAMES_DIR = `${CONTENT_DIR}organism-names/`;
+const readNameJson = (file: string): unknown =>
+  JSON.parse(readFileSync(`${NAMES_DIR}${file}`, 'utf-8')) as unknown;
+
+const prefixResult = parsePrefixTable(readNameJson('prefixes.json'));
+const traitResult = parseTraitTable(readNameJson('traits.json'));
+const suffixResult = parseSuffixTable(readNameJson('suffixes.json'));
+
+describe('organism-name tables — T-287 (content-bundle gate)', () => {
+  it('prefixes.json passes the schema loader (≥20 unique non-empty strings)', () => {
+    expect(prefixResult.ok, prefixResult.ok ? '' : prefixResult.error.message).toBe(true);
+    if (prefixResult.ok) expect(prefixResult.prefixes.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it('traits.json passes the schema loader — all five families present with ≥20 traits each', () => {
+    expect(traitResult.ok, traitResult.ok ? '' : traitResult.error.message).toBe(true);
+    if (traitResult.ok) {
+      for (const family of NAME_TABLE_FAMILIES) {
+        expect(
+          traitResult.traits[family].length,
+          `family "${family}" must have ≥20 traits`,
+        ).toBeGreaterThanOrEqual(20);
+      }
+    }
+  });
+
+  it('suffixes.json passes the schema loader (≥10 unique non-empty strings)', () => {
+    expect(suffixResult.ok, suffixResult.ok ? '' : suffixResult.error.message).toBe(true);
+    if (suffixResult.ok) expect(suffixResult.suffixes.length).toBeGreaterThanOrEqual(10);
   });
 });

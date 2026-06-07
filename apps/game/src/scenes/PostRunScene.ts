@@ -39,13 +39,13 @@ const C = {
   dangerN: 0xff4444,
 };
 
-/** Per-family emblem tint + the noun that anchors a dominant-trait epithet. */
-const FAMILY: Record<MutationFamily, { tint: number; noun: string }> = {
-  abyssal: { tint: 0x4488ff, noun: 'LEVIATHAN' },
-  mycelial: { tint: 0x66cc66, noun: 'BLOOM' },
-  lithic: { tint: 0xbbaa77, noun: 'MONOLITH' },
-  voidborn: { tint: 0xaa66ff, noun: 'EIDOLON' },
-  thermal: { tint: 0xff8844, noun: 'PYRE' },
+/** Per-family emblem tint for the portrait crystal. */
+const FAMILY: Record<MutationFamily, { tint: number }> = {
+  abyssal: { tint: 0x4488ff },
+  mycelial: { tint: 0x66cc66 },
+  lithic: { tint: 0xbbaa77 },
+  voidborn: { tint: 0xaa66ff },
+  thermal: { tint: 0xff8844 },
 };
 
 const DEATH_CAUSE_LABEL: Record<DeathCause, string> = {
@@ -75,6 +75,8 @@ export interface RunSummaryData {
   readonly achievementsEarned: readonly string[];
   /** S033: true when the player died and has not yet used their one revive. */
   readonly reviveAvailable: boolean;
+  /** T-287: deterministic organism name generated from the run's seed + build. */
+  readonly organismName: string;
 }
 
 const REVIVE_SC_COST = 75;
@@ -93,6 +95,7 @@ const DEFAULT_SUMMARY: RunSummaryData = {
   deathCause: 'enemy_kill',
   achievementsEarned: [],
   reviveAvailable: false,
+  organismName: 'The Fledgling Diver',
 };
 
 export class PostRunScene extends Phaser.Scene {
@@ -164,8 +167,8 @@ export class PostRunScene extends Phaser.Scene {
     g.fillStyle(tint, 0.18).fillCircle(cx, cy, 14);
     g.fillStyle(tint, 0.9).fillCircle(cx, cy, 5);
 
-    // Generated epithet.
-    this.add.text(cx, cy + 78, this.epithet(), {
+    // T-287: generated organism name (title-cased from name-gen, uppercased for display).
+    this.add.text(cx, cy + 78, this.summary.organismName.toUpperCase(), {
       fontFamily: 'monospace',
       fontSize: '20px',
       color: this.summary.won ? C.gold : C.accent,
@@ -183,20 +186,6 @@ export class PostRunScene extends Phaser.Scene {
     g.lineTo(cx - r, cy);
     g.closePath();
     g.strokePath();
-  }
-
-  /** Deterministic "THE <ADJ> <NOUN>" title from depth + dominant family. */
-  private epithet(): string {
-    const f = this.summary.floorReached;
-    const adj =
-      this.summary.won ? 'ASCENDANT'
-      : f >= 15 ? 'UNBOUND'
-      : f >= 10 ? 'ABYSSAL'
-      : f >= 5 ? 'HARDENED'
-      : 'FLEDGLING';
-    const family = this.summary.dominantTraits[0];
-    const noun = family !== undefined ? FAMILY[family].noun : 'DIVER';
-    return `THE ${adj} ${noun}`;
   }
 
   // ── Run stats ──────────────────────────────────────────────────────────────

@@ -47,6 +47,8 @@ import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 import { queueAudioLoads, playSfx, playMusic, getCategoryVolume, setCategoryVolume } from './audio/audio-registry';
 import { logEvent } from '../core/platform/analytics-adapter';
+import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
+import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
 import filterer from '@content/enemies/filterer.json';
 import caveCrawler from '@content/enemies/cave_crawler.json';
@@ -56,6 +58,9 @@ import shellBrute from '@content/enemies/shell_brute.json';
 import pressureWarden from '@content/enemies/pressure_warden.json';
 import floor01 from '@content/floors/floor_01.json';
 import laceCore from '@content/lace-lines/core.json';
+import prefixesJson from '@content/organism-names/prefixes.json';
+import traitsJson from '@content/organism-names/traits.json';
+import suffixesJson from '@content/organism-names/suffixes.json';
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const mutationModules = import.meta.glob('../../../../packages/content/mutations/*.json', { eager: true });
 const mutationFiles = mutationModules as Record<string, { readonly default: unknown }>;
@@ -130,6 +135,8 @@ export class GameScene extends Phaser.Scene {
   private metaSaves!: SaveManager<MetaState>;
   private meta: MetaState = newMetaState();
   private enemiesKilled = 0;
+  private damageTakenThisRun = 0;
+  private nameTables: NameTables | null = null;
   private runStartMs = 0;
   private runRecorded = false;
   private lastRunShards = 0;
@@ -275,6 +282,14 @@ export class GameScene extends Phaser.Scene {
       items.push(res.item);
     }
     this.itemPool = items;
+
+    const prefixes = parsePrefixTable(prefixesJson);
+    if (!prefixes.ok) throw new Error(`GameScene: bad organism-names/prefixes.json — ${prefixes.error.message}`);
+    const traits = parseTraitTable(traitsJson);
+    if (!traits.ok) throw new Error(`GameScene: bad organism-names/traits.json — ${traits.error.message}`);
+    const suffixes = parseSuffixTable(suffixesJson);
+    if (!suffixes.ok) throw new Error(`GameScene: bad organism-names/suffixes.json — ${suffixes.error.message}`);
+    this.nameTables = { prefixes: prefixes.prefixes, traits: traits.traits, suffixes: suffixes.suffixes };
   }
 
   // ── Run lifecycle ─────────────────────────────────────────────────────────
@@ -294,6 +309,7 @@ export class GameScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.enemiesKilled = 0;
+    this.damageTakenThisRun = 0;
     this.runStartMs = Date.now();
     this.runRecorded = false;
     this.lastRunShards = 0;
@@ -340,6 +356,7 @@ export class GameScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.enemiesKilled = 0;
+    this.damageTakenThisRun = 0;
     this.runStartMs = Date.now();
     this.runRecorded = false;
     this.lastRunShards = 0;
@@ -777,7 +794,10 @@ export class GameScene extends Phaser.Scene {
     for (const fx of effects) {
       if (fx.type === 'entityDied' && fx.entityId !== 'player') this.enemiesKilled += 1;
       if (fx.type === 'defeat') this.deathCause = fx.cause;
-      if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
+      if (fx.type === 'damageDealt' && fx.targetId === 'player') {
+        playerHurt = true;
+        this.damageTakenThisRun += fx.amount;
+      }
       if (fx.type === 'phaseChanged' && fx.to === 'enemy') this.playEnemyPhaseFlash();
     }
     if (playerHurt) playSfx(this, 'sfx_player_hurt');
@@ -1119,7 +1139,10 @@ export class GameScene extends Phaser.Scene {
       }
       // T-195: capture the death cause for the post-run summary.
       if (fx.type === 'defeat') this.deathCause = fx.cause;
-      if (fx.type === 'damageDealt' && fx.targetId === 'player') playerHurt = true;
+      if (fx.type === 'damageDealt' && fx.targetId === 'player') {
+        playerHurt = true;
+        this.damageTakenThisRun += fx.amount;
+      }
       // S048/T-169: flash the hit entity's tile + float the damage/heal number.
       if (fx.type === 'damageDealt') this.playHitFlash(fx.targetId);
       this.floatForEffect(fx);
@@ -1249,6 +1272,32 @@ export class GameScene extends Phaser.Scene {
       const def = this.mutationPool.find((m) => m.id === id);
       return def?.name ?? id;
     });
+
+    // T-287: generate the deterministic organism name from the run's build.
+    const mutationIds = snap.player.mutations;
+    const buildSignature = [...mutationIds].sort().join(',');
+    const dominants = (snap.player.dominantTraits ?? []) as MutationFamily[];
+    const family: MutationFamily = dominants[0] ?? this.primaryFamily(mutationIds);
+    let organismName = 'The Fledgling Diver';
+    if (this.nameTables !== null) {
+      try {
+        organismName = generateOrganismName({
+          runSeed: this.seed,
+          buildSignature,
+          family,
+          facts: {
+            floorReached: snap.floorNumber,
+            damageTaken: this.damageTakenThisRun,
+            enemiesKilled: this.enemiesKilled,
+            won,
+          },
+          tables: this.nameTables,
+        });
+      } catch {
+        /* tables validated in loadContent — guard only */
+      }
+    }
+
     const summary: RunSummaryData = {
       meta: this.meta,
       won,
@@ -1258,14 +1307,30 @@ export class GameScene extends Phaser.Scene {
       shardsEarned: this.lastRunShards,
       veinEarned: snap.veinEarned,
       mutations: names,
-      dominantTraits: (snap.player.dominantTraits ?? []) as MutationFamily[],
+      dominantTraits: dominants,
       playtimeMs: Date.now() - this.runStartMs,
       deathCause: won ? null : this.deathCause,
       achievementsEarned: this.achievementsEarned,
       // Surrender is a deliberate forfeit — never offer the revive ad for it.
       reviveAvailable: !won && !this.reviveUsed && this.deathCause !== 'surrender',
+      organismName,
     };
     this.scene.start('PostRunScene', summary as unknown as Record<string, unknown>);
+  }
+
+  /** Returns the mutation family the player has the most mutations in (fallback for no dominant trait). */
+  private primaryFamily(mutationIds: readonly string[]): MutationFamily {
+    const counts = new Map<MutationFamily, number>();
+    for (const id of mutationIds) {
+      const def = this.mutationPool.find((m) => m.id === id);
+      if (def !== undefined) counts.set(def.family, (counts.get(def.family) ?? 0) + 1);
+    }
+    let best: MutationFamily = 'abyssal';
+    let bestCount = 0;
+    for (const [f, n] of counts) {
+      if (n > bestCount) { best = f; bestCount = n; }
+    }
+    return best;
   }
 
   // ── Dispenser ─────────────────────────────────────────────────────────────
