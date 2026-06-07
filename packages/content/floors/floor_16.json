@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "floor": 16,
+  "zone": "convergence",
+  "roomCount": { "min": 11, "max": 18 },
+  "roomWeights": {
+    "combat": 0.48,
+    "loot": 0.15,
+    "safe": 0.12,
+    "merchant": 0.08,
+    "trap": 0.12,
+    "lace_event": 0.05
+  },
+  "roomMinima": { "safe": 1, "merchant": 2 },
+  "connectivity": "branching",
+  "enemyPool": ["void_mote", "entropy_wisp", "null_warden"],
+  "bossId": "the_threshold",
+  "aestheticTags": ["void", "entropy", "gate", "null"]
+}

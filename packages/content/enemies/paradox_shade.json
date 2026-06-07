@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "paradox_shade",
+  "name": "Paradox Shade",
+  "tier": "grunt",
+  "zone": "convergence",
+  "maxHp": 26,
+  "stats": { "str": 9, "res": 5, "agi": 9, "int": 3 },
+  "damageType": "void",
+  "aestheticTags": ["paradox", "shifting"]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "herald_of_the_end",
+  "name": "Herald of the End",
+  "tier": "elite",
+  "zone": "convergence",
+  "maxHp": 51,
+  "stats": { "str": 12, "res": 9, "agi": 5, "int": 11 },
+  "damageType": "true",
+  "aestheticTags": ["herald", "apocalyptic"]
+}

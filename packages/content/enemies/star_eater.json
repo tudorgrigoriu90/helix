@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "star_eater",
+  "name": "Star Eater",
+  "tier": "grunt",
+  "zone": "convergence",
+  "maxHp": 32,
+  "stats": { "str": 11, "res": 7, "agi": 6, "int": 2 },
+  "damageType": "thermal",
+  "aestheticTags": ["stellar", "devouring"]
+}

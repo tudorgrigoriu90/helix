@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "the_convergence",
+  "name": "The Convergence",
+  "tier": "boss",
+  "zone": "convergence",
+  "maxHp": 162,
+  "stats": { "str": 20, "res": 14, "agi": 4, "int": 6 },
+  "damageType": "true",
+  "aestheticTags": ["leviathan", "apex", "boss"]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "eclipse_warden",
+  "name": "Eclipse Warden",
+  "tier": "elite",
+  "zone": "convergence",
+  "maxHp": 57,
+  "stats": { "str": 13, "res": 13, "agi": 3, "int": 3 },
+  "damageType": "void",
+  "aestheticTags": ["eclipse", "shrouded"]
+}

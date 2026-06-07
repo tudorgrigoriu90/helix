@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "collapse_caster",
+  "name": "Collapse Caster",
+  "tier": "elite",
+  "zone": "convergence",
+  "maxHp": 51,
+  "stats": { "str": 12, "res": 9, "agi": 5, "int": 11 },
+  "damageType": "void",
+  "aestheticTags": ["collapse", "gravitic"]
+}

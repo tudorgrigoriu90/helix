@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "final_husk",
+  "name": "Final Husk",
+  "tier": "grunt",
+  "zone": "convergence",
+  "maxHp": 32,
+  "stats": { "str": 11, "res": 7, "agi": 6, "int": 2 },
+  "damageType": "true",
+  "aestheticTags": ["husk", "terminal"]
+}

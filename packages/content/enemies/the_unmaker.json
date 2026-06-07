@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "the_unmaker",
+  "name": "The Unmaker",
+  "tier": "boss",
+  "zone": "convergence",
+  "maxHp": 137,
+  "stats": { "str": 18, "res": 11, "agi": 7, "int": 10 },
+  "damageType": "true",
+  "aestheticTags": ["unmaking", "entropy", "boss"]
+}

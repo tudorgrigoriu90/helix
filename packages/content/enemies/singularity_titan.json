@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity_titan",
+  "name": "Singularity Titan",
+  "tier": "elite",
+  "zone": "convergence",
+  "maxHp": 59,
+  "stats": { "str": 15, "res": 12, "agi": 3, "int": 2 },
+  "damageType": "pressure",
+  "aestheticTags": ["singularity", "crushing"]
+}

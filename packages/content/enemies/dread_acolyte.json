@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "dread_acolyte",
+  "name": "Dread Acolyte",
+  "tier": "grunt",
+  "zone": "convergence",
+  "maxHp": 30,
+  "stats": { "str": 10, "res": 7, "agi": 7, "int": 2 },
+  "damageType": "void",
+  "aestheticTags": ["acolyte", "devout"]
+}

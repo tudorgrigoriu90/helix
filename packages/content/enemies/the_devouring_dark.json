@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "the_devouring_dark",
+  "name": "The Devouring Dark",
+  "tier": "boss",
+  "zone": "convergence",
+  "maxHp": 142,
+  "stats": { "str": 17, "res": 12, "agi": 6, "int": 12 },
+  "damageType": "true",
+  "aestheticTags": ["devourer", "abyssal", "boss"]
+}
