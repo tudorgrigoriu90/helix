@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "floor": 7,
+  "zone": "mycosphere",
+  "roomCount": { "min": 9, "max": 15 },
+  "roomWeights": {
+    "combat": 0.42,
+    "loot": 0.18,
+    "safe": 0.14,
+    "merchant": 0.10,
+    "trap": 0.11,
+    "lace_event": 0.05
+  },
+  "roomMinima": { "safe": 1, "merchant": 1 },
+  "connectivity": "branching",
+  "enemyPool": ["rot_gnat", "blight_crawler", "fungal_brute"],
+  "bossId": "mother_of_spores",
+  "aestheticTags": ["fungal", "bioluminescent", "rot", "matron"]
+}

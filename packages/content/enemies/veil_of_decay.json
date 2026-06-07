@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "veil_of_decay",
+  "name": "Veil of Decay",
+  "tier": "boss",
+  "zone": "mycosphere",
+  "maxHp": 114,
+  "stats": { "str": 15, "res": 10, "agi": 6, "int": 10 },
+  "damageType": "spore",
+  "aestheticTags": ["veil", "decay", "boss"]
+}

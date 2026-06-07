@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "spore_caster",
+  "name": "Spore Caster",
+  "tier": "elite",
+  "zone": "mycosphere",
+  "maxHp": 37,
+  "stats": { "str": 10, "res": 7, "agi": 5, "int": 9 },
+  "damageType": "spore",
+  "aestheticTags": ["caster", "sporing"]
+}

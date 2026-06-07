@@ -85,6 +85,50 @@ const ENTITIES_SHALLOWS: readonly SpriteSpec[] = [
     description: 'Zone-1 BOSS. Leviathan Hatchling — leviathan, brine; pressure damage.' },
 ];
 
+// ── Entities — Zone 2 (Mycosphere), Floors 6–10 (T-296) ──────────────────────
+const ENTITIES_MYCOSPHERE: readonly SpriteSpec[] = [
+  { key: 'spore_tick', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Spore Tick — spore, skittering; spore damage.' },
+  { key: 'cap_lurcher', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Cap Lurcher — cap, lumbering; physical damage.' },
+  { key: 'mycelial_warden', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 elite. Mycelial Warden — mycelial, rooted; spore damage.' },
+  { key: 'the_bloomheart', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 BOSS. The Bloomheart — bloom, spore; spore damage.' },
+  { key: 'rot_gnat', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Rot Gnat — rot, swarming; spore damage.' },
+  { key: 'blight_crawler', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Blight Crawler — blight, crawling; spore damage.' },
+  { key: 'fungal_brute', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-2 elite. Fungal Brute — engorged, slow; physical damage.' },
+  { key: 'mother_of_spores', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 BOSS. Mother of Spores — matron, spore; spore damage.' },
+  { key: 'ember_cap', category: 'entity', fallbackColor: 0xff7733, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Ember Cap — ember, smoldering; thermal damage.' },
+  { key: 'mire_hopper', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Mire Hopper — mire, leaping; physical damage.' },
+  { key: 'spore_caster', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 elite. Spore Caster — caster, sporing; spore damage.' },
+  { key: 'the_rotpriest', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 BOSS. The Rotpriest — priest, decay; spore damage.' },
+  { key: 'husk_walker', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Husk Walker — husk, shambling; physical damage.' },
+  { key: 'gas_bladder', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Gas Bladder — gas, bloated; spore damage.' },
+  { key: 'myconid_titan', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-2 elite. Myconid Titan — titan, towering; physical damage.' },
+  { key: 'veil_of_decay', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 BOSS. Veil of Decay — veil, decay; spore damage.' },
+  { key: 'pollen_wraith', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Pollen Wraith — pollen, drifting; spore damage.' },
+  { key: 'cinder_spore', category: 'entity', fallbackColor: 0xff7733, fallbackShape: 'circle',
+    description: 'Zone-2 grunt. Cinder Spore — cinder, burning; thermal damage.' },
+  { key: 'grove_warden', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 elite. Grove Warden — grove, ancient; spore damage.' },
+  { key: 'the_great_mycelium', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-2 BOSS. The Great Mycelium — leviathan, mycelial; spore damage.' },
+];
+
 // ── Tiles (combat grid) ──────────────────────────────────────────────────────
 const TILES: readonly SpriteSpec[] = [
   { key: 'tile_open', category: 'tile', fallbackColor: 0x0d1220, fallbackShape: 'rect',
@@ -150,6 +194,7 @@ const ABILITIES: readonly SpriteSpec[] = [
 export const SPRITE_MANIFEST: readonly SpriteSpec[] = [
   ...ENTITIES,
   ...ENTITIES_SHALLOWS,
+  ...ENTITIES_MYCOSPHERE,
   ...TILES,
   ...ROOMS,
   ...ITEMS,

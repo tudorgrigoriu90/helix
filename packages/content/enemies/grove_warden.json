@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "grove_warden",
+  "name": "Grove Warden",
+  "tier": "elite",
+  "zone": "mycosphere",
+  "maxHp": 43,
+  "stats": { "str": 11, "res": 11, "agi": 3, "int": 3 },
+  "damageType": "spore",
+  "aestheticTags": ["grove", "ancient"]
+}

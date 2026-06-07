@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "ember_cap",
+  "name": "Ember Cap",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 20,
+  "stats": { "str": 8, "res": 4, "agi": 6, "int": 6 },
+  "damageType": "thermal",
+  "aestheticTags": ["ember", "smoldering"]
+}

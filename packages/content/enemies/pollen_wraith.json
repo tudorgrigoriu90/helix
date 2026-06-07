@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "pollen_wraith",
+  "name": "Pollen Wraith",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 18,
+  "stats": { "str": 7, "res": 3, "agi": 9, "int": 3 },
+  "damageType": "spore",
+  "aestheticTags": ["pollen", "drifting"]
+}

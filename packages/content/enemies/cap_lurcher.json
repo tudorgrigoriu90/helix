@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "cap_lurcher",
+  "name": "Cap Lurcher",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 22,
+  "stats": { "str": 8, "res": 5, "agi": 7, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["cap", "lumbering"]
+}

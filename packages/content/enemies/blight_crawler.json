@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "blight_crawler",
+  "name": "Blight Crawler",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 24,
+  "stats": { "str": 9, "res": 5, "agi": 6, "int": 2 },
+  "damageType": "spore",
+  "aestheticTags": ["blight", "crawling"]
+}

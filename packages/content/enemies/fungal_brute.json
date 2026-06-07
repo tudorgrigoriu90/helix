@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "fungal_brute",
+  "name": "Fungal Brute",
+  "tier": "elite",
+  "zone": "mycosphere",
+  "maxHp": 45,
+  "stats": { "str": 13, "res": 10, "agi": 3, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["engorged", "slow"]
+}

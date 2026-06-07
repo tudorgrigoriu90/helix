@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "mire_hopper",
+  "name": "Mire Hopper",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 18,
+  "stats": { "str": 7, "res": 3, "agi": 9, "int": 3 },
+  "damageType": "physical",
+  "aestheticTags": ["mire", "leaping"]
+}

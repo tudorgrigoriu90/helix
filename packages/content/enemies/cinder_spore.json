@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "cinder_spore",
+  "name": "Cinder Spore",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 20,
+  "stats": { "str": 8, "res": 4, "agi": 6, "int": 6 },
+  "damageType": "thermal",
+  "aestheticTags": ["cinder", "burning"]
+}

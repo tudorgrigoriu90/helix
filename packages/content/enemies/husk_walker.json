@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "husk_walker",
+  "name": "Husk Walker",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 22,
+  "stats": { "str": 8, "res": 5, "agi": 7, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["husk", "shambling"]
+}

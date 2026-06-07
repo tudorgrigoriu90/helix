@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "myconid_titan",
+  "name": "Myconid Titan",
+  "tier": "elite",
+  "zone": "mycosphere",
+  "maxHp": 45,
+  "stats": { "str": 13, "res": 10, "agi": 3, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["titan", "towering"]
+}

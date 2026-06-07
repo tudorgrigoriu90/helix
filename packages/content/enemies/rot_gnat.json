@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "rot_gnat",
+  "name": "Rot Gnat",
+  "tier": "grunt",
+  "zone": "mycosphere",
+  "maxHp": 18,
+  "stats": { "str": 7, "res": 3, "agi": 9, "int": 3 },
+  "damageType": "spore",
+  "aestheticTags": ["rot", "swarming"]
+}

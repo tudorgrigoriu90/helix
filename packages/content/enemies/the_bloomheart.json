@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "the_bloomheart",
+  "name": "The Bloomheart",
+  "tier": "boss",
+  "zone": "mycosphere",
+  "maxHp": 109,
+  "stats": { "str": 16, "res": 9, "agi": 7, "int": 8 },
+  "damageType": "spore",
+  "aestheticTags": ["bloom", "spore", "boss"]
+}

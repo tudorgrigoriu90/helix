@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "mother_of_spores",
+  "name": "Mother of Spores",
+  "tier": "boss",
+  "zone": "mycosphere",
+  "maxHp": 114,
+  "stats": { "str": 15, "res": 10, "agi": 6, "int": 10 },
+  "damageType": "spore",
+  "aestheticTags": ["matron", "spore", "boss"]
+}
