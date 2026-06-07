@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "ore_grub",
+  "name": "Ore Grub",
+  "tier": "grunt",
+  "zone": "lithic",
+  "maxHp": 28,
+  "stats": { "str": 10, "res": 6, "agi": 6, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["ore", "burrowing"]
+}

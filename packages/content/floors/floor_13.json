@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "floor": 13,
+  "zone": "lithic",
+  "roomCount": { "min": 10, "max": 16 },
+  "roomWeights": {
+    "combat": 0.42,
+    "loot": 0.15,
+    "safe": 0.13,
+    "merchant": 0.08,
+    "trap": 0.17,
+    "lace_event": 0.05
+  },
+  "roomMinima": { "safe": 1, "merchant": 2 },
+  "connectivity": "branching",
+  "enemyPool": ["scree_hound", "ore_grub", "obsidian_warden"],
+  "bossId": "the_deep_furnace",
+  "aestheticTags": ["stone", "crystalline", "furnace", "obsidian"]
+}

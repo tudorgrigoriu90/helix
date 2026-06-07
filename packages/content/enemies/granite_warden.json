@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "granite_warden",
+  "name": "Granite Warden",
+  "tier": "elite",
+  "zone": "lithic",
+  "maxHp": 50,
+  "stats": { "str": 12, "res": 12, "agi": 3, "int": 3 },
+  "damageType": "seismic",
+  "aestheticTags": ["granite", "immovable"]
+}

@@ -747,9 +747,9 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
 | T-302 | All 66 mutations with full stat blocks                 | Director | P2       | GDD App A  | |
-| T-303 | All 4 zones of enemies + bosses + Apex                 | Director | P2       | GDD §8.3   | |
+| T-303 | All 4 zones of enemies + bosses + Apex — **IN PROGRESS 2026-06-07.** Zones 1–3 shipped (shallows/mycosphere/lithic): Zone-3 (lithic) adds 20 enemies across floors 11–15, each floor a unique grunt/grunt/elite trio + a unique boss (`the_quarrylord`, `the_faultbreaker`, `the_deep_furnace`, `the_pillarsaint`, `the_mountains_heart`); seismic/thermal/pressure palette. Zone-4 (convergence) + Apex pending. | Director | P2       | GDD §8.3   | |
 | T-304 | All item tiers (Common + Uncommon + Rare + Legendary)  | Director | P2       | GDD §9     | |
-| T-305 | All 20 floor templates                                 | Director | P2       | GDD §7.1   | |
+| T-305 | All 20 floor templates — **IN PROGRESS 2026-06-07.** Floors 1–15 shipped (zones 1–3); `floor_11`–`floor_15` (lithic) add a trap-heavier room mix per GDD §7.2. Floors 16–20 (convergence) pending. | Director | P2       | GDD §7.1   | |
 | T-306 | All 30 Sigma Strains                                   | Director | P2       | GDD §11.2  | |
 | T-307 | All 10 Origins                                         | Director | P2       | GDD §4.1   | |
 | T-308 | All 10 Hybrid Synergies                                | Director | P2       | GDD §5.6   | |

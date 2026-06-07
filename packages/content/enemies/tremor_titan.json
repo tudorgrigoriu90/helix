@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "tremor_titan",
+  "name": "Tremor Titan",
+  "tier": "elite",
+  "zone": "lithic",
+  "maxHp": 52,
+  "stats": { "str": 14, "res": 11, "agi": 3, "int": 2 },
+  "damageType": "seismic",
+  "aestheticTags": ["titan", "thunderous"]
+}

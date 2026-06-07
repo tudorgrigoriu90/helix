@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "the_mountains_heart",
+  "name": "The Mountain's Heart",
+  "tier": "boss",
+  "zone": "lithic",
+  "maxHp": 138,
+  "stats": { "str": 18, "res": 12, "agi": 5, "int": 6 },
+  "damageType": "seismic",
+  "aestheticTags": ["leviathan", "tectonic", "boss"]
+}

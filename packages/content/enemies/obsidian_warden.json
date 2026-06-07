@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "obsidian_warden",
+  "name": "Obsidian Warden",
+  "tier": "elite",
+  "zone": "lithic",
+  "maxHp": 50,
+  "stats": { "str": 12, "res": 12, "agi": 3, "int": 3 },
+  "damageType": "seismic",
+  "aestheticTags": ["obsidian", "glassy"]
+}

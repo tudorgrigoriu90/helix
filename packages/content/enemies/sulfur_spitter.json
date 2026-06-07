@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "sulfur_spitter",
+  "name": "Sulfur Spitter",
+  "tier": "grunt",
+  "zone": "lithic",
+  "maxHp": 24,
+  "stats": { "str": 9, "res": 5, "agi": 6, "int": 7 },
+  "damageType": "thermal",
+  "aestheticTags": ["sulfur", "corrosive"]
+}

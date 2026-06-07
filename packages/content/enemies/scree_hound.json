@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "scree_hound",
+  "name": "Scree Hound",
+  "tier": "grunt",
+  "zone": "lithic",
+  "maxHp": 22,
+  "stats": { "str": 8, "res": 4, "agi": 9, "int": 3 },
+  "damageType": "physical",
+  "aestheticTags": ["scree", "loping"]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "the_quarrylord",
+  "name": "The Quarrylord",
+  "tier": "boss",
+  "zone": "lithic",
+  "maxHp": 123,
+  "stats": { "str": 17, "res": 10, "agi": 7, "int": 9 },
+  "damageType": "seismic",
+  "aestheticTags": ["quarry", "crushing", "boss"]
+}

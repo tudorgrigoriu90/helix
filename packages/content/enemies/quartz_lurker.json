@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "quartz_lurker",
+  "name": "Quartz Lurker",
+  "tier": "grunt",
+  "zone": "lithic",
+  "maxHp": 26,
+  "stats": { "str": 9, "res": 6, "agi": 7, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["quartz", "faceted"]
+}

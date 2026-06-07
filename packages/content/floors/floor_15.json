@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "floor": 15,
+  "zone": "lithic",
+  "roomCount": { "min": 10, "max": 16 },
+  "roomWeights": {
+    "combat": 0.42,
+    "loot": 0.15,
+    "safe": 0.13,
+    "merchant": 0.08,
+    "trap": 0.17,
+    "lace_event": 0.05
+  },
+  "roomMinima": { "safe": 1, "merchant": 2 },
+  "connectivity": "loop",
+  "enemyPool": ["geode_swarm", "cinder_golem", "bastion_warden"],
+  "bossId": "the_mountains_heart",
+  "aestheticTags": ["stone", "crystalline", "tectonic", "bastion"]
+}
