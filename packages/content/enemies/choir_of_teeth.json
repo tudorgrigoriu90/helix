@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "choir_of_teeth",
+  "name": "Choir of Teeth",
+  "tier": "boss",
+  "zone": "shallows",
+  "maxHp": 100,
+  "stats": { "str": 14, "res": 9, "agi": 6, "int": 9 },
+  "damageType": "pressure",
+  "aestheticTags": ["swarm", "maw", "boss"]
+}

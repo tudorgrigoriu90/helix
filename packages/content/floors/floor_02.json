@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "floor": 1,
+  "floor": 2,
   "zone": "shallows",
   "roomCount": { "min": 8, "max": 14 },
   "roomWeights": {
@@ -13,7 +13,7 @@
   },
   "roomMinima": { "safe": 1 },
   "connectivity": "branching",
-  "enemyPool": ["filterer", "cave_crawler", "acid_spitter", "scavenger", "shell_brute"],
-  "bossId": "pressure_warden",
-  "aestheticTags": ["caves", "fluorescent", "acid_pools"]
+  "enemyPool": ["glass_eel", "barb_louse", "brine_lurker"],
+  "bossId": "tide_revenant",
+  "aestheticTags": ["caves", "fluorescent", "brine", "drowned"]
 }

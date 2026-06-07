@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "barb_louse",
+  "name": "Barb Louse",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 20,
+  "stats": { "str": 8, "res": 4, "agi": 6, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["chitinous", "parasitic"]
+}

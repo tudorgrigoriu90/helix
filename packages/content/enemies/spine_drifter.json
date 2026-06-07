@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "spine_drifter",
+  "name": "Spine Drifter",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 16,
+  "stats": { "str": 7, "res": 3, "agi": 6, "int": 5 },
+  "damageType": "spore",
+  "aestheticTags": ["floating", "venomous"]
+}

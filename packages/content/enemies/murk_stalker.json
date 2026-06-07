@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "murk_stalker",
+  "name": "Murk Stalker",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 14,
+  "stats": { "str": 6, "res": 2, "agi": 9, "int": 3 },
+  "damageType": "physical",
+  "aestheticTags": ["shadow", "stalking"]
+}

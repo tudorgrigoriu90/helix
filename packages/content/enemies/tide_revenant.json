@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "tide_revenant",
+  "name": "Tide Revenant",
+  "tier": "boss",
+  "zone": "shallows",
+  "maxHp": 95,
+  "stats": { "str": 15, "res": 8, "agi": 7, "int": 7 },
+  "damageType": "pressure",
+  "aestheticTags": ["brine", "drowned", "boss"]
+}

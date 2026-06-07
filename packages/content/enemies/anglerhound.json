@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "anglerhound",
+  "name": "Anglerhound",
+  "tier": "elite",
+  "zone": "shallows",
+  "maxHp": 32,
+  "stats": { "str": 11, "res": 6, "agi": 7, "int": 4 },
+  "damageType": "physical",
+  "aestheticTags": ["lure", "predatory"]
+}

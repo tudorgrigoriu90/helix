@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "gulf_leech",
+  "name": "Gulf Leech",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 16,
+  "stats": { "str": 7, "res": 3, "agi": 6, "int": 5 },
+  "damageType": "spore",
+  "aestheticTags": ["draining", "parasitic"]
+}

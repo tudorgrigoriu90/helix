@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "carapace_warden",
+  "name": "Carapace Warden",
+  "tier": "elite",
+  "zone": "shallows",
+  "maxHp": 36,
+  "stats": { "str": 10, "res": 10, "agi": 3, "int": 3 },
+  "damageType": "seismic",
+  "aestheticTags": ["armored", "calcified"]
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "leviathan_hatchling",
+  "name": "Leviathan Hatchling",
+  "tier": "boss",
+  "zone": "shallows",
+  "maxHp": 120,
+  "stats": { "str": 17, "res": 11, "agi": 4, "int": 6 },
+  "damageType": "pressure",
+  "aestheticTags": ["leviathan", "brine", "boss"]
+}

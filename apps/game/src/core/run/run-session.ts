@@ -134,6 +134,14 @@ export interface RunSessionOptions {
   readonly seed: number;
   readonly template: FloorTemplate;
   readonly registry: EnemyRegistry;
+  /**
+   * Per-floor templates keyed by floor number (T-291/T-298/T-305). When a floor
+   * has an entry here it drives that floor's zone, enemy pool, boss, and room mix;
+   * floors without one fall back to {@link template}. Omit it (the default) and
+   * every floor uses {@link template} — the single-zone behaviour the demo and
+   * balance harness rely on.
+   */
+  readonly floorTemplates?: ReadonlyMap<number, FloorTemplate>;
   readonly player?: PlayerState;
   /** Boss kill on this floor wins the run (default 20). */
   readonly finalFloor?: number;
@@ -191,6 +199,7 @@ function hashString(s: string): number {
 export class RunSession {
   private readonly masterSeed: number;
   private readonly template: FloorTemplate;
+  private readonly floorTemplates: ReadonlyMap<number, FloorTemplate>;
   private readonly registry: EnemyRegistry;
   private readonly finalFloor: number;
   private readonly mutationPool: readonly MutationDef[];
@@ -234,6 +243,7 @@ export class RunSession {
   constructor(options: RunSessionOptions) {
     this.masterSeed = options.seed;
     this.template = options.template;
+    this.floorTemplates = options.floorTemplates ?? new Map();
     this.registry = options.registry;
     this.finalFloor = options.finalFloor ?? FINAL_FLOOR_DEFAULT;
     this.mutationPool = options.mutations ?? [];
@@ -797,11 +807,14 @@ export class RunSession {
 
   private loadFloor(n: number): void {
     this.floorNumber = n;
+    // Each floor uses its own template when one is supplied (zones drive the
+    // enemy pool/boss/room mix), falling back to the base template otherwise.
+    const template = this.floorTemplates.get(n) ?? this.template;
     // Floor 0 is the fixed tutorial floor (T-137); every other floor generates.
     this.floorData =
       n === 0 && this.floorZero !== null
         ? this.floorZero
-        : generateFloor({ ...this.template, floor: n }, this.floorRng(n));
+        : generateFloor({ ...template, floor: n }, this.floorRng(n));
     this.adjacency = buildAdjacency(this.floorData.rooms, this.floorData.edges);
     this.current = this.floorData.startRoomId;
     this.cleared = new Set<string>();

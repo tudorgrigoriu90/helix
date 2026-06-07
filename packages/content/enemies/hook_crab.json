@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "hook_crab",
+  "name": "Hook Crab",
+  "tier": "grunt",
+  "zone": "shallows",
+  "maxHp": 18,
+  "stats": { "str": 7, "res": 4, "agi": 7, "int": 2 },
+  "damageType": "physical",
+  "aestheticTags": ["chitinous", "pincered"]
+}

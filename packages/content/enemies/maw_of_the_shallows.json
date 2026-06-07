@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "maw_of_the_shallows",
+  "name": "Maw of the Shallows",
+  "tier": "boss",
+  "zone": "shallows",
+  "maxHp": 110,
+  "stats": { "str": 16, "res": 10, "agi": 5, "int": 6 },
+  "damageType": "pressure",
+  "aestheticTags": ["leviathan", "maw", "boss"]
+}

@@ -49,6 +49,42 @@ const ENTITIES: readonly SpriteSpec[] = [
     description: 'Zone-1 BOSS. Imposing fluorescent pressure-warden; larger, menacing, glowing deep-sea bioluminescence. Should feel like a fight.' },
 ];
 
+// ── Entities — Zone 1 (Shallows), Floors 2–5 (T-291) ─────────────────────────
+const ENTITIES_SHALLOWS: readonly SpriteSpec[] = [
+  { key: 'glass_eel', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Glass Eel — translucent, darting; physical damage.' },
+  { key: 'barb_louse', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Barb Louse — chitinous, parasitic; physical damage.' },
+  { key: 'brine_lurker', category: 'entity', fallbackColor: 0x44aaff, fallbackShape: 'circle',
+    description: 'Zone-1 elite. Brine Lurker — brine, ambush; pressure damage.' },
+  { key: 'tide_revenant', category: 'entity', fallbackColor: 0x44aaff, fallbackShape: 'circle',
+    description: 'Zone-1 BOSS. Tide Revenant — brine, drowned; pressure damage.' },
+  { key: 'hook_crab', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Hook Crab — chitinous, pincered; physical damage.' },
+  { key: 'silt_skate', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Silt Skate — silt, gliding; physical damage.' },
+  { key: 'anglerhound', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 elite. Anglerhound — lure, predatory; physical damage.' },
+  { key: 'choir_of_teeth', category: 'entity', fallbackColor: 0x44aaff, fallbackShape: 'circle',
+    description: 'Zone-1 BOSS. Choir of Teeth — swarm, maw; pressure damage.' },
+  { key: 'spine_drifter', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Spine Drifter — floating, venomous; spore damage.' },
+  { key: 'gulf_leech', category: 'entity', fallbackColor: 0x88cc44, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Gulf Leech — draining, parasitic; spore damage.' },
+  { key: 'carapace_warden', category: 'entity', fallbackColor: 0xbb8844, fallbackShape: 'circle',
+    description: 'Zone-1 elite. Carapace Warden — armored, calcified; seismic damage.' },
+  { key: 'maw_of_the_shallows', category: 'entity', fallbackColor: 0x44aaff, fallbackShape: 'circle',
+    description: 'Zone-1 BOSS. Maw of the Shallows — leviathan, maw; pressure damage.' },
+  { key: 'razor_polyp', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Razor Polyp — colonial, bladed; physical damage.' },
+  { key: 'murk_stalker', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle',
+    description: 'Zone-1 grunt. Murk Stalker — shadow, stalking; physical damage.' },
+  { key: 'pressure_herald', category: 'entity', fallbackColor: 0x44aaff, fallbackShape: 'circle',
+    description: 'Zone-1 elite. Pressure Herald — pressure, heraldic; pressure damage.' },
+  { key: 'leviathan_hatchling', category: 'entity', fallbackColor: 0x44aaff, fallbackShape: 'circle',
+    description: 'Zone-1 BOSS. Leviathan Hatchling — leviathan, brine; pressure damage.' },
+];
+
 // ── Tiles (combat grid) ──────────────────────────────────────────────────────
 const TILES: readonly SpriteSpec[] = [
   { key: 'tile_open', category: 'tile', fallbackColor: 0x0d1220, fallbackShape: 'rect',
@@ -113,6 +149,7 @@ const ABILITIES: readonly SpriteSpec[] = [
 
 export const SPRITE_MANIFEST: readonly SpriteSpec[] = [
   ...ENTITIES,
+  ...ENTITIES_SHALLOWS,
   ...TILES,
   ...ROOMS,
   ...ITEMS,

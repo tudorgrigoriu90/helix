@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "pressure_herald",
+  "name": "Pressure Herald",
+  "tier": "elite",
+  "zone": "shallows",
+  "maxHp": 30,
+  "stats": { "str": 9, "res": 6, "agi": 5, "int": 8 },
+  "damageType": "pressure",
+  "aestheticTags": ["pressure", "heraldic"]
+}

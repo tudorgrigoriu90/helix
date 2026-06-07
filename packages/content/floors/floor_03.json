@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "floor": 1,
+  "floor": 3,
   "zone": "shallows",
   "roomCount": { "min": 8, "max": 14 },
   "roomWeights": {
@@ -11,9 +11,9 @@
     "trap": 0.10,
     "lace_event": 0.05
   },
-  "roomMinima": { "safe": 1 },
+  "roomMinima": { "safe": 1, "merchant": 1 },
   "connectivity": "branching",
-  "enemyPool": ["filterer", "cave_crawler", "acid_spitter", "scavenger", "shell_brute"],
-  "bossId": "pressure_warden",
-  "aestheticTags": ["caves", "fluorescent", "acid_pools"]
+  "enemyPool": ["hook_crab", "silt_skate", "anglerhound"],
+  "bossId": "choir_of_teeth",
+  "aestheticTags": ["caves", "fluorescent", "swarm", "maw"]
 }

@@ -50,17 +50,16 @@ import { logEvent } from '../core/platform/analytics-adapter';
 import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
 import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
-import filterer from '@content/enemies/filterer.json';
-import caveCrawler from '@content/enemies/cave_crawler.json';
-import acidSpitter from '@content/enemies/acid_spitter.json';
-import scavenger from '@content/enemies/scavenger.json';
-import shellBrute from '@content/enemies/shell_brute.json';
-import pressureWarden from '@content/enemies/pressure_warden.json';
-import floor01 from '@content/floors/floor_01.json';
 import laceCore from '@content/lace-lines/core.json';
 import prefixesJson from '@content/organism-names/prefixes.json';
 import traitsJson from '@content/organism-names/traits.json';
 import suffixesJson from '@content/organism-names/suffixes.json';
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const enemyModules = import.meta.glob('../../../../packages/content/enemies/*.json', { eager: true });
+const enemyFiles = enemyModules as Record<string, { readonly default: unknown }>;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const floorModules = import.meta.glob('../../../../packages/content/floors/*.json', { eager: true });
+const floorFiles = floorModules as Record<string, { readonly default: unknown }>;
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const mutationModules = import.meta.glob('../../../../packages/content/mutations/*.json', { eager: true });
 const mutationFiles = mutationModules as Record<string, { readonly default: unknown }>;
@@ -114,6 +113,7 @@ export class GameScene extends Phaser.Scene {
   private narrator!: LaceNarrator;
   private enemyRegistry!: ReadonlyMap<string, EnemyDef>;
   private template!: FloorTemplate;
+  private floorTemplates: ReadonlyMap<number, FloorTemplate> = new Map();
   private laceLines: readonly LaceLine[] = [];
   private mutationPool: readonly MutationDef[] = [];
   private itemPool: readonly ItemDef[] = [];
@@ -252,16 +252,26 @@ export class GameScene extends Phaser.Scene {
   // ── Content loading ────────────────────────────────────────────────────────
 
   private loadContent(): void {
-    const defs: EnemyDef[] = [filterer, caveCrawler, acidSpitter, scavenger, shellBrute, pressureWarden].map((raw) => {
-      const res = parseEnemyDef(raw);
+    const defs: EnemyDef[] = [];
+    for (const mod of Object.values(enemyFiles)) {
+      const res = parseEnemyDef(mod.default);
       if (!res.ok) throw new Error(`GameScene: bad enemy content — ${res.error.message}`);
-      return res.enemy;
-    });
+      defs.push(res.enemy);
+    }
     this.enemyRegistry = buildEnemyRegistry(defs);
 
-    const tpl = parseFloorTemplate(floor01);
-    if (!tpl.ok) throw new Error(`GameScene: bad floor content — ${tpl.error.message}`);
-    this.template = tpl.template;
+    // One template per floor (zones 1–4). Floors without a shipped template fall
+    // back to the floor-1 template inside RunSession.
+    const byFloor = new Map<number, FloorTemplate>();
+    for (const mod of Object.values(floorFiles)) {
+      const res = parseFloorTemplate(mod.default);
+      if (!res.ok) throw new Error(`GameScene: bad floor content — ${res.error.message}`);
+      byFloor.set(res.template.floor, res.template);
+    }
+    this.floorTemplates = byFloor;
+    const floor1 = byFloor.get(1);
+    if (floor1 === undefined) throw new Error('GameScene: missing floor 1 template');
+    this.template = floor1;
 
     const lace = parseLaceLines(laceCore);
     if (!lace.ok) throw new Error(`GameScene: bad LACE content — ${lace.error.message}`);
@@ -298,6 +308,7 @@ export class GameScene extends Phaser.Scene {
     this.session = new RunSession({
       seed: this.seed,
       template: this.template,
+      floorTemplates: this.floorTemplates,
       registry: this.enemyRegistry,
       finalFloor: FINAL_FLOOR,
       mutations: this.mutationPool,
@@ -342,6 +353,7 @@ export class GameScene extends Phaser.Scene {
     this.session = new RunSession({
       seed: this.seed,
       template: this.template,
+      floorTemplates: this.floorTemplates,
       registry: this.enemyRegistry,
       finalFloor: FINAL_FLOOR,
       mutations: this.mutationPool,
