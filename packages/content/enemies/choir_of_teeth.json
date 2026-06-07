@@ -4,8 +4,8 @@
   "name": "Choir of Teeth",
   "tier": "boss",
   "zone": "shallows",
-  "maxHp": 100,
-  "stats": { "str": 14, "res": 9, "agi": 6, "int": 9 },
+  "maxHp": 90,
+  "stats": { "str": 14, "res": 8, "agi": 6, "int": 9 },
   "damageType": "pressure",
   "aestheticTags": ["swarm", "maw", "boss"]
 }

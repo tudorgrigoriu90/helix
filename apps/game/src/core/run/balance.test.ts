@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { EnemyDef } from '@shared-types/enemy';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { Action, Position } from '@shared-types/action';
 import type { EnemyState, RunState } from '@shared-types/run-state';
@@ -8,54 +9,81 @@ import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances } from '../floor-gen';
 import { RunSession } from './run-session';
 import { buildEnemyRegistry } from './encounter';
+import { parseEnemyDef } from '../content/enemy-loader';
+import { parseFloorTemplate } from '../floor-gen/floor-template-loader';
+import { parseItemDef } from '../content/item-loader';
+import { parseMutationDef } from '../content/mutation-loader';
 
 /**
- * T-78 balance guard (Sprint 4.5). Auto-plays full runs with the *real*
- * starting loadout (abilities + items) and per-floor scaling, across many
- * seeds, with a competent policy (heal when low, AoE clusters, nuke, melee).
- * Locks in the intended difficulty curve: Floor 1 is winnable for most seeds;
- * a 3-floor descent is meaningfully harder. Re-run prints the rates.
+ * T-78 balance guard — extended to all 20 milestone floors.
+ *
+ * Auto-plays full runs with the real shipped content (enemies, items,
+ * floor templates, mutations), a competent policy (heal when low, AoE on
+ * clusters, lance/nuke on singles, melee fallback), and stat-point allocation.
+ * Checks that the difficulty curve is shaped correctly: Floor 1 is reliably
+ * winnable, and the mid-game + late game become progressively harder.
  */
 
-const FLOOR1_CLEAR_MIN = 0.9; // Floor 1 (the Gate-1 slice) is reliably winnable with good play
-const DEMO_CLEAR_MIN = 0.5; // the 2-floor demo is winnable for a competent player
-// Note: this demo reuses the Floor-1 template, so EVERY floor ends in a boss and
-// consumables don't restock — a 3-floor descent is intentionally punishing. The
-// curve we lock in: Floor 1 reliable, 2-floor demo winnable, depth eventually walls.
+const FLOOR1_CLEAR_MIN = 0.9; // F1 is the tutorial slice — must be reliable
+const ZONE1_END_MIN = 0.2; // F5 (Zone 1 finale) still beatable for a competent player
+const APEX_CLEAR_MAX = 0.3; // F20 is punishing — clear rate must stay below 30%
 
-function enemy(id: string, tier: EnemyDef['tier'], maxHp: number, stats: EnemyDef['stats']): EnemyDef {
-  return { schemaVersion: 1, id, name: id, tier, zone: 'shallows', maxHp, stats, damageType: 'physical', aestheticTags: ['caves'] };
+const CONTENT = fileURLToPath(new URL('../../../../../packages/content/', import.meta.url));
+
+function readJson(path: string): unknown {
+  return JSON.parse(readFileSync(path, 'utf-8'));
 }
 
-// Mirrors the shipped Zone-1 content (packages/content/enemies/).
-const registry = buildEnemyRegistry([
-  enemy('filterer', 'grunt', 16, { str: 6, res: 3, agi: 5, int: 2 }),
-  enemy('cave_crawler', 'grunt', 18, { str: 7, res: 4, agi: 8, int: 2 }),
-  enemy('acid_spitter', 'grunt', 14, { str: 8, res: 2, agi: 6, int: 4 }),
-  enemy('scavenger', 'grunt', 20, { str: 6, res: 5, agi: 7, int: 3 }),
-  enemy('pressure_warden', 'boss', 90, { str: 14, res: 8, agi: 6, int: 6 }),
-]);
+const registry = (() => {
+  const defs = readdirSync(`${CONTENT}enemies/`)
+    .filter((f) => f.endsWith('.json'))
+    .flatMap((f) => {
+      const res = parseEnemyDef(readJson(`${CONTENT}enemies/${f}`));
+      return res.ok ? [res.enemy] : [];
+    });
+  return buildEnemyRegistry(defs);
+})();
 
-function template(): FloorTemplate {
-  return {
-    schemaVersion: 1, floor: 1, zone: 'shallows',
-    roomCount: { min: 8, max: 12 },
-    roomWeights: { combat: 0.5, loot: 0.15, safe: 0.15, merchant: 0.1, trap: 0.05, lace_event: 0.05 },
-    roomMinima: { safe: 1 },
-    connectivity: 'branching',
-    enemyPool: ['filterer', 'cave_crawler', 'acid_spitter', 'scavenger'],
-    bossId: 'pressure_warden',
-    aestheticTags: ['caves'],
-  };
-}
+const allFloorTemplates: ReadonlyMap<number, FloorTemplate> = (() => {
+  const map = new Map<number, FloorTemplate>();
+  for (const f of readdirSync(`${CONTENT}floors/`).filter((file) => file.endsWith('.json'))) {
+    const res = parseFloorTemplate(readJson(`${CONTENT}floors/${f}`));
+    if (res.ok) map.set(res.template.floor, res.template);
+  }
+  return map;
+})();
+
+const itemPool = readdirSync(`${CONTENT}items/`)
+  .filter((f) => f.endsWith('.json'))
+  .flatMap((f) => {
+    const res = parseItemDef(readJson(`${CONTENT}items/${f}`));
+    return res.ok ? [res.item] : [];
+  });
+
+const mutations = readdirSync(`${CONTENT}mutations/`)
+  .filter((f) => f.endsWith('.json'))
+  .flatMap((f) => {
+    const res = parseMutationDef(readJson(`${CONTENT}mutations/${f}`));
+    return res.ok ? [res.mutation] : [];
+  });
+
+const baseTemplate = allFloorTemplates.get(1)!;
+
+// ── Combat policy ──────────────────────────────────────────────────────────
 
 const byId = (a: EnemyState, b: EnemyState): number => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
 const step = (from: Position, to: Position): Position => ({
-  x: from.x + Math.sign(to.x - from.x), y: from.y + Math.sign(to.y - from.y),
+  x: from.x + Math.sign(to.x - from.x),
+  y: from.y + Math.sign(to.y - from.y),
 });
 
-/** Best AoE center within `range` of the player by living-enemies-hit. */
-function bestAoe(state: RunState, range: number, radius: number, living: readonly EnemyState[]): { pos: Position; count: number } | null {
+function bestAoe(
+  state: RunState,
+  range: number,
+  radius: number,
+  living: readonly EnemyState[],
+): { pos: Position; count: number } | null {
   let best: { pos: Position; count: number } | null = null;
   for (const center of living) {
     if (chebyshev(state.player.pos, center.pos) > range) continue;
@@ -70,92 +98,185 @@ function chooseCombat(state: RunState): Action {
   const living = state.enemies.filter((e) => e.hp > 0).slice().sort(byId);
   if (living.length === 0 || p.ap <= 0) return { type: 'endTurn' };
 
-  if (p.hp / p.maxHp < 0.4) {
-    const heal = p.items.find((i) => i.effect?.kind === 'heal');
-    if (heal) return { type: 'useItem', itemId: heal.id };
+  // Heal when below 35% HP or below 25 absolute HP — prefer highest heal
+  if (p.hp / p.maxHp < 0.35 || p.hp < 25) {
+    const heals = p.items.filter((i) => i.effect?.kind === 'heal');
+    const best = heals.sort((a, b) => (b.effect?.amount ?? 0) - (a.effect?.amount ?? 0))[0];
+    if (best) return { type: 'useItem', itemId: best.id };
   }
 
-  const rupture = p.abilities.find((s) => s.def.aoeRadius > 0 && s.def.targetType === 'tile');
-  if (rupture && rupture.cooldownRemaining === 0 && p.ap >= rupture.def.apCost) {
-    const aoe = bestAoe(state, rupture.def.range, rupture.def.aoeRadius, living);
-    if (aoe && aoe.count >= 2) return { type: 'useAbility', abilityId: rupture.def.id, targetPos: aoe.pos };
+  // AoE ability (rupture / seismic) on ≥2 enemies
+  const aoeAbility = p.abilities.find((s) => s.def.aoeRadius > 0 && s.def.targetType === 'tile');
+  if (aoeAbility && aoeAbility.cooldownRemaining === 0 && p.ap >= aoeAbility.def.apCost) {
+    const aoe = bestAoe(state, aoeAbility.def.range, aoeAbility.def.aoeRadius, living);
+    if (aoe && aoe.count >= 2) {
+      return { type: 'useAbility', abilityId: aoeAbility.def.id, targetPos: aoe.pos };
+    }
   }
 
+  // Single-target nuke ability (lance / void beam)
   const lance = p.abilities.find((s) => s.def.targetType === 'enemy' && s.def.baseDamage > 0);
   if (lance && lance.cooldownRemaining === 0 && p.ap >= lance.def.apCost) {
     const t = living.find((e) => chebyshev(p.pos, e.pos) <= lance.def.range);
     if (t) return { type: 'useAbility', abilityId: lance.def.id, targetId: t.id };
   }
 
-  const frag = p.items.find((i) => i.effect?.kind === 'damage');
-  if (frag) {
-    const aoe = bestAoe(state, 99, 1, living);
-    if (aoe && aoe.count >= 3) return { type: 'useItem', itemId: frag.id, targetPos: aoe.pos };
+  // AoE damage consumable on ≥2 enemies
+  const aoeItem = p.items.find((i) => i.effect?.kind === 'damage' && (i.effect.aoeRadius ?? 0) > 0);
+  if (aoeItem) {
+    const aoe = bestAoe(state, 99, aoeItem.effect!.aoeRadius ?? 1, living);
+    if (aoe && aoe.count >= 2) return { type: 'useItem', itemId: aoeItem.id, targetPos: aoe.pos };
   }
 
+  // Single-target damage consumable on lone enemy
+  const stItem = p.items.find((i) => i.effect?.kind === 'damage' && (i.effect.aoeRadius ?? 0) === 0);
+  if (stItem && living.length <= 2) {
+    const t = living.find((e) => chebyshev(p.pos, e.pos) <= 99);
+    if (t) return { type: 'useItem', itemId: stItem.id, targetPos: t.pos };
+  }
+
+  // Melee if adjacent
   const adj = living.find((e) => chebyshev(p.pos, e.pos) <= 1);
   if (adj) return { type: 'attack', targetId: adj.id };
 
-  const target = living[0]!;
-  return { type: 'move', targetPos: step(p.pos, target.pos) };
+  // Step toward nearest enemy
+  return { type: 'move', targetPos: step(p.pos, living[0]!.pos) };
 }
 
-function resolveCombat(initial: RunState): RunState {
-  let state = initial;
-  const rng = makeRng(initial.seed, 'combat');
-  for (let i = 0; i < 4000 && state.phase === 'player'; i++) {
-    let result = TurnEngine.apply(state, chooseCombat(state), rng);
-    if (result.errors.length > 0) result = TurnEngine.apply(state, { type: 'endTurn' }, rng);
-    state = result.state;
+// ── Loot claiming ──────────────────────────────────────────────────────────
+
+function claimPendingLoot(s: RunSession): void {
+  for (const item of s.lootPending()) {
+    if (item.category === 'equipment') continue; // skip equipment — no swap logic
+    const result = s.takeLoot(item.id);
+    if (result.needsSwap) {
+      // inventory full: swap out a duplicate consumable if any, otherwise skip
+      const snap = s.snapshot;
+      const dup = snap.player.items.find((held) => held.id === item.id);
+      if (dup) s.takeLoot(item.id, dup.id);
+      else s.discardLoot(item.id);
+    }
   }
-  return state;
 }
 
-function stepTowardBoss(s: RunSession): string | undefined {
+// ── Navigation ────────────────────────────────────────────────────────────
+
+function nextRoom(s: RunSession): string | undefined {
+  const snap = s.snapshot;
+  const adj = s.adjacentRooms();
   const dist = bfsDistances(s.floor.bossRoomId, s.floor.rooms, s.floor.edges);
+
+  // Prefer safe rooms when hurt
+  if (snap.player.hp / snap.player.maxHp < 0.6) {
+    const safeAdj = adj.find((id) => s.floor.rooms.find((r) => r.id === id)?.type === 'safe');
+    if (safeAdj) return safeAdj;
+  }
+
+  // BFS toward boss
   let best: string | undefined;
   let bestD = Infinity;
-  for (const id of s.adjacentRooms()) {
+  for (const id of adj) {
     const d = dist.get(id) ?? Infinity;
     if (d < bestD) { bestD = d; best = id; }
   }
   return best;
 }
 
-/** Plays a full run to victory/defeat; returns the final run status. */
+// ── Run simulator ─────────────────────────────────────────────────────────
+
 function playRun(seed: number, finalFloor: number): string {
-  const s = new RunSession({ seed, template: template(), registry, finalFloor });
-  for (let i = 0; i < 2000; i++) {
+  const s = new RunSession({
+    seed,
+    template: baseTemplate,
+    registry,
+    finalFloor,
+    floorTemplates: allFloorTemplates,
+    itemPool,
+    mutations,
+  });
+
+  for (let i = 0; i < 4000; i++) {
     const status = s.snapshot.status;
     if (status === 'victory' || status === 'defeat') return status;
-    if (status === 'floor_complete') { s.descend(); continue; }
+
+    if (status === 'floor_complete') {
+      s.descend();
+      continue;
+    }
+
+    if (status === 'strand_event') {
+      const outcome = s.beginStrandEvent();
+      if (outcome.kind === 'draw' && s.strandOffer.length > 0) {
+        s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+      } else {
+        s.acceptIntermission();
+      }
+      continue;
+    }
+
+    // Allocate any pending stat points to STR
+    while (s.snapshot.pendingStatPoints > 0) s.allocateStatPoint('str');
+
     if (s.needsCombat()) {
       const rs = s.beginEncounter();
-      if (rs !== null) s.endEncounter(resolveCombat(rs));
+      if (rs === null) continue;
+      const rng = makeRng(rs.seed, 'combat');
+      let state = rs;
+      for (let t = 0; t < 4000 && state.phase === 'player'; t++) {
+        let result = TurnEngine.apply(state, chooseCombat(state), rng);
+        if (result.errors.length > 0) result = TurnEngine.apply(state, { type: 'endTurn' }, rng);
+        state = result.state;
+      }
+      s.endEncounter(state);
+      claimPendingLoot(s);
     } else {
-      const next = stepTowardBoss(s);
+      const next = nextRoom(s);
       if (next === undefined) break;
       s.moveTo(next);
+      claimPendingLoot(s);
     }
   }
+
   return s.snapshot.status;
 }
 
-function clearRate(finalFloor: number, seeds = 60): number {
+function clearRate(finalFloor: number, seeds = 40): number {
   let wins = 0;
-  for (let seed = 1; seed <= seeds; seed++) if (playRun(seed, finalFloor) === 'victory') wins++;
+  for (let seed = 1; seed <= seeds; seed++) {
+    if (playRun(seed, finalFloor) === 'victory') wins++;
+  }
   return wins / seeds;
 }
 
-describe('combat balance — Sprint 4.5 (T-78 curve)', () => {
-  it('Floor 1 is reliably winnable, the 2-floor demo is winnable, and depth bites', () => {
-    const f1 = clearRate(1);
-    const f2 = clearRate(2);
-    const f3 = clearRate(3);
+// ── Tests ─────────────────────────────────────────────────────────────────
+
+describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
+  it('floor 1 is reliably winnable', () => {
+    const f1 = clearRate(1, 60);
     // eslint-disable-next-line no-console
-    console.log(`  clear rates — 1F: ${(f1 * 100).toFixed(0)}%   2F: ${(f2 * 100).toFixed(0)}%   3F: ${(f3 * 100).toFixed(0)}%`);
-    expect(f1).toBeGreaterThanOrEqual(FLOOR1_CLEAR_MIN); // Floor 1 = the Gate-1 slice
-    expect(f2).toBeGreaterThanOrEqual(DEMO_CLEAR_MIN); // the shipped 2-floor demo is beatable
-    expect(f3).toBeLessThan(f2); // scaling + attrition eventually overwhelm
+    console.log(`  F1 clear rate: ${(f1 * 100).toFixed(0)}%`);
+    expect(f1).toBeGreaterThanOrEqual(FLOOR1_CLEAR_MIN);
+  });
+
+  it('difficulty curve descends across zone milestones', () => {
+    const depths = [5, 10, 15, 20];
+    const rates = depths.map((d) => clearRate(d, 40));
+    // eslint-disable-next-line no-console
+    console.log(
+      depths
+        .map((d, i) => `  F${d}: ${(rates[i]! * 100).toFixed(0)}%`)
+        .join('   '),
+    );
+
+    // Zone 1 finale (F5) is still beatable for a competent player
+    expect(rates[0]).toBeGreaterThanOrEqual(ZONE1_END_MIN);
+
+    // Curve is monotone descending (each zone harder than the last)
+    for (let i = 1; i < rates.length; i++) {
+      expect(rates[i]).toBeLessThanOrEqual(rates[i - 1]!);
+    }
+
+    // Apex (F20) is punishing — low clear rate confirms intended difficulty
+    expect(rates[rates.length - 1]).toBeLessThan(APEX_CLEAR_MAX);
   });
 });

@@ -4,8 +4,8 @@
   "name": "Leviathan Hatchling",
   "tier": "boss",
   "zone": "shallows",
-  "maxHp": 120,
-  "stats": { "str": 17, "res": 11, "agi": 4, "int": 6 },
+  "maxHp": 95,
+  "stats": { "str": 14, "res": 8, "agi": 4, "int": 6 },
   "damageType": "pressure",
   "aestheticTags": ["leviathan", "brine", "boss"]
 }

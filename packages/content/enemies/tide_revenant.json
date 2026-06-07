@@ -4,8 +4,8 @@
   "name": "Tide Revenant",
   "tier": "boss",
   "zone": "shallows",
-  "maxHp": 95,
-  "stats": { "str": 15, "res": 8, "agi": 7, "int": 7 },
+  "maxHp": 88,
+  "stats": { "str": 13, "res": 7, "agi": 7, "int": 7 },
   "damageType": "pressure",
   "aestheticTags": ["brine", "drowned", "boss"]
 }
