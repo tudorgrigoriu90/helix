@@ -5,6 +5,7 @@ import type { EnemyDef } from '@shared-types/enemy';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { ItemDef } from '@shared-types/item';
 import type { MutationDef } from '@shared-types/mutation';
+import type { LaceLine } from '@shared-types/lace-line';
 import { parseEnemyDef } from './enemy-loader';
 import { parseItemDef } from './item-loader';
 import { parseMutationDef } from './mutation-loader';
@@ -73,6 +74,26 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
     for (const { file, raw } of laceFiles) {
       const res = parseLaceLines(raw);
       expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
+    }
+  });
+
+  it('ships the Prototype LACE library — ≥50 lines covering every context (T-313)', () => {
+    const lines = readDir('lace-lines').flatMap(({ raw }) => {
+      const res = parseLaceLines(raw);
+      return res.ok ? res.lines : [];
+    });
+    expect(lines.length).toBeGreaterThanOrEqual(50);
+    // Every triggerable context must have at least one line so selection never
+    // falls through to `generic` for a core run event (T-98/T-102).
+    const contexts: readonly LaceLine['context'][] = [
+      'run_start', 'floor_enter', 'combat_start', 'enemy_killed', 'player_hurt',
+      'room_cleared', 'boss_start', 'boss_killed', 'floor_complete', 'player_death', 'generic',
+    ];
+    for (const context of contexts) {
+      expect(
+        lines.filter((l) => l.context === context).length,
+        `context "${context}" must have ≥1 line`,
+      ).toBeGreaterThanOrEqual(1);
     }
   });
 

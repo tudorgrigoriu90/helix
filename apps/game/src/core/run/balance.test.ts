@@ -100,8 +100,10 @@ function chooseCombat(state: RunState): Action {
 
   // Heal when below 35% HP or below 25 absolute HP — prefer highest heal
   if (p.hp / p.maxHp < 0.35 || p.hp < 25) {
+    const healAmount = (e: typeof p.items[number]['effect']): number =>
+      e?.kind === 'heal' ? e.amount : 0;
     const heals = p.items.filter((i) => i.effect?.kind === 'heal');
-    const best = heals.sort((a, b) => (b.effect?.amount ?? 0) - (a.effect?.amount ?? 0))[0];
+    const best = heals.sort((a, b) => healAmount(b.effect) - healAmount(a.effect))[0];
     if (best) return { type: 'useItem', itemId: best.id };
   }
 
@@ -122,14 +124,14 @@ function chooseCombat(state: RunState): Action {
   }
 
   // AoE damage consumable on ≥2 enemies
-  const aoeItem = p.items.find((i) => i.effect?.kind === 'damage' && (i.effect.aoeRadius ?? 0) > 0);
-  if (aoeItem) {
-    const aoe = bestAoe(state, 99, aoeItem.effect!.aoeRadius ?? 1, living);
+  const aoeItem = p.items.find((i) => i.effect?.kind === 'damage' && i.effect.aoeRadius > 0);
+  if (aoeItem && aoeItem.effect?.kind === 'damage') {
+    const aoe = bestAoe(state, 99, aoeItem.effect.aoeRadius, living);
     if (aoe && aoe.count >= 2) return { type: 'useItem', itemId: aoeItem.id, targetPos: aoe.pos };
   }
 
   // Single-target damage consumable on lone enemy
-  const stItem = p.items.find((i) => i.effect?.kind === 'damage' && (i.effect.aoeRadius ?? 0) === 0);
+  const stItem = p.items.find((i) => i.effect?.kind === 'damage' && i.effect.aoeRadius === 0);
   if (stItem && living.length <= 2) {
     const t = living.find((e) => chebyshev(p.pos, e.pos) <= 99);
     if (t) return { type: 'useItem', itemId: stItem.id, targetPos: t.pos };

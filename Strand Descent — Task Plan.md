@@ -773,7 +773,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 | ID    | Title                                                                 | Role     | Priority | Refs           | Notes |
 | ----- | --------------------------------------------------------------------- | -------- | -------- | -------------- | ----- |
-| T-313 | ~50 fragments for Prototype (Floor 0 + Floor 1 events)                | Director | P0       | TDD §9.5       | |
+| T-313 | ~~~50 fragments for Prototype (Floor 0 + Floor 1 events)~~ — **DONE 2026-06-08.** `packages/content/lace-lines/core.json` expanded from 19 → 51 hand-authored LACE lines in the companion's clinical/amused/reverent voice, covering Floor 0 (tutorial) + Floor 1 beats across **every** triggerable context (run_start ×5, floor_enter ×6, combat_start ×5, enemy_killed ×5, player_hurt ×5, room_cleared ×4, boss_start ×4, boss_killed ×4, floor_complete ×4, player_death ×5, generic ×5) and all six moods. New content-bundle gate (`content-bundle.test.ts`) asserts ≥50 lines and ≥1 line per context, so selection never falls through to `generic` for a core event. All load through the T-97 loader (unique ids, valid enum, weight > 0). Verified: typecheck + lint + 990 tests green. | Director | P0       | TDD §9.5       | DONE |
 | T-314 | ~150 fragments for Alpha (Zones 1–2 coverage)                         | Director | P1       | TDD §9.5       | |
 | T-315 | 400–500 fragments for Soft launch (full coverage)                     | Director | P2       | TDD §9.5       | Fallback if no writer signed |
 | T-316 | LACE Critical hit pool (20 lines on player crit; 20 on player crit-hit) | Director | P1     | GDD §10.1      | |
