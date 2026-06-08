@@ -60,6 +60,14 @@ export type {
 export { CURRENT_LACE_SCHEMA_VERSION } from './lace-line.js';
 
 export type {
+  CodexCategory,
+  CodexEntry,
+  CodexEntryBundle,
+} from './codex-entry.js';
+
+export { CURRENT_CODEX_SCHEMA_VERSION } from './codex-entry.js';
+
+export type {
   LifetimeStats,
   MetaState,
 } from './meta-state.js';

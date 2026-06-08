@@ -9,6 +9,7 @@ import type { LaceLine } from '@shared-types/lace-line';
 import { parseEnemyDef } from './enemy-loader';
 import { parseItemDef } from './item-loader';
 import { parseMutationDef } from './mutation-loader';
+import { parseCodexEntries } from './codex-loader';
 import { parseFloorTemplate } from '../floor-gen';
 import { parseLaceLines } from '../lace';
 import { crossReferenceContent } from './cross-reference';
@@ -75,6 +76,28 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
       const res = parseLaceLines(raw);
       expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
     }
+  });
+
+  it('every Codex bundle passes the schema loader, with globally-unique ids (T-294)', () => {
+    const seen = new Set<string>();
+    for (const { file, raw } of readDir('codex')) {
+      const res = parseCodexEntries(raw);
+      expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
+      if (res.ok) {
+        for (const entry of res.entries) {
+          expect(seen.has(entry.id), `duplicate codex id "${entry.id}" across bundles`).toBe(false);
+          seen.add(entry.id);
+        }
+      }
+    }
+  });
+
+  it('ships the four Floor 0 Codex entries (T-294)', () => {
+    const floorZero = readDir('codex').flatMap(({ raw }) => {
+      const res = parseCodexEntries(raw);
+      return res.ok ? res.entries.filter((e) => e.floor === 0) : [];
+    });
+    expect(floorZero.length).toBeGreaterThanOrEqual(4);
   });
 
   it('ships the Prototype LACE library — ≥50 lines covering every context (T-313)', () => {

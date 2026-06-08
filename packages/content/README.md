@@ -12,6 +12,7 @@ Game content as JSON. See **TDD §8 (Mutation System)**, **§9 (LACE Narrative E
 | `floors/`           | Floor templates per (floor_number, zone)       | TDD §7.1 |
 | `organism-names/`   | prefix / trait / suffix tables + special suffixes | UFD §3 |
 | `lace-lines/`       | LACE line fragments (tagged JSON)              | TDD §9.2 |
+| `codex/`            | Codex lore entries, one bundle per zone/floor batch | GDD §2.7 |
 
 ## Build order (per GDD Patch 12)
 
@@ -25,4 +26,4 @@ Game content as JSON. See **TDD §8 (Mutation System)**, **§9 (LACE Narrative E
 
 `pnpm validate` (from repo root) loads every content file through its schema loader and then runs the cross-reference validator over the whole bundle (a floor's `enemyPool`/`bossId` must resolve to real enemies; the boss must be boss-tier; ids must be unique). The gate lives in `@helix/game` (`src/core/content/content-bundle.test.ts`) because it reuses the runtime loaders. It also runs as part of `pnpm test`.
 
-**Implemented:** enemy + item + mutation + LACE + organism-name schemas (T-283/T-284/T-282/T-286/T-287), cross-reference validator (T-288). The bundle gate also asserts the floor↔zone design (`floors.content.test.ts`) and the bestiary shape (`enemies.content.test.ts`): every floor's zone matches its GDD §7.1 band, every pooled/boss enemy belongs to that zone, and no boss is reused across floors.
+**Implemented:** enemy + item + mutation + LACE + organism-name + Codex schemas (T-283/T-284/T-282/T-286/T-287/T-294), cross-reference validator (T-288). The bundle gate also asserts the floor↔zone design (`floors.content.test.ts`) and the bestiary shape (`enemies.content.test.ts`): every floor's zone matches its GDD §7.1 band, every pooled/boss enemy belongs to that zone, and no boss is reused across floors.

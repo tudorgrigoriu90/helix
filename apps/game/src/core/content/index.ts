@@ -7,6 +7,9 @@ export type { ItemLoaderResult } from './item-loader';
 export { parseMutationDef } from './mutation-loader';
 export type { MutationLoaderResult } from './mutation-loader';
 
+export { parseCodexEntries } from './codex-loader';
+export type { CodexLoaderResult } from './codex-loader';
+
 export { crossReferenceContent } from './cross-reference';
 export type { ContentBundle } from './cross-reference';
 

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "codex_the_vein",
+      "title": "The VEIN",
+      "category": "phenomenon",
+      "floor": 0,
+      "body": "It has no edge anyone has found. The VEIN runs under every floor like a circulatory system that decided, somewhere in the dark, that it preferred its own thoughts to ours. It does not attack. It rearranges. Step deep enough and it begins editing you — a stronger arm here, a second set of lungs there, a hunger you didn't bring with you. We call the descent a descent because 'being slowly rewritten by something patient' doesn't fit on a sign. You volunteered for this. Try to remember why."
+    },
+    {
+      "id": "codex_filterer",
+      "title": "Filterer",
+      "category": "organism",
+      "floor": 0,
+      "body": "The shallows' housekeeping. A filterer drifts through the upper floors straining nutrients from the brine, harmless until something blocks its current — at which point it learns, very quickly, that you are made of nutrients too. Slow, soft, and almost polite about dying. It is the first thing most descenders kill, and the first thing the VEIN logs them killing. A gentle introduction to an ungentle place. Do not mistake the lesson for the rule."
+    },
+    {
+      "id": "codex_lace",
+      "title": "LACE",
+      "category": "lore",
+      "floor": 0,
+      "body": "Localized Adaptive Cognition Echo. The voice in your ear, the one narrating your worst decisions with clinical delight. LACE was seeded into the descent long before you, to observe and — officially — to advise. It has watched thousands make this dive. It remembers each seed and forgets each name. Whether it is helping you or simply curating your data is a question it finds funny and refuses to answer. It is, at least, honest about that."
+    },
+    {
+      "id": "codex_pressure_warden",
+      "title": "Pressure Warden",
+      "category": "organism",
+      "floor": 0,
+      "body": "The first thing down here with a name, and names mean the VEIN invested in it. A pressure warden is a guardian grown to the exact specification of a single threshold — denser than anything around it, built to fold an intruder until the intruder stops folding back. It does not pursue. It does not need to. Everything that wants to go deeper must pass through it, and it has all the time the descent will ever offer. Bring everything. Heroics are for the second attempt."
+    }
+  ]
+}
