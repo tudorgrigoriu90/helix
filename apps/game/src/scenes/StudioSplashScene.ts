@@ -39,7 +39,7 @@ export class StudioSplashScene extends Phaser.Scene {
       .setAlpha(0);
 
     const motto = this.add
-      .text(cx, cy + 32, 'games that feel like something', {
+      .text(cx, cy + 32, 'games that get under your skin', {
         fontFamily: 'monospace',
         fontSize: '10px',
         color: '#2a3a50',
