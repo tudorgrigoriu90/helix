@@ -16,7 +16,7 @@ import { chebyshev } from '../core/turn-engine/grid';
 import { Mulberry32, makeRng } from '../core/rng/mulberry32';
 import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState, completeTutorial } from '../core/save';
-import { createWebStorageAdapter } from '../platform/storage-web';
+import { getStorageAdapter } from '../platform/storage';
 import { computeBounds, computeLayout, project, type Bounds, type LayoutTransform } from './floor-graph-layout';
 
 import filterer from '@content/enemies/filterer.json';
@@ -108,7 +108,7 @@ export class TutorialScene extends Phaser.Scene {
     this.loadContent();
     // Persistent profile (own namespace) — the tutorial banks First Convergence
     // + the tutorial-complete flag into it on the boss kill (T-142).
-    this.metaSaves = new SaveManager(createWebStorageAdapter(), metaCodec, 'helix.meta');
+    this.metaSaves = new SaveManager(getStorageAdapter(), metaCodec, 'helix.meta');
     void this.metaSaves.load().then((res) => {
       if (res !== null && res.ok) this.meta = res.value;
     });

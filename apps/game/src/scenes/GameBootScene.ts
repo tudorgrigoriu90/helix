@@ -7,7 +7,7 @@ import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState } from '../core/save';
 import { runSessionCodec } from '../core/run/run-session-save';
 import { decideResume } from '../core/run/resume-decision';
-import { createWebStorageAdapter } from '../platform/storage-web';
+import { initStorageAdapter } from '../platform/storage';
 import { logEvent } from '../core/platform/analytics-adapter';
 import { installAnalytics } from '../platform/analytics-bootstrap';
 import { ensureAnonymousAuth } from '../platform/firebase/auth';
@@ -127,7 +127,7 @@ export class GameBootScene extends Phaser.Scene {
   }
 
   private async bootAsync(): Promise<ResumeDecision> {
-    const adapter = createWebStorageAdapter();
+    const adapter = await initStorageAdapter();
     const metaSaves = new SaveManager(adapter, metaCodec, 'helix.meta');
     const runSaves = new SaveManager(adapter, runSessionCodec);
 

@@ -26,7 +26,7 @@ import { runSessionCodec } from '../core/run/run-session-save';
 import type { RunSessionSave } from '../core/run/run-session';
 import { SaveManager } from '../core/save/save-manager';
 import { metaCodec, newMetaState, recordRunOutcome } from '../core/save';
-import { createWebStorageAdapter } from '../platform/storage-web';
+import { getStorageAdapter } from '../platform/storage';
 import { adService } from '../platform/ads-bootstrap';
 import { LaceNarrator } from '../core/lace';
 import type { RunSummaryData } from './PostRunScene';
@@ -237,7 +237,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onPointer(p.x, p.y));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onPointerMove(p.x, p.y));
 
-    const adapter = createWebStorageAdapter();
+    const adapter = getStorageAdapter();
     this.saves = new SaveManager(adapter, runSessionCodec);
     this.metaSaves = new SaveManager(adapter, metaCodec, 'helix.meta');
 
