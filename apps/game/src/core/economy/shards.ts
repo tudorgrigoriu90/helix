@@ -4,8 +4,8 @@
  *
  * Shards are earned *slowly* and persist across runs (unlike VEIN). Sources:
  *   - **Run completion** — a trickle proportional to the run's VEIN income, at
- *     the workbook's `shard_per_vein_conversion = 0.005` (so a ~4,800-VEIN full
- *     run yields ~24 shards, matching the sheet's full-run total).
+ *     the workbook's `shard_per_vein_conversion = 0.005` (so a ~3,230-VEIN full
+ *     20-floor run yields ~16 shards, matching the sheet's full-run total).
  *   - **Daily run** — a flat bonus for the first completed run each day.
  *   - **Achievements** — a flat bonus per milestone unlocked.
  *

@@ -11,8 +11,10 @@ import type { ItemRarity } from '@shared-types/item';
  * they're authored here at sensible defaults relative to floor income
  * (~150 VEIN/floor): a common in Zone 1 costs ~¼ of a floor's take.
  *
- * Zones are six floors each (`floors_per_zone = 6` from the Drop Rates tab), so
- * Zone 1 = floors 1–6, Zone 2 = 7–12, … (5 zones over 30 floors).
+ * Zones are five floors each (`floors_per_zone = 5`, GDD §6 / Economy.xlsx
+ * "Assumptions"), so Zone 1 = floors 1–5 (Shallows), Zone 2 = 6–10 (Mycosphere),
+ * Zone 3 = 11–15 (Lithic Deep), Zone 4 = 16–20 (Convergence) — 4 zones over
+ * 20 floors, matching the shipped floor content and the autoplay balance harness.
  */
 
 /** VEIN multiplier per item rarity (workbook "Mutation Costs" rarity scale). */
@@ -25,17 +27,17 @@ export const RARITY_VEIN_MULT: Readonly<Record<ItemRarity, number>> = {
 
 /** Authored: VEIN price of a Common item in Zone 1 (~¼ of a floor's income). */
 export const BASE_DISPENSER_VEIN = 40;
-/** Floors per zone (Economy.xlsx "Drop Rates" driver). */
-export const FLOORS_PER_ZONE = 6;
+/** Floors per zone (Economy.xlsx "Assumptions" / GDD §6 — 4 Zones × 5 = 20). */
+export const FLOORS_PER_ZONE = 5;
 /** Authored: each zone deeper adds this fraction of the base price. */
 export const ZONE_PRICE_GROWTH = 0.5;
 
-/** The 1-based zone a floor belongs to (Zone 1 = floors 1–6, …). */
+/** The 1-based zone a floor belongs to (Zone 1 = floors 1–5, …, Zone 4 = 16–20). */
 export function zoneForFloor(floor: number): number {
   return Math.max(1, Math.ceil(floor / FLOORS_PER_ZONE));
 }
 
-/** Price multiplier for `zone`: `1 + (zone−1)·0.5` (Zone 1 = ×1, Zone 5 = ×3). */
+/** Price multiplier for `zone`: `1 + (zone−1)·0.5` (Zone 1 = ×1, Zone 4 = ×2.5). */
 export function zonePriceMultiplier(zone: number): number {
   return 1 + (Math.max(1, zone) - 1) * ZONE_PRICE_GROWTH;
 }

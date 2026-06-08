@@ -24,23 +24,25 @@ describe('Dispenser pricing — T-108 (GDD §9 / §10.3, Economy.xlsx)', () => {
 
   it('scales price up with zone depth', () => {
     expect(zonePriceMultiplier(1)).toBe(1);
-    expect(zonePriceMultiplier(5)).toBe(3); // 1 + 4·0.5
-    expect(dispenserPrice('common', 5)).toBe(120); // 40 × 3
-    expect(dispenserPrice('legendary', 5)).toBe(1800);
+    expect(zonePriceMultiplier(4)).toBe(2.5); // 1 + 3·0.5 (deepest zone)
+    expect(dispenserPrice('common', 4)).toBe(100); // 40 × 2.5
+    expect(dispenserPrice('legendary', 4)).toBe(1500);
   });
 
-  it('maps floors to six-floor zones', () => {
-    expect(zoneForFloor(1)).toBe(1);
-    expect(zoneForFloor(6)).toBe(1);
-    expect(zoneForFloor(7)).toBe(2);
-    expect(zoneForFloor(12)).toBe(2);
-    expect(zoneForFloor(13)).toBe(3);
-    expect(zoneForFloor(30)).toBe(5);
+  it('maps floors to five-floor zones (GDD §6 — 4 Zones × 5)', () => {
+    expect(zoneForFloor(1)).toBe(1); // Shallows
+    expect(zoneForFloor(5)).toBe(1);
+    expect(zoneForFloor(6)).toBe(2); // Mycosphere
+    expect(zoneForFloor(10)).toBe(2);
+    expect(zoneForFloor(11)).toBe(3); // Lithic Deep
+    expect(zoneForFloor(15)).toBe(3);
+    expect(zoneForFloor(16)).toBe(4); // Convergence
+    expect(zoneForFloor(20)).toBe(4);
   });
 
   it('dispenserPriceForFloor derives the zone from the floor', () => {
-    expect(dispenserPriceForFloor('common', 7)).toBe(dispenserPrice('common', 2)); // 60
-    expect(dispenserPriceForFloor('rare', 30)).toBe(dispenserPrice('rare', 5));
+    expect(dispenserPriceForFloor('common', 6)).toBe(dispenserPrice('common', 2)); // 60
+    expect(dispenserPriceForFloor('rare', 20)).toBe(dispenserPrice('rare', 4));
   });
 
   it('price is monotonic in both rarity and zone', () => {
@@ -48,7 +50,7 @@ describe('Dispenser pricing — T-108 (GDD §9 / §10.3, Economy.xlsx)', () => {
     for (let i = 1; i < order.length; i++) {
       expect(dispenserPrice(order[i]!, 1)).toBeGreaterThan(dispenserPrice(order[i - 1]!, 1));
     }
-    for (let z = 2; z <= 5; z++) {
+    for (let z = 2; z <= 4; z++) {
       expect(dispenserPrice('rare', z)).toBeGreaterThan(dispenserPrice('rare', z - 1));
     }
   });
