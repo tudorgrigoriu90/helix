@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "lock": "Economy v1.1 + DR-007/DR-008 amendments (docs/Strand Descent — Economy v1.0 Lock.md §6)",
+  "campaign": {
+    "maxFloor": 20,
+    "zones": 4,
+    "floorsPerZone": 5,
+    "wardenFloors": [5, 10, 15, 20]
+  },
+  "veinPerKill": {
+    "grunt": 8,
+    "elite": 25,
+    "floor_boss": 45,
+    "zone_warden": 120
+  },
+  "floorVeinConstant": 50,
+  "dropRates": {
+    "grunt": { "vein": 1, "mod": 0.05, "rareCore": 0, "epicCore": 0 },
+    "elite": { "vein": 1, "mod": 0.3, "rareCore": 0.1, "epicCore": 0 },
+    "floor_boss": { "vein": 1, "mod": 0, "rareCore": 0.3, "epicCore": 0.05 },
+    "zone_warden": { "vein": 1, "mod": 0, "rareCore": 0.6, "epicCore": 0.15 }
+  },
+  "xp": {
+    "base": 100,
+    "growthPerLevel": 0.15,
+    "runLevelCap": 20
+  },
+  "shards": {
+    "perVein": 0.005,
+    "dailyRun": 5,
+    "achievement": 10
+  },
+  "dispenser": {
+    "rarityVeinMult": { "common": 1, "uncommon": 2.5, "rare": 6, "legendary": 15 },
+    "baseVein": 40,
+    "zonePriceGrowth": 0.5
+  },
+  "sig": {
+    "cap": 40,
+    "laceEventBonus": 5
+  }
+}

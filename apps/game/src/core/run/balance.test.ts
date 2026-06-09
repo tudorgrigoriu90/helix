@@ -26,6 +26,11 @@ import { parseMutationDef } from '../content/mutation-loader';
 
 const FLOOR1_CLEAR_MIN = 0.9; // F1 is the tutorial slice — must be reliable
 const ZONE1_END_MIN = 0.2; // F5 (Zone 1 finale) still beatable for a competent player
+// T-324: the apex is a *band*, not a ceiling. The old `≤ 0.3`-only assertion let
+// a 0% F20 clear rate pass CI — i.e. "endings unreachable" was green (review
+// finding F5). Endings must be reachable, not just not-trivial; raise the floor
+// as the policy improves.
+const APEX_CLEAR_MIN = 0.02; // F20 must be *reachable* — 0% fails CI
 const APEX_CLEAR_MAX = 0.3; // F20 is punishing — clear rate must stay below 30%
 
 const CONTENT = fileURLToPath(new URL('../../../../../packages/content/', import.meta.url));
@@ -149,7 +154,6 @@ function chooseCombat(state: RunState): Action {
 
 function claimPendingLoot(s: RunSession): void {
   for (const item of s.lootPending()) {
-    if (item.category === 'equipment') continue; // skip equipment — no swap logic
     const result = s.takeLoot(item.id);
     if (result.needsSwap) {
       // inventory full: swap out a duplicate consumable if any, otherwise skip
@@ -209,15 +213,31 @@ function playRun(seed: number, finalFloor: number): string {
     if (status === 'strand_event') {
       const outcome = s.beginStrandEvent();
       if (outcome.kind === 'draw' && s.strandOffer.length > 0) {
-        s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+        // Pick the highest-tier card on offer (a competent player reads the cards).
+        const rank: Record<string, number> = { minor: 0, major: 1, dominant: 2 };
+        const best = [...s.strandOffer].sort(
+          (a, b) => (rank[b.mutation.tier] ?? 0) - (rank[a.mutation.tier] ?? 0),
+        )[0]!;
+        s.chooseStrandMutation(best.mutation.id);
       } else {
         s.acceptIntermission();
       }
       continue;
     }
 
-    // Allocate any pending stat points to STR
-    while (s.snapshot.pendingStatPoints > 0) s.allocateStatPoint('str');
+    // Allocate pending stat points 2:1 STR:RES — damage first, but not glass.
+    while (s.snapshot.pendingStatPoints > 0) {
+      const { str, res } = s.snapshot.player.stats;
+      s.allocateStatPoint(str <= res * 2 ? 'str' : 'res');
+    }
+
+    // Restock at the Dispenser: spend banked VEIN on heals (then anything else
+    // carriable) — a competent player doesn't hoard currency into the apex.
+    if (s.isAtDispenser()) {
+      for (const item of s.dispenserStock()) {
+        if (s.canAfford(item) && s.canCarry(item)) s.purchaseItem(item);
+      }
+    }
 
     if (s.needsCombat()) {
       const rs = s.beginEncounter();
@@ -278,7 +298,9 @@ describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
       expect(rates[i]).toBeLessThanOrEqual(rates[i - 1]!);
     }
 
-    // Apex (F20) is punishing — low clear rate confirms intended difficulty
+    // Apex (F20) sits in the T-324 band: punishing, but the endings behind it
+    // stay reachable for a competent player.
+    expect(rates[rates.length - 1]).toBeGreaterThanOrEqual(APEX_CLEAR_MIN);
     expect(rates[rates.length - 1]).toBeLessThan(APEX_CLEAR_MAX);
   });
 });

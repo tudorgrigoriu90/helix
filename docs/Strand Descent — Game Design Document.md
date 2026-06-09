@@ -619,9 +619,11 @@ Minimap shows room outlines but not room type until visited. Safe-room locations
 
 ### 7.5 Floor Difficulty Scaling
 
-Enemy stats scale with floor:
-- HP: Base × (1 + floor × 0.15)
-- Damage: Base × (1 + floor × 0.12)
+Enemy stats scale with floor (re-tuned 2026-06-09 with T-324 — the original
+0.15 / 0.10 rates compounded with the authored zone baselines and made Floor 20
+unreachable [0% clear] for the balance harness's competent policy):
+- HP: Base × (1 + (floor − 1) × 0.12)
+- Damage (STR): Base × (1 + (floor − 1) × 0.07)
 - Speed: No scaling (keeps combat readable)
 - New abilities unlock for enemy types at floors 5, 10, 15
 
