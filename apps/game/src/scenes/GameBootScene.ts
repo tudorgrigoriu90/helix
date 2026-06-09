@@ -10,6 +10,7 @@ import { decideResume } from '../core/run/resume-decision';
 import { initStorageAdapter } from '../platform/storage';
 import { logEvent } from '../core/platform/analytics-adapter';
 import { installAnalytics } from '../platform/analytics-bootstrap';
+import { installCrashlytics } from '../platform/crashlytics';
 import { ensureAnonymousAuth } from '../platform/firebase/auth';
 import { initRemoteConfig } from '../platform/firebase/remote-config';
 
@@ -94,7 +95,7 @@ export class GameBootScene extends Phaser.Scene {
     const stored = storedConsent();
     if (stored !== null) {
       // Already decided on this device — install adapter if granted, then boot.
-      if (stored === 'granted') installAnalytics();
+      if (stored === 'granted') { installAnalytics(); installCrashlytics(); }
       this.startBoot();
       return;
     }
@@ -251,6 +252,7 @@ export class GameBootScene extends Phaser.Scene {
     acceptZ.on('pointerdown', () => {
       storeConsent('granted');
       installAnalytics();
+      installCrashlytics();
       logEvent('consent_decision', { decision: 'granted' });
       this.startBoot();
     });

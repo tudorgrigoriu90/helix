@@ -60,6 +60,9 @@ importers:
       '@capacitor-community/firebase-analytics':
         specifier: ^6.0.0
         version: 6.0.0(@capacitor/core@6.2.1)
+      '@capacitor-community/firebase-crashlytics':
+        specifier: 3.0.0
+        version: 3.0.0(@capacitor/core@6.2.1)
       '@capacitor/android':
         specifier: ^6.0.0
         version: 6.2.1(@capacitor/core@6.2.1)
@@ -182,6 +185,11 @@ packages:
     resolution: {integrity: sha512-3/B4V8V6exw4pits9H5JWqfyzvgsoW+NfxdaJoimNVx2YcpDYJtYj79DsmuMe5DXf6mxRIbQ+InxfGV4vwoxDA==}
     peerDependencies:
       '@capacitor/core': ^6.0.0
+
+  '@capacitor-community/firebase-crashlytics@3.0.0':
+    resolution: {integrity: sha512-kRsBrn/TRGkDLUjZJifr9dmaemjrY2sgMATBgBZvdjX3YQVPOpS605NCpHlypPCmRT122ty9w0b7yPWcxOaVuQ==}
+    peerDependencies:
+      '@capacitor/core': ^5.0.0
 
   '@capacitor/android@6.2.1':
     resolution: {integrity: sha512-8gd4CIiQO5LAIlPIfd5mCuodBRxMMdZZEdj8qG8m+dQ1sQ2xyemVpzHmRK8qSCHorsBUCg3D62j2cp6bEBAkdw==}
@@ -2698,6 +2706,10 @@ snapshots:
       '@rdlabo/capacitor-docgen': 0.4.1
 
   '@capacitor-community/firebase-analytics@6.0.0(@capacitor/core@6.2.1)':
+    dependencies:
+      '@capacitor/core': 6.2.1
+
+  '@capacitor-community/firebase-crashlytics@3.0.0(@capacitor/core@6.2.1)':
     dependencies:
       '@capacitor/core': 6.2.1
 
