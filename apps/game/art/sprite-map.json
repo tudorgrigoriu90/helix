@@ -1,51 +1,4390 @@
 {
-  "player":            [25, 0],
-  "filterer":          [25, 8],
-  "cave_crawler":      [26, 5],
-  "acid_spitter":      [18, 9],
-  "scavenger":         [18, 8],
-  "shell_brute":       [30, 9],
-  "pressure_warden":   [24, 9],
-
-  "tile_open":         [1,  0],
-  "tile_wall":         [16, 0],
-  "tile_hazard":       [22, 0],
-  "tile_cover":        [21, 0],
-  "tile_elevated":     [5,  0],
-  "tile_corruption":   [7,  0],
-
-  "room_combat":       [30, 11],
-  "room_loot":         [23,  0],
-  "room_safe":         [39, 10],
-  "room_merchant":     [22,  4],
-  "room_trap":         [35, 21],
-  "room_lace_event":   [23,  1],
-  "room_boss":         [36, 21],
-
-  "tile_c01r00":                          [1,  0],
-  "tile_c02r00":                          [2,  0],
-  "tile_c03r00":                          [3,  0],
-  "tile_c04r00":                          [4,  0],
-  "grass_c05r00":                         [5,  0],
-  "grass_c06r00":                         [6,  0],
-  "grass_c07r00":                         [7,  0],
-  "straight_row_c08r00":                  [8,  0],
-  "road_corner_right_c09r00":             [9,  0],
-  "road_intersection_no_left_c10r00":     [10, 0],
-  "road_intersection_c11r00":             [11, 0],
-  "road_full_end_c12r00":                 [12, 0],
-  "tile_margin_right_c13r00":             [13, 0],
-  "tile_margin_door_right_c14r00":        [14, 0],
-  "tile_map_margin_corner_bottom_right_c15r00": [15, 0],
-  "tile_c16r00":                          [16, 0],
-  "tile_c17r00":                          [17, 0],
-  "structure_c18r00":                     [18, 0],
-  "structure_c19r00":                     [19, 0],
-  "structure_c20r00":                     [20, 0],
-  "staircase_c21r00":                     [21, 0],
-  "warning_cones_c22r00":                 [22, 0],
-  "light_bulb_c23r00":                    [23, 0],
-  "player_c24r00":                        [24, 0],
-  "player_c25r00":                        [25, 0],
-  "player_c26r00":                        [26, 0]
+  "player": [
+    25,
+    0
+  ],
+  "filterer": [
+    25,
+    8
+  ],
+  "cave_crawler": [
+    26,
+    5
+  ],
+  "acid_spitter": [
+    18,
+    9
+  ],
+  "scavenger": [
+    18,
+    8
+  ],
+  "shell_brute": [
+    30,
+    9
+  ],
+  "pressure_warden": [
+    24,
+    9
+  ],
+  "tile_open": [
+    1,
+    0
+  ],
+  "tile_wall": [
+    16,
+    0
+  ],
+  "tile_hazard": [
+    22,
+    0
+  ],
+  "tile_cover": [
+    21,
+    0
+  ],
+  "tile_elevated": [
+    5,
+    0
+  ],
+  "tile_corruption": [
+    7,
+    0
+  ],
+  "room_combat": [
+    30,
+    11
+  ],
+  "room_loot": [
+    23,
+    0
+  ],
+  "room_safe": [
+    39,
+    10
+  ],
+  "room_merchant": [
+    22,
+    4
+  ],
+  "room_trap": [
+    35,
+    21
+  ],
+  "room_lace_event": [
+    23,
+    1
+  ],
+  "room_boss": [
+    36,
+    21
+  ],
+  "tile_c01r00": [
+    1,
+    0
+  ],
+  "tile_c02r00": [
+    2,
+    0
+  ],
+  "tile_c03r00": [
+    3,
+    0
+  ],
+  "tile_c04r00": [
+    4,
+    0
+  ],
+  "grass_c05r00": [
+    5,
+    0
+  ],
+  "grass_c06r00": [
+    6,
+    0
+  ],
+  "grass_c07r00": [
+    7,
+    0
+  ],
+  "straight_row_c08r00": [
+    8,
+    0
+  ],
+  "road_corer_right_c09r00": [
+    9,
+    0
+  ],
+  "road_intersection_no_left_c10r00": [
+    10,
+    0
+  ],
+  "road_intersection_c11r00": [
+    11,
+    0
+  ],
+  "road_full_end_c12r00": [
+    12,
+    0
+  ],
+  "tile_margin_right_c13r00": [
+    13,
+    0
+  ],
+  "tile_margin_door_right_c14r00": [
+    14,
+    0
+  ],
+  "tile_map_margin_corner_bottom_right_c15r00": [
+    15,
+    0
+  ],
+  "tile_c16r00": [
+    16,
+    0
+  ],
+  "tile_c17r00": [
+    17,
+    0
+  ],
+  "structure_c18r00": [
+    18,
+    0
+  ],
+  "structure_c19r00": [
+    19,
+    0
+  ],
+  "structure_c20r00": [
+    20,
+    0
+  ],
+  "staircase_c21r00": [
+    21,
+    0
+  ],
+  "warning_cones_c22r00": [
+    22,
+    0
+  ],
+  "light_bulb_c23r00": [
+    23,
+    0
+  ],
+  "player_c24r00": [
+    24,
+    0
+  ],
+  "player_c25r00": [
+    25,
+    0
+  ],
+  "player_c26r00": [
+    26,
+    0
+  ],
+  "player_c27r00": [
+    27,
+    0
+  ],
+  "player_c28r00": [
+    28,
+    0
+  ],
+  "player_c29r00": [
+    29,
+    0
+  ],
+  "player_c30r00": [
+    30,
+    0
+  ],
+  "player_c31r00": [
+    31,
+    0
+  ],
+  "creature_c32r00": [
+    32,
+    0
+  ],
+  "armor_c33r00": [
+    33,
+    0
+  ],
+  "armor_c34r00": [
+    34,
+    0
+  ],
+  "armor_c35r00": [
+    35,
+    0
+  ],
+  "armor_c36r00": [
+    36,
+    0
+  ],
+  "armor_c37r00": [
+    37,
+    0
+  ],
+  "armor_c38r00": [
+    38,
+    0
+  ],
+  "armor_c39r00": [
+    39,
+    0
+  ],
+  "armor_c40r00": [
+    40,
+    0
+  ],
+  "armor_c41r00": [
+    41,
+    0
+  ],
+  "armor_c42r00": [
+    42,
+    0
+  ],
+  "armor_c43r00": [
+    43,
+    0
+  ],
+  "armor_c44r00": [
+    44,
+    0
+  ],
+  "armor_c45r00": [
+    45,
+    0
+  ],
+  "armor_c46r00": [
+    46,
+    0
+  ],
+  "armor_c47r00": [
+    47,
+    0
+  ],
+  "armor_c48r00": [
+    48,
+    0
+  ],
+  "plant_c00r01": [
+    0,
+    1
+  ],
+  "plant_c01r01": [
+    1,
+    1
+  ],
+  "plant_c02r01": [
+    2,
+    1
+  ],
+  "plant_c03r01": [
+    3,
+    1
+  ],
+  "plant_c04r01": [
+    4,
+    1
+  ],
+  "plant_c05r01": [
+    5,
+    1
+  ],
+  "plant_c06r01": [
+    6,
+    1
+  ],
+  "plant_c07r01": [
+    7,
+    1
+  ],
+  "plant_c08r01": [
+    8,
+    1
+  ],
+  "plant_c09r01": [
+    9,
+    1
+  ],
+  "wall_c10r01": [
+    10,
+    1
+  ],
+  "wall_c11r01": [
+    11,
+    1
+  ],
+  "wall_c12r01": [
+    12,
+    1
+  ],
+  "wall_c13r01": [
+    13,
+    1
+  ],
+  "wall_c14r01": [
+    14,
+    1
+  ],
+  "wall_c15r01": [
+    15,
+    1
+  ],
+  "wall_c16r01": [
+    16,
+    1
+  ],
+  "wall_c17r01": [
+    17,
+    1
+  ],
+  "structure_c18r01": [
+    18,
+    1
+  ],
+  "structure_c19r01": [
+    19,
+    1
+  ],
+  "structure_c20r01": [
+    20,
+    1
+  ],
+  "structure_c21r01": [
+    21,
+    1
+  ],
+  "structure_c22r01": [
+    22,
+    1
+  ],
+  "structure_c23r01": [
+    23,
+    1
+  ],
+  "structure_c24r01": [
+    24,
+    1
+  ],
+  "creature_c25r01": [
+    25,
+    1
+  ],
+  "creature_c26r01": [
+    26,
+    1
+  ],
+  "creature_c27r01": [
+    27,
+    1
+  ],
+  "creature_c28r01": [
+    28,
+    1
+  ],
+  "creature_c29r01": [
+    29,
+    1
+  ],
+  "creature_c30r01": [
+    30,
+    1
+  ],
+  "creature_c31r01": [
+    31,
+    1
+  ],
+  "creature_c32r01": [
+    32,
+    1
+  ],
+  "armor_c33r01": [
+    33,
+    1
+  ],
+  "armor_c34r01": [
+    34,
+    1
+  ],
+  "armor_c35r01": [
+    35,
+    1
+  ],
+  "armor_c36r01": [
+    36,
+    1
+  ],
+  "armor_c37r01": [
+    37,
+    1
+  ],
+  "armor_c38r01": [
+    38,
+    1
+  ],
+  "armor_c39r01": [
+    39,
+    1
+  ],
+  "armor_c40r01": [
+    40,
+    1
+  ],
+  "armor_c41r01": [
+    41,
+    1
+  ],
+  "armor_c42r01": [
+    42,
+    1
+  ],
+  "armor_c43r01": [
+    43,
+    1
+  ],
+  "armor_c44r01": [
+    44,
+    1
+  ],
+  "armor_c45r01": [
+    45,
+    1
+  ],
+  "armor_c46r01": [
+    46,
+    1
+  ],
+  "armor_c47r01": [
+    47,
+    1
+  ],
+  "armor_c48r01": [
+    48,
+    1
+  ],
+  "plant_c00r02": [
+    0,
+    2
+  ],
+  "plant_c01r02": [
+    1,
+    2
+  ],
+  "plant_c02r02": [
+    2,
+    2
+  ],
+  "plant_c03r02": [
+    3,
+    2
+  ],
+  "plant_c04r02": [
+    4,
+    2
+  ],
+  "plant_c05r02": [
+    5,
+    2
+  ],
+  "plant_c06r02": [
+    6,
+    2
+  ],
+  "plant_c07r02": [
+    7,
+    2
+  ],
+  "plant_c08r02": [
+    8,
+    2
+  ],
+  "plant_c09r02": [
+    9,
+    2
+  ],
+  "wall_c10r02": [
+    10,
+    2
+  ],
+  "wall_c11r02": [
+    11,
+    2
+  ],
+  "wall_c12r02": [
+    12,
+    2
+  ],
+  "wall_c13r02": [
+    13,
+    2
+  ],
+  "wall_c14r02": [
+    14,
+    2
+  ],
+  "wall_c15r02": [
+    15,
+    2
+  ],
+  "wall_c16r02": [
+    16,
+    2
+  ],
+  "wall_c17r02": [
+    17,
+    2
+  ],
+  "creature_c18r02": [
+    18,
+    2
+  ],
+  "creature_c19r02": [
+    19,
+    2
+  ],
+  "creature_c20r02": [
+    20,
+    2
+  ],
+  "creature_c21r02": [
+    21,
+    2
+  ],
+  "creature_c22r02": [
+    22,
+    2
+  ],
+  "creature_c23r02": [
+    23,
+    2
+  ],
+  "creature_c24r02": [
+    24,
+    2
+  ],
+  "creature_c25r02": [
+    25,
+    2
+  ],
+  "creature_c26r02": [
+    26,
+    2
+  ],
+  "creature_c27r02": [
+    27,
+    2
+  ],
+  "creature_c28r02": [
+    28,
+    2
+  ],
+  "creature_c29r02": [
+    29,
+    2
+  ],
+  "creature_c30r02": [
+    30,
+    2
+  ],
+  "creature_c31r02": [
+    31,
+    2
+  ],
+  "creature_c32r02": [
+    32,
+    2
+  ],
+  "weapon_c33r02": [
+    33,
+    2
+  ],
+  "weapon_c34r02": [
+    34,
+    2
+  ],
+  "weapon_c35r02": [
+    35,
+    2
+  ],
+  "weapon_c36r02": [
+    36,
+    2
+  ],
+  "weapon_c37r02": [
+    37,
+    2
+  ],
+  "gear_c38r02": [
+    38,
+    2
+  ],
+  "gear_c39r02": [
+    39,
+    2
+  ],
+  "gear_c40r02": [
+    40,
+    2
+  ],
+  "gear_c41r02": [
+    41,
+    2
+  ],
+  "gear_c42r02": [
+    42,
+    2
+  ],
+  "gear_c43r02": [
+    43,
+    2
+  ],
+  "gear_c44r02": [
+    44,
+    2
+  ],
+  "gear_c45r02": [
+    45,
+    2
+  ],
+  "gear_c46r02": [
+    46,
+    2
+  ],
+  "gear_c47r02": [
+    47,
+    2
+  ],
+  "gear_c48r02": [
+    48,
+    2
+  ],
+  "fence_c00r03": [
+    0,
+    3
+  ],
+  "fence_c01r03": [
+    1,
+    3
+  ],
+  "fence_c02r03": [
+    2,
+    3
+  ],
+  "fence_c03r03": [
+    3,
+    3
+  ],
+  "fence_c04r03": [
+    4,
+    3
+  ],
+  "fence_c05r03": [
+    5,
+    3
+  ],
+  "fence_c06r03": [
+    6,
+    3
+  ],
+  "fence_c07r03": [
+    7,
+    3
+  ],
+  "wall_c08r03": [
+    8,
+    3
+  ],
+  "wall_c09r03": [
+    9,
+    3
+  ],
+  "wall_c10r03": [
+    10,
+    3
+  ],
+  "wall_c11r03": [
+    11,
+    3
+  ],
+  "wall_c12r03": [
+    12,
+    3
+  ],
+  "wall_c13r03": [
+    13,
+    3
+  ],
+  "wall_c14r03": [
+    14,
+    3
+  ],
+  "wall_c15r03": [
+    15,
+    3
+  ],
+  "wall_c16r03": [
+    16,
+    3
+  ],
+  "wall_c17r03": [
+    17,
+    3
+  ],
+  "creature_c18r03": [
+    18,
+    3
+  ],
+  "creature_c19r03": [
+    19,
+    3
+  ],
+  "creature_c20r03": [
+    20,
+    3
+  ],
+  "creature_c21r03": [
+    21,
+    3
+  ],
+  "creature_c22r03": [
+    22,
+    3
+  ],
+  "creature_c23r03": [
+    23,
+    3
+  ],
+  "creature_c24r03": [
+    24,
+    3
+  ],
+  "creature_c25r03": [
+    25,
+    3
+  ],
+  "creature_c26r03": [
+    26,
+    3
+  ],
+  "creature_c27r03": [
+    27,
+    3
+  ],
+  "creature_c28r03": [
+    28,
+    3
+  ],
+  "creature_c29r03": [
+    29,
+    3
+  ],
+  "creature_c30r03": [
+    30,
+    3
+  ],
+  "creature_c31r03": [
+    31,
+    3
+  ],
+  "creature_c32r03": [
+    32,
+    3
+  ],
+  "weapon_c33r03": [
+    33,
+    3
+  ],
+  "weapon_c34r03": [
+    34,
+    3
+  ],
+  "weapon_c35r03": [
+    35,
+    3
+  ],
+  "weapon_c36r03": [
+    36,
+    3
+  ],
+  "weapon_c37r03": [
+    37,
+    3
+  ],
+  "gear_c38r03": [
+    38,
+    3
+  ],
+  "gear_c39r03": [
+    39,
+    3
+  ],
+  "gear_c40r03": [
+    40,
+    3
+  ],
+  "gear_c41r03": [
+    41,
+    3
+  ],
+  "gear_c42r03": [
+    42,
+    3
+  ],
+  "gear_c43r03": [
+    43,
+    3
+  ],
+  "gear_c44r03": [
+    44,
+    3
+  ],
+  "gear_c45r03": [
+    45,
+    3
+  ],
+  "gear_c46r03": [
+    46,
+    3
+  ],
+  "gear_c47r03": [
+    47,
+    3
+  ],
+  "gear_c48r03": [
+    48,
+    3
+  ],
+  "fence_c00r04": [
+    0,
+    4
+  ],
+  "fence_c01r04": [
+    1,
+    4
+  ],
+  "fence_c02r04": [
+    2,
+    4
+  ],
+  "fence_c03r04": [
+    3,
+    4
+  ],
+  "fence_c04r04": [
+    4,
+    4
+  ],
+  "fence_c05r04": [
+    5,
+    4
+  ],
+  "fence_c06r04": [
+    6,
+    4
+  ],
+  "fence_c07r04": [
+    7,
+    4
+  ],
+  "wall_c08r04": [
+    8,
+    4
+  ],
+  "wall_c09r04": [
+    9,
+    4
+  ],
+  "wall_c10r04": [
+    10,
+    4
+  ],
+  "wall_c11r04": [
+    11,
+    4
+  ],
+  "wall_c12r04": [
+    12,
+    4
+  ],
+  "wall_c13r04": [
+    13,
+    4
+  ],
+  "wall_c14r04": [
+    14,
+    4
+  ],
+  "wall_c15r04": [
+    15,
+    4
+  ],
+  "wall_c16r04": [
+    16,
+    4
+  ],
+  "wall_c17r04": [
+    17,
+    4
+  ],
+  "creature_c18r04": [
+    18,
+    4
+  ],
+  "creature_c19r04": [
+    19,
+    4
+  ],
+  "creature_c20r04": [
+    20,
+    4
+  ],
+  "creature_c21r04": [
+    21,
+    4
+  ],
+  "creature_c22r04": [
+    22,
+    4
+  ],
+  "creature_c23r04": [
+    23,
+    4
+  ],
+  "creature_c24r04": [
+    24,
+    4
+  ],
+  "creature_c25r04": [
+    25,
+    4
+  ],
+  "creature_c26r04": [
+    26,
+    4
+  ],
+  "creature_c27r04": [
+    27,
+    4
+  ],
+  "creature_c28r04": [
+    28,
+    4
+  ],
+  "creature_c29r04": [
+    29,
+    4
+  ],
+  "creature_c30r04": [
+    30,
+    4
+  ],
+  "creature_c31r04": [
+    31,
+    4
+  ],
+  "creature_c32r04": [
+    32,
+    4
+  ],
+  "weapon_c33r04": [
+    33,
+    4
+  ],
+  "weapon_c34r04": [
+    34,
+    4
+  ],
+  "weapon_c35r04": [
+    35,
+    4
+  ],
+  "weapon_c36r04": [
+    36,
+    4
+  ],
+  "weapon_c37r04": [
+    37,
+    4
+  ],
+  "gear_c38r04": [
+    38,
+    4
+  ],
+  "gear_c39r04": [
+    39,
+    4
+  ],
+  "gear_c40r04": [
+    40,
+    4
+  ],
+  "gear_c41r04": [
+    41,
+    4
+  ],
+  "gear_c42r04": [
+    42,
+    4
+  ],
+  "gear_c43r04": [
+    43,
+    4
+  ],
+  "gear_c44r04": [
+    44,
+    4
+  ],
+  "gear_c45r04": [
+    45,
+    4
+  ],
+  "gear_c46r04": [
+    46,
+    4
+  ],
+  "gear_c47r04": [
+    47,
+    4
+  ],
+  "gear_c48r04": [
+    48,
+    4
+  ],
+  "fence_c00r05": [
+    0,
+    5
+  ],
+  "fence_c01r05": [
+    1,
+    5
+  ],
+  "fence_c02r05": [
+    2,
+    5
+  ],
+  "fence_c03r05": [
+    3,
+    5
+  ],
+  "fence_c04r05": [
+    4,
+    5
+  ],
+  "fence_c05r05": [
+    5,
+    5
+  ],
+  "fence_c06r05": [
+    6,
+    5
+  ],
+  "fence_c07r05": [
+    7,
+    5
+  ],
+  "wall_c08r05": [
+    8,
+    5
+  ],
+  "wall_c09r05": [
+    9,
+    5
+  ],
+  "wall_c10r05": [
+    10,
+    5
+  ],
+  "wall_c11r05": [
+    11,
+    5
+  ],
+  "wall_c12r05": [
+    12,
+    5
+  ],
+  "wall_c13r05": [
+    13,
+    5
+  ],
+  "wall_c14r05": [
+    14,
+    5
+  ],
+  "wall_c15r05": [
+    15,
+    5
+  ],
+  "wall_c16r05": [
+    16,
+    5
+  ],
+  "wall_c17r05": [
+    17,
+    5
+  ],
+  "creature_c18r05": [
+    18,
+    5
+  ],
+  "creature_c19r05": [
+    19,
+    5
+  ],
+  "creature_c20r05": [
+    20,
+    5
+  ],
+  "creature_c21r05": [
+    21,
+    5
+  ],
+  "creature_c22r05": [
+    22,
+    5
+  ],
+  "creature_c23r05": [
+    23,
+    5
+  ],
+  "creature_c24r05": [
+    24,
+    5
+  ],
+  "creature_c25r05": [
+    25,
+    5
+  ],
+  "creature_c26r05": [
+    26,
+    5
+  ],
+  "creature_c27r05": [
+    27,
+    5
+  ],
+  "creature_c28r05": [
+    28,
+    5
+  ],
+  "creature_c29r05": [
+    29,
+    5
+  ],
+  "creature_c30r05": [
+    30,
+    5
+  ],
+  "creature_c31r05": [
+    31,
+    5
+  ],
+  "creature_c32r05": [
+    32,
+    5
+  ],
+  "weapon_c33r05": [
+    33,
+    5
+  ],
+  "weapon_c34r05": [
+    34,
+    5
+  ],
+  "weapon_c35r05": [
+    35,
+    5
+  ],
+  "weapon_c36r05": [
+    36,
+    5
+  ],
+  "weapon_c37r05": [
+    37,
+    5
+  ],
+  "gear_c38r05": [
+    38,
+    5
+  ],
+  "gear_c39r05": [
+    39,
+    5
+  ],
+  "gear_c40r05": [
+    40,
+    5
+  ],
+  "gear_c41r05": [
+    41,
+    5
+  ],
+  "gear_c42r05": [
+    42,
+    5
+  ],
+  "gear_c43r05": [
+    43,
+    5
+  ],
+  "gear_c44r05": [
+    44,
+    5
+  ],
+  "gear_c45r05": [
+    45,
+    5
+  ],
+  "gear_c46r05": [
+    46,
+    5
+  ],
+  "gear_c47r05": [
+    47,
+    5
+  ],
+  "gear_c48r05": [
+    48,
+    5
+  ],
+  "furniture_c00r06": [
+    0,
+    6
+  ],
+  "furniture_c01r06": [
+    1,
+    6
+  ],
+  "furniture_c02r06": [
+    2,
+    6
+  ],
+  "furniture_c03r06": [
+    3,
+    6
+  ],
+  "furniture_c04r06": [
+    4,
+    6
+  ],
+  "furniture_c05r06": [
+    5,
+    6
+  ],
+  "furniture_c06r06": [
+    6,
+    6
+  ],
+  "furniture_c07r06": [
+    7,
+    6
+  ],
+  "furniture_c08r06": [
+    8,
+    6
+  ],
+  "furniture_c09r06": [
+    9,
+    6
+  ],
+  "structure_c10r06": [
+    10,
+    6
+  ],
+  "structure_c11r06": [
+    11,
+    6
+  ],
+  "structure_c12r06": [
+    12,
+    6
+  ],
+  "structure_c13r06": [
+    13,
+    6
+  ],
+  "structure_c14r06": [
+    14,
+    6
+  ],
+  "structure_c15r06": [
+    15,
+    6
+  ],
+  "structure_c16r06": [
+    16,
+    6
+  ],
+  "structure_c17r06": [
+    17,
+    6
+  ],
+  "creature_c18r06": [
+    18,
+    6
+  ],
+  "creature_c19r06": [
+    19,
+    6
+  ],
+  "creature_c20r06": [
+    20,
+    6
+  ],
+  "creature_c21r06": [
+    21,
+    6
+  ],
+  "creature_c22r06": [
+    22,
+    6
+  ],
+  "creature_c23r06": [
+    23,
+    6
+  ],
+  "creature_c24r06": [
+    24,
+    6
+  ],
+  "creature_c25r06": [
+    25,
+    6
+  ],
+  "creature_c26r06": [
+    26,
+    6
+  ],
+  "creature_c27r06": [
+    27,
+    6
+  ],
+  "creature_c28r06": [
+    28,
+    6
+  ],
+  "creature_c29r06": [
+    29,
+    6
+  ],
+  "creature_c30r06": [
+    30,
+    6
+  ],
+  "creature_c31r06": [
+    31,
+    6
+  ],
+  "creature_c32r06": [
+    32,
+    6
+  ],
+  "weapon_c33r06": [
+    33,
+    6
+  ],
+  "weapon_c34r06": [
+    34,
+    6
+  ],
+  "weapon_c35r06": [
+    35,
+    6
+  ],
+  "weapon_c36r06": [
+    36,
+    6
+  ],
+  "weapon_c37r06": [
+    37,
+    6
+  ],
+  "weapon_c38r06": [
+    38,
+    6
+  ],
+  "weapon_c39r06": [
+    39,
+    6
+  ],
+  "weapon_c40r06": [
+    40,
+    6
+  ],
+  "weapon_c41r06": [
+    41,
+    6
+  ],
+  "weapon_c42r06": [
+    42,
+    6
+  ],
+  "weapon_c43r06": [
+    43,
+    6
+  ],
+  "jewelry_c44r06": [
+    44,
+    6
+  ],
+  "jewelry_c45r06": [
+    45,
+    6
+  ],
+  "jewelry_c46r06": [
+    46,
+    6
+  ],
+  "jewelry_c47r06": [
+    47,
+    6
+  ],
+  "jewelry_c48r06": [
+    48,
+    6
+  ],
+  "furniture_c00r07": [
+    0,
+    7
+  ],
+  "furniture_c01r07": [
+    1,
+    7
+  ],
+  "furniture_c02r07": [
+    2,
+    7
+  ],
+  "furniture_c03r07": [
+    3,
+    7
+  ],
+  "furniture_c04r07": [
+    4,
+    7
+  ],
+  "furniture_c05r07": [
+    5,
+    7
+  ],
+  "furniture_c06r07": [
+    6,
+    7
+  ],
+  "furniture_c07r07": [
+    7,
+    7
+  ],
+  "furniture_c08r07": [
+    8,
+    7
+  ],
+  "furniture_c09r07": [
+    9,
+    7
+  ],
+  "structure_c10r07": [
+    10,
+    7
+  ],
+  "structure_c11r07": [
+    11,
+    7
+  ],
+  "structure_c12r07": [
+    12,
+    7
+  ],
+  "structure_c13r07": [
+    13,
+    7
+  ],
+  "structure_c14r07": [
+    14,
+    7
+  ],
+  "structure_c15r07": [
+    15,
+    7
+  ],
+  "structure_c16r07": [
+    16,
+    7
+  ],
+  "structure_c17r07": [
+    17,
+    7
+  ],
+  "structure_c18r07": [
+    18,
+    7
+  ],
+  "structure_c19r07": [
+    19,
+    7
+  ],
+  "structure_c20r07": [
+    20,
+    7
+  ],
+  "structure_c21r07": [
+    21,
+    7
+  ],
+  "structure_c22r07": [
+    22,
+    7
+  ],
+  "structure_c23r07": [
+    23,
+    7
+  ],
+  "structure_c24r07": [
+    24,
+    7
+  ],
+  "creature_c25r07": [
+    25,
+    7
+  ],
+  "creature_c26r07": [
+    26,
+    7
+  ],
+  "creature_c27r07": [
+    27,
+    7
+  ],
+  "creature_c28r07": [
+    28,
+    7
+  ],
+  "creature_c29r07": [
+    29,
+    7
+  ],
+  "creature_c30r07": [
+    30,
+    7
+  ],
+  "creature_c31r07": [
+    31,
+    7
+  ],
+  "creature_c32r07": [
+    32,
+    7
+  ],
+  "weapon_c33r07": [
+    33,
+    7
+  ],
+  "weapon_c34r07": [
+    34,
+    7
+  ],
+  "weapon_c35r07": [
+    35,
+    7
+  ],
+  "weapon_c36r07": [
+    36,
+    7
+  ],
+  "weapon_c37r07": [
+    37,
+    7
+  ],
+  "weapon_c38r07": [
+    38,
+    7
+  ],
+  "weapon_c39r07": [
+    39,
+    7
+  ],
+  "weapon_c40r07": [
+    40,
+    7
+  ],
+  "weapon_c41r07": [
+    41,
+    7
+  ],
+  "weapon_c42r07": [
+    42,
+    7
+  ],
+  "weapon_c43r07": [
+    43,
+    7
+  ],
+  "jewelry_c44r07": [
+    44,
+    7
+  ],
+  "jewelry_c45r07": [
+    45,
+    7
+  ],
+  "jewelry_c46r07": [
+    46,
+    7
+  ],
+  "jewelry_c47r07": [
+    47,
+    7
+  ],
+  "jewelry_c48r07": [
+    48,
+    7
+  ],
+  "furniture_c00r08": [
+    0,
+    8
+  ],
+  "furniture_c01r08": [
+    1,
+    8
+  ],
+  "furniture_c02r08": [
+    2,
+    8
+  ],
+  "furniture_c03r08": [
+    3,
+    8
+  ],
+  "furniture_c04r08": [
+    4,
+    8
+  ],
+  "furniture_c05r08": [
+    5,
+    8
+  ],
+  "furniture_c06r08": [
+    6,
+    8
+  ],
+  "furniture_c07r08": [
+    7,
+    8
+  ],
+  "furniture_c08r08": [
+    8,
+    8
+  ],
+  "furniture_c09r08": [
+    9,
+    8
+  ],
+  "structure_c10r08": [
+    10,
+    8
+  ],
+  "structure_c11r08": [
+    11,
+    8
+  ],
+  "structure_c12r08": [
+    12,
+    8
+  ],
+  "structure_c13r08": [
+    13,
+    8
+  ],
+  "structure_c14r08": [
+    14,
+    8
+  ],
+  "structure_c15r08": [
+    15,
+    8
+  ],
+  "structure_c16r08": [
+    16,
+    8
+  ],
+  "structure_c17r08": [
+    17,
+    8
+  ],
+  "structure_c18r08": [
+    18,
+    8
+  ],
+  "structure_c19r08": [
+    19,
+    8
+  ],
+  "structure_c20r08": [
+    20,
+    8
+  ],
+  "structure_c21r08": [
+    21,
+    8
+  ],
+  "structure_c22r08": [
+    22,
+    8
+  ],
+  "structure_c23r08": [
+    23,
+    8
+  ],
+  "structure_c24r08": [
+    24,
+    8
+  ],
+  "creature_c25r08": [
+    25,
+    8
+  ],
+  "creature_c26r08": [
+    26,
+    8
+  ],
+  "creature_c27r08": [
+    27,
+    8
+  ],
+  "creature_c28r08": [
+    28,
+    8
+  ],
+  "creature_c29r08": [
+    29,
+    8
+  ],
+  "creature_c30r08": [
+    30,
+    8
+  ],
+  "creature_c31r08": [
+    31,
+    8
+  ],
+  "creature_c32r08": [
+    32,
+    8
+  ],
+  "weapon_c33r08": [
+    33,
+    8
+  ],
+  "weapon_c34r08": [
+    34,
+    8
+  ],
+  "weapon_c35r08": [
+    35,
+    8
+  ],
+  "weapon_c36r08": [
+    36,
+    8
+  ],
+  "weapon_c37r08": [
+    37,
+    8
+  ],
+  "weapon_c38r08": [
+    38,
+    8
+  ],
+  "weapon_c39r08": [
+    39,
+    8
+  ],
+  "weapon_c40r08": [
+    40,
+    8
+  ],
+  "weapon_c41r08": [
+    41,
+    8
+  ],
+  "weapon_c42r08": [
+    42,
+    8
+  ],
+  "weapon_c43r08": [
+    43,
+    8
+  ],
+  "jewelry_c44r08": [
+    44,
+    8
+  ],
+  "jewelry_c45r08": [
+    45,
+    8
+  ],
+  "jewelry_c46r08": [
+    46,
+    8
+  ],
+  "jewelry_c47r08": [
+    47,
+    8
+  ],
+  "jewelry_c48r08": [
+    48,
+    8
+  ],
+  "furniture_c00r09": [
+    0,
+    9
+  ],
+  "furniture_c01r09": [
+    1,
+    9
+  ],
+  "furniture_c02r09": [
+    2,
+    9
+  ],
+  "furniture_c03r09": [
+    3,
+    9
+  ],
+  "furniture_c04r09": [
+    4,
+    9
+  ],
+  "furniture_c05r09": [
+    5,
+    9
+  ],
+  "furniture_c06r09": [
+    6,
+    9
+  ],
+  "furniture_c07r09": [
+    7,
+    9
+  ],
+  "furniture_c08r09": [
+    8,
+    9
+  ],
+  "furniture_c09r09": [
+    9,
+    9
+  ],
+  "structure_c10r09": [
+    10,
+    9
+  ],
+  "structure_c11r09": [
+    11,
+    9
+  ],
+  "structure_c12r09": [
+    12,
+    9
+  ],
+  "structure_c13r09": [
+    13,
+    9
+  ],
+  "structure_c14r09": [
+    14,
+    9
+  ],
+  "structure_c15r09": [
+    15,
+    9
+  ],
+  "structure_c16r09": [
+    16,
+    9
+  ],
+  "structure_c17r09": [
+    17,
+    9
+  ],
+  "structure_c18r09": [
+    18,
+    9
+  ],
+  "structure_c19r09": [
+    19,
+    9
+  ],
+  "structure_c20r09": [
+    20,
+    9
+  ],
+  "structure_c21r09": [
+    21,
+    9
+  ],
+  "structure_c22r09": [
+    22,
+    9
+  ],
+  "structure_c23r09": [
+    23,
+    9
+  ],
+  "structure_c24r09": [
+    24,
+    9
+  ],
+  "character_face_c25r09": [
+    25,
+    9
+  ],
+  "character_face_c26r09": [
+    26,
+    9
+  ],
+  "character_face_c27r09": [
+    27,
+    9
+  ],
+  "character_face_c28r09": [
+    28,
+    9
+  ],
+  "character_face_c29r09": [
+    29,
+    9
+  ],
+  "character_face_c30r09": [
+    30,
+    9
+  ],
+  "character_face_c31r09": [
+    31,
+    9
+  ],
+  "character_face_c32r09": [
+    32,
+    9
+  ],
+  "weapon_c33r09": [
+    33,
+    9
+  ],
+  "weapon_c34r09": [
+    34,
+    9
+  ],
+  "weapon_c35r09": [
+    35,
+    9
+  ],
+  "weapon_c36r09": [
+    36,
+    9
+  ],
+  "weapon_c37r09": [
+    37,
+    9
+  ],
+  "weapon_c38r09": [
+    38,
+    9
+  ],
+  "weapon_c39r09": [
+    39,
+    9
+  ],
+  "weapon_c40r09": [
+    40,
+    9
+  ],
+  "weapon_c41r09": [
+    41,
+    9
+  ],
+  "weapon_c42r09": [
+    42,
+    9
+  ],
+  "weapon_c43r09": [
+    43,
+    9
+  ],
+  "jewelry_c44r09": [
+    44,
+    9
+  ],
+  "jewelry_c45r09": [
+    45,
+    9
+  ],
+  "jewelry_c46r09": [
+    46,
+    9
+  ],
+  "jewelry_c47r09": [
+    47,
+    9
+  ],
+  "jewelry_c48r09": [
+    48,
+    9
+  ],
+  "furniture_c00r10": [
+    0,
+    10
+  ],
+  "furniture_c01r10": [
+    1,
+    10
+  ],
+  "furniture_c02r10": [
+    2,
+    10
+  ],
+  "furniture_c03r10": [
+    3,
+    10
+  ],
+  "furniture_c04r10": [
+    4,
+    10
+  ],
+  "furniture_c05r10": [
+    5,
+    10
+  ],
+  "furniture_c06r10": [
+    6,
+    10
+  ],
+  "furniture_c07r10": [
+    7,
+    10
+  ],
+  "furniture_c08r10": [
+    8,
+    10
+  ],
+  "furniture_c09r10": [
+    9,
+    10
+  ],
+  "structure_c10r10": [
+    10,
+    10
+  ],
+  "structure_c11r10": [
+    11,
+    10
+  ],
+  "structure_c12r10": [
+    12,
+    10
+  ],
+  "structure_c13r10": [
+    13,
+    10
+  ],
+  "structure_c14r10": [
+    14,
+    10
+  ],
+  "structure_c15r10": [
+    15,
+    10
+  ],
+  "structure_c16r10": [
+    16,
+    10
+  ],
+  "structure_c17r10": [
+    17,
+    10
+  ],
+  "structure_c18r10": [
+    18,
+    10
+  ],
+  "structure_c19r10": [
+    19,
+    10
+  ],
+  "structure_c20r10": [
+    20,
+    10
+  ],
+  "structure_c21r10": [
+    21,
+    10
+  ],
+  "structure_c22r10": [
+    22,
+    10
+  ],
+  "structure_c23r10": [
+    23,
+    10
+  ],
+  "structure_c24r10": [
+    24,
+    10
+  ],
+  "character_face_c25r10": [
+    25,
+    10
+  ],
+  "character_face_c26r10": [
+    26,
+    10
+  ],
+  "character_face_c27r10": [
+    27,
+    10
+  ],
+  "character_face_c28r10": [
+    28,
+    10
+  ],
+  "character_face_c29r10": [
+    29,
+    10
+  ],
+  "character_face_c30r10": [
+    30,
+    10
+  ],
+  "character_face_c31r10": [
+    31,
+    10
+  ],
+  "character_face_c32r10": [
+    32,
+    10
+  ],
+  "weapon_c33r10": [
+    33,
+    10
+  ],
+  "weapon_c34r10": [
+    34,
+    10
+  ],
+  "weapon_c35r10": [
+    35,
+    10
+  ],
+  "weapon_c36r10": [
+    36,
+    10
+  ],
+  "weapon_c37r10": [
+    37,
+    10
+  ],
+  "weapon_c38r10": [
+    38,
+    10
+  ],
+  "weapon_c39r10": [
+    39,
+    10
+  ],
+  "weapon_c40r10": [
+    40,
+    10
+  ],
+  "weapon_c41r10": [
+    41,
+    10
+  ],
+  "weapon_c42r10": [
+    42,
+    10
+  ],
+  "weapon_c43r10": [
+    43,
+    10
+  ],
+  "dpad_c44r10": [
+    44,
+    10
+  ],
+  "dpad_c45r10": [
+    45,
+    10
+  ],
+  "dpad_c46r10": [
+    46,
+    10
+  ],
+  "dpad_c47r10": [
+    47,
+    10
+  ],
+  "dpad_c48r10": [
+    48,
+    10
+  ],
+  "furniture_c00r11": [
+    0,
+    11
+  ],
+  "furniture_c01r11": [
+    1,
+    11
+  ],
+  "furniture_c02r11": [
+    2,
+    11
+  ],
+  "furniture_c03r11": [
+    3,
+    11
+  ],
+  "furniture_c04r11": [
+    4,
+    11
+  ],
+  "furniture_c05r11": [
+    5,
+    11
+  ],
+  "furniture_c06r11": [
+    6,
+    11
+  ],
+  "furniture_c07r11": [
+    7,
+    11
+  ],
+  "furniture_c08r11": [
+    8,
+    11
+  ],
+  "furniture_c09r11": [
+    9,
+    11
+  ],
+  "structure_c10r11": [
+    10,
+    11
+  ],
+  "structure_c11r11": [
+    11,
+    11
+  ],
+  "structure_c12r11": [
+    12,
+    11
+  ],
+  "structure_c13r11": [
+    13,
+    11
+  ],
+  "structure_c14r11": [
+    14,
+    11
+  ],
+  "structure_c15r11": [
+    15,
+    11
+  ],
+  "structure_c16r11": [
+    16,
+    11
+  ],
+  "structure_c17r11": [
+    17,
+    11
+  ],
+  "structure_c18r11": [
+    18,
+    11
+  ],
+  "structure_c19r11": [
+    19,
+    11
+  ],
+  "structure_c20r11": [
+    20,
+    11
+  ],
+  "structure_c21r11": [
+    21,
+    11
+  ],
+  "structure_c22r11": [
+    22,
+    11
+  ],
+  "structure_c23r11": [
+    23,
+    11
+  ],
+  "structure_c24r11": [
+    24,
+    11
+  ],
+  "creature_c25r11": [
+    25,
+    11
+  ],
+  "creature_c26r11": [
+    26,
+    11
+  ],
+  "creature_c27r11": [
+    27,
+    11
+  ],
+  "creature_c28r11": [
+    28,
+    11
+  ],
+  "creature_c29r11": [
+    29,
+    11
+  ],
+  "creature_c30r11": [
+    30,
+    11
+  ],
+  "creature_c31r11": [
+    31,
+    11
+  ],
+  "key_gold_c32r11": [
+    32,
+    11
+  ],
+  "key_blue_c33r11": [
+    33,
+    11
+  ],
+  "key_red_c34r11": [
+    34,
+    11
+  ],
+  "icon_c35r11": [
+    35,
+    11
+  ],
+  "icon_c36r11": [
+    36,
+    11
+  ],
+  "icon_c37r11": [
+    37,
+    11
+  ],
+  "skull_c38r11": [
+    38,
+    11
+  ],
+  "potion_c39r11": [
+    39,
+    11
+  ],
+  "potion_c40r11": [
+    40,
+    11
+  ],
+  "potion_c41r11": [
+    41,
+    11
+  ],
+  "potion_c42r11": [
+    42,
+    11
+  ],
+  "potion_c43r11": [
+    43,
+    11
+  ],
+  "icon_c44r11": [
+    44,
+    11
+  ],
+  "icon_c45r11": [
+    45,
+    11
+  ],
+  "icon_c46r11": [
+    46,
+    11
+  ],
+  "icon_c47r11": [
+    47,
+    11
+  ],
+  "icon_c48r11": [
+    48,
+    11
+  ],
+  "furniture_c00r12": [
+    0,
+    12
+  ],
+  "furniture_c01r12": [
+    1,
+    12
+  ],
+  "furniture_c02r12": [
+    2,
+    12
+  ],
+  "furniture_c03r12": [
+    3,
+    12
+  ],
+  "furniture_c04r12": [
+    4,
+    12
+  ],
+  "furniture_c05r12": [
+    5,
+    12
+  ],
+  "furniture_c06r12": [
+    6,
+    12
+  ],
+  "furniture_c07r12": [
+    7,
+    12
+  ],
+  "furniture_c08r12": [
+    8,
+    12
+  ],
+  "furniture_c09r12": [
+    9,
+    12
+  ],
+  "structure_c10r12": [
+    10,
+    12
+  ],
+  "structure_c11r12": [
+    11,
+    12
+  ],
+  "structure_c12r12": [
+    12,
+    12
+  ],
+  "structure_c13r12": [
+    13,
+    12
+  ],
+  "structure_c14r12": [
+    14,
+    12
+  ],
+  "structure_c15r12": [
+    15,
+    12
+  ],
+  "structure_c16r12": [
+    16,
+    12
+  ],
+  "structure_c17r12": [
+    17,
+    12
+  ],
+  "structure_c18r12": [
+    18,
+    12
+  ],
+  "structure_c19r12": [
+    19,
+    12
+  ],
+  "structure_c20r12": [
+    20,
+    12
+  ],
+  "structure_c21r12": [
+    21,
+    12
+  ],
+  "structure_c22r12": [
+    22,
+    12
+  ],
+  "structure_c23r12": [
+    23,
+    12
+  ],
+  "structure_c24r12": [
+    24,
+    12
+  ],
+  "creature_c25r12": [
+    25,
+    12
+  ],
+  "creature_c26r12": [
+    26,
+    12
+  ],
+  "creature_c27r12": [
+    27,
+    12
+  ],
+  "creature_c28r12": [
+    28,
+    12
+  ],
+  "creature_c29r12": [
+    29,
+    12
+  ],
+  "creature_c30r12": [
+    30,
+    12
+  ],
+  "creature_c31r12": [
+    31,
+    12
+  ],
+  "creature_c32r12": [
+    32,
+    12
+  ],
+  "key_c33r12": [
+    33,
+    12
+  ],
+  "skull_c34r12": [
+    34,
+    12
+  ],
+  "icon_c35r12": [
+    35,
+    12
+  ],
+  "icon_c36r12": [
+    36,
+    12
+  ],
+  "icon_c37r12": [
+    37,
+    12
+  ],
+  "icon_c38r12": [
+    38,
+    12
+  ],
+  "potion_c39r12": [
+    39,
+    12
+  ],
+  "potion_c40r12": [
+    40,
+    12
+  ],
+  "potion_c41r12": [
+    41,
+    12
+  ],
+  "potion_c42r12": [
+    42,
+    12
+  ],
+  "potion_c43r12": [
+    43,
+    12
+  ],
+  "icon_c44r12": [
+    44,
+    12
+  ],
+  "icon_c45r12": [
+    45,
+    12
+  ],
+  "icon_c46r12": [
+    46,
+    12
+  ],
+  "icon_c47r12": [
+    47,
+    12
+  ],
+  "icon_c48r12": [
+    48,
+    12
+  ],
+  "furniture_c00r13": [
+    0,
+    13
+  ],
+  "furniture_c01r13": [
+    1,
+    13
+  ],
+  "furniture_c02r13": [
+    2,
+    13
+  ],
+  "furniture_c03r13": [
+    3,
+    13
+  ],
+  "furniture_c04r13": [
+    4,
+    13
+  ],
+  "furniture_c05r13": [
+    5,
+    13
+  ],
+  "furniture_c06r13": [
+    6,
+    13
+  ],
+  "furniture_c07r13": [
+    7,
+    13
+  ],
+  "furniture_c08r13": [
+    8,
+    13
+  ],
+  "furniture_c09r13": [
+    9,
+    13
+  ],
+  "structure_c10r13": [
+    10,
+    13
+  ],
+  "structure_c11r13": [
+    11,
+    13
+  ],
+  "structure_c12r13": [
+    12,
+    13
+  ],
+  "structure_c13r13": [
+    13,
+    13
+  ],
+  "structure_c14r13": [
+    14,
+    13
+  ],
+  "structure_c15r13": [
+    15,
+    13
+  ],
+  "structure_c16r13": [
+    16,
+    13
+  ],
+  "structure_c17r13": [
+    17,
+    13
+  ],
+  "structure_c18r13": [
+    18,
+    13
+  ],
+  "structure_c19r13": [
+    19,
+    13
+  ],
+  "structure_c20r13": [
+    20,
+    13
+  ],
+  "structure_c21r13": [
+    21,
+    13
+  ],
+  "structure_c22r13": [
+    22,
+    13
+  ],
+  "structure_c23r13": [
+    23,
+    13
+  ],
+  "structure_c24r13": [
+    24,
+    13
+  ],
+  "creature_c25r13": [
+    25,
+    13
+  ],
+  "creature_c26r13": [
+    26,
+    13
+  ],
+  "creature_c27r13": [
+    27,
+    13
+  ],
+  "creature_c28r13": [
+    28,
+    13
+  ],
+  "creature_c29r13": [
+    29,
+    13
+  ],
+  "creature_c30r13": [
+    30,
+    13
+  ],
+  "creature_c31r13": [
+    31,
+    13
+  ],
+  "creature_c32r13": [
+    32,
+    13
+  ],
+  "potion_c33r13": [
+    33,
+    13
+  ],
+  "potion_c34r13": [
+    34,
+    13
+  ],
+  "face_emoji_c35r13": [
+    35,
+    13
+  ],
+  "face_emoji_c36r13": [
+    36,
+    13
+  ],
+  "face_emoji_c37r13": [
+    37,
+    13
+  ],
+  "face_emoji_c38r13": [
+    38,
+    13
+  ],
+  "dice_c39r13": [
+    39,
+    13
+  ],
+  "dice_c40r13": [
+    40,
+    13
+  ],
+  "dice_c41r13": [
+    41,
+    13
+  ],
+  "dice_c42r13": [
+    42,
+    13
+  ],
+  "dice_c43r13": [
+    43,
+    13
+  ],
+  "dice_c44r13": [
+    44,
+    13
+  ],
+  "dice_c45r13": [
+    45,
+    13
+  ],
+  "dice_c46r13": [
+    46,
+    13
+  ],
+  "dice_c47r13": [
+    47,
+    13
+  ],
+  "dice_c48r13": [
+    48,
+    13
+  ],
+  "furniture_c00r14": [
+    0,
+    14
+  ],
+  "furniture_c01r14": [
+    1,
+    14
+  ],
+  "furniture_c02r14": [
+    2,
+    14
+  ],
+  "furniture_c03r14": [
+    3,
+    14
+  ],
+  "furniture_c04r14": [
+    4,
+    14
+  ],
+  "furniture_c05r14": [
+    5,
+    14
+  ],
+  "furniture_c06r14": [
+    6,
+    14
+  ],
+  "furniture_c07r14": [
+    7,
+    14
+  ],
+  "furniture_c08r14": [
+    8,
+    14
+  ],
+  "furniture_c09r14": [
+    9,
+    14
+  ],
+  "structure_c10r14": [
+    10,
+    14
+  ],
+  "structure_c11r14": [
+    11,
+    14
+  ],
+  "structure_c12r14": [
+    12,
+    14
+  ],
+  "structure_c13r14": [
+    13,
+    14
+  ],
+  "structure_c14r14": [
+    14,
+    14
+  ],
+  "structure_c15r14": [
+    15,
+    14
+  ],
+  "structure_c16r14": [
+    16,
+    14
+  ],
+  "structure_c17r14": [
+    17,
+    14
+  ],
+  "structure_c18r14": [
+    18,
+    14
+  ],
+  "structure_c19r14": [
+    19,
+    14
+  ],
+  "structure_c20r14": [
+    20,
+    14
+  ],
+  "structure_c21r14": [
+    21,
+    14
+  ],
+  "structure_c22r14": [
+    22,
+    14
+  ],
+  "structure_c23r14": [
+    23,
+    14
+  ],
+  "structure_c24r14": [
+    24,
+    14
+  ],
+  "creature_c25r14": [
+    25,
+    14
+  ],
+  "creature_c26r14": [
+    26,
+    14
+  ],
+  "creature_c27r14": [
+    27,
+    14
+  ],
+  "creature_c28r14": [
+    28,
+    14
+  ],
+  "creature_c29r14": [
+    29,
+    14
+  ],
+  "creature_c30r14": [
+    30,
+    14
+  ],
+  "creature_c31r14": [
+    31,
+    14
+  ],
+  "creature_c32r14": [
+    32,
+    14
+  ],
+  "potion_c33r14": [
+    33,
+    14
+  ],
+  "potion_c34r14": [
+    34,
+    14
+  ],
+  "face_emoji_c35r14": [
+    35,
+    14
+  ],
+  "face_emoji_c36r14": [
+    36,
+    14
+  ],
+  "face_emoji_c37r14": [
+    37,
+    14
+  ],
+  "face_emoji_c38r14": [
+    38,
+    14
+  ],
+  "dice_c39r14": [
+    39,
+    14
+  ],
+  "dice_c40r14": [
+    40,
+    14
+  ],
+  "dice_c41r14": [
+    41,
+    14
+  ],
+  "dice_c42r14": [
+    42,
+    14
+  ],
+  "dice_c43r14": [
+    43,
+    14
+  ],
+  "dice_c44r14": [
+    44,
+    14
+  ],
+  "dice_c45r14": [
+    45,
+    14
+  ],
+  "dice_c46r14": [
+    46,
+    14
+  ],
+  "dice_c47r14": [
+    47,
+    14
+  ],
+  "dice_c48r14": [
+    48,
+    14
+  ],
+  "furniture_c00r15": [
+    0,
+    15
+  ],
+  "furniture_c01r15": [
+    1,
+    15
+  ],
+  "furniture_c02r15": [
+    2,
+    15
+  ],
+  "furniture_c03r15": [
+    3,
+    15
+  ],
+  "furniture_c04r15": [
+    4,
+    15
+  ],
+  "furniture_c05r15": [
+    5,
+    15
+  ],
+  "furniture_c06r15": [
+    6,
+    15
+  ],
+  "furniture_c07r15": [
+    7,
+    15
+  ],
+  "furniture_c08r15": [
+    8,
+    15
+  ],
+  "furniture_c09r15": [
+    9,
+    15
+  ],
+  "structure_c10r15": [
+    10,
+    15
+  ],
+  "structure_c11r15": [
+    11,
+    15
+  ],
+  "structure_c12r15": [
+    12,
+    15
+  ],
+  "structure_c13r15": [
+    13,
+    15
+  ],
+  "structure_c14r15": [
+    14,
+    15
+  ],
+  "structure_c15r15": [
+    15,
+    15
+  ],
+  "structure_c16r15": [
+    16,
+    15
+  ],
+  "structure_c17r15": [
+    17,
+    15
+  ],
+  "structure_c18r15": [
+    18,
+    15
+  ],
+  "structure_c19r15": [
+    19,
+    15
+  ],
+  "structure_c20r15": [
+    20,
+    15
+  ],
+  "structure_c21r15": [
+    21,
+    15
+  ],
+  "structure_c22r15": [
+    22,
+    15
+  ],
+  "structure_c23r15": [
+    23,
+    15
+  ],
+  "structure_c24r15": [
+    24,
+    15
+  ],
+  "creature_c25r15": [
+    25,
+    15
+  ],
+  "creature_c26r15": [
+    26,
+    15
+  ],
+  "creature_c27r15": [
+    27,
+    15
+  ],
+  "creature_c28r15": [
+    28,
+    15
+  ],
+  "creature_c29r15": [
+    29,
+    15
+  ],
+  "creature_c30r15": [
+    30,
+    15
+  ],
+  "creature_c31r15": [
+    31,
+    15
+  ],
+  "creature_c32r15": [
+    32,
+    15
+  ],
+  "potion_c33r15": [
+    33,
+    15
+  ],
+  "potion_c34r15": [
+    34,
+    15
+  ],
+  "face_emoji_c35r15": [
+    35,
+    15
+  ],
+  "face_emoji_c36r15": [
+    36,
+    15
+  ],
+  "face_emoji_c37r15": [
+    37,
+    15
+  ],
+  "face_emoji_c38r15": [
+    38,
+    15
+  ],
+  "dice_c39r15": [
+    39,
+    15
+  ],
+  "dice_c40r15": [
+    40,
+    15
+  ],
+  "dice_c41r15": [
+    41,
+    15
+  ],
+  "dice_c42r15": [
+    42,
+    15
+  ],
+  "dice_c43r15": [
+    43,
+    15
+  ],
+  "dice_c44r15": [
+    44,
+    15
+  ],
+  "dice_c45r15": [
+    45,
+    15
+  ],
+  "dice_c46r15": [
+    46,
+    15
+  ],
+  "dice_c47r15": [
+    47,
+    15
+  ],
+  "dice_c48r15": [
+    48,
+    15
+  ],
+  "wall_floor_c00r16": [
+    0,
+    16
+  ],
+  "wall_floor_c01r16": [
+    1,
+    16
+  ],
+  "wall_floor_c02r16": [
+    2,
+    16
+  ],
+  "wall_floor_c03r16": [
+    3,
+    16
+  ],
+  "wall_floor_c04r16": [
+    4,
+    16
+  ],
+  "wall_floor_c05r16": [
+    5,
+    16
+  ],
+  "wall_floor_c06r16": [
+    6,
+    16
+  ],
+  "wall_floor_c07r16": [
+    7,
+    16
+  ],
+  "wall_floor_c08r16": [
+    8,
+    16
+  ],
+  "wall_floor_c09r16": [
+    9,
+    16
+  ],
+  "wall_floor_c10r16": [
+    10,
+    16
+  ],
+  "wall_floor_c11r16": [
+    11,
+    16
+  ],
+  "wall_floor_c12r16": [
+    12,
+    16
+  ],
+  "wall_floor_c13r16": [
+    13,
+    16
+  ],
+  "wall_floor_c14r16": [
+    14,
+    16
+  ],
+  "wall_floor_c15r16": [
+    15,
+    16
+  ],
+  "structure_c16r16": [
+    16,
+    16
+  ],
+  "structure_c17r16": [
+    17,
+    16
+  ],
+  "structure_c18r16": [
+    18,
+    16
+  ],
+  "structure_c19r16": [
+    19,
+    16
+  ],
+  "card_hearts_A_c20r16": [
+    20,
+    16
+  ],
+  "card_hearts_2_c21r16": [
+    21,
+    16
+  ],
+  "card_hearts_3_c22r16": [
+    22,
+    16
+  ],
+  "card_hearts_4_c23r16": [
+    23,
+    16
+  ],
+  "card_hearts_5_c24r16": [
+    24,
+    16
+  ],
+  "card_hearts_6_c25r16": [
+    25,
+    16
+  ],
+  "card_hearts_7_c26r16": [
+    26,
+    16
+  ],
+  "card_hearts_8_c27r16": [
+    27,
+    16
+  ],
+  "card_hearts_9_c28r16": [
+    28,
+    16
+  ],
+  "card_hearts_10_c29r16": [
+    29,
+    16
+  ],
+  "card_hearts_J_c30r16": [
+    30,
+    16
+  ],
+  "card_hearts_Q_c31r16": [
+    31,
+    16
+  ],
+  "card_hearts_K_c32r16": [
+    32,
+    16
+  ],
+  "fish_c33r16": [
+    33,
+    16
+  ],
+  "cheese_c34r16": [
+    34,
+    16
+  ],
+  "icon_dollar_c35r16": [
+    35,
+    16
+  ],
+  "icon_cent_c36r16": [
+    36,
+    16
+  ],
+  "icon_sound_off_c37r16": [
+    37,
+    16
+  ],
+  "icon_sound_on_c38r16": [
+    38,
+    16
+  ],
+  "icon_music_note_c39r16": [
+    39,
+    16
+  ],
+  "icon_trophy_c40r16": [
+    40,
+    16
+  ],
+  "icon_home_c41r16": [
+    41,
+    16
+  ],
+  "icon_save_disk_c42r16": [
+    42,
+    16
+  ],
+  "icon_person_c43r16": [
+    43,
+    16
+  ],
+  "icon_c44r16": [
+    44,
+    16
+  ],
+  "icon_c45r16": [
+    45,
+    16
+  ],
+  "icon_expand_c46r16": [
+    46,
+    16
+  ],
+  "icon_contract_c47r16": [
+    47,
+    16
+  ],
+  "icon_c48r16": [
+    48,
+    16
+  ],
+  "wall_floor_c00r17": [
+    0,
+    17
+  ],
+  "wall_floor_c01r17": [
+    1,
+    17
+  ],
+  "wall_floor_c02r17": [
+    2,
+    17
+  ],
+  "wall_floor_c03r17": [
+    3,
+    17
+  ],
+  "wall_floor_c04r17": [
+    4,
+    17
+  ],
+  "wall_floor_c05r17": [
+    5,
+    17
+  ],
+  "wall_floor_c06r17": [
+    6,
+    17
+  ],
+  "wall_floor_c07r17": [
+    7,
+    17
+  ],
+  "wall_floor_c08r17": [
+    8,
+    17
+  ],
+  "wall_floor_c09r17": [
+    9,
+    17
+  ],
+  "wall_floor_c10r17": [
+    10,
+    17
+  ],
+  "wall_floor_c11r17": [
+    11,
+    17
+  ],
+  "wall_floor_c12r17": [
+    12,
+    17
+  ],
+  "wall_floor_c13r17": [
+    13,
+    17
+  ],
+  "wall_floor_c14r17": [
+    14,
+    17
+  ],
+  "wall_floor_c15r17": [
+    15,
+    17
+  ],
+  "structure_c16r17": [
+    16,
+    17
+  ],
+  "structure_c17r17": [
+    17,
+    17
+  ],
+  "structure_c18r17": [
+    18,
+    17
+  ],
+  "structure_c19r17": [
+    19,
+    17
+  ],
+  "card_diamonds_A_c20r17": [
+    20,
+    17
+  ],
+  "card_diamonds_2_c21r17": [
+    21,
+    17
+  ],
+  "card_diamonds_3_c22r17": [
+    22,
+    17
+  ],
+  "card_diamonds_4_c23r17": [
+    23,
+    17
+  ],
+  "card_diamonds_5_c24r17": [
+    24,
+    17
+  ],
+  "card_diamonds_6_c25r17": [
+    25,
+    17
+  ],
+  "card_diamonds_7_c26r17": [
+    26,
+    17
+  ],
+  "card_diamonds_8_c27r17": [
+    27,
+    17
+  ],
+  "card_diamonds_9_c28r17": [
+    28,
+    17
+  ],
+  "card_diamonds_10_c29r17": [
+    29,
+    17
+  ],
+  "card_diamonds_J_c30r17": [
+    30,
+    17
+  ],
+  "card_diamonds_Q_c31r17": [
+    31,
+    17
+  ],
+  "card_diamonds_K_c32r17": [
+    32,
+    17
+  ],
+  "fish_bones_c33r17": [
+    33,
+    17
+  ],
+  "symbol_c34r17": [
+    34,
+    17
+  ],
+  "digit_0_c35r17": [
+    35,
+    17
+  ],
+  "digit_1_c36r17": [
+    36,
+    17
+  ],
+  "digit_2_c37r17": [
+    37,
+    17
+  ],
+  "digit_3_c38r17": [
+    38,
+    17
+  ],
+  "digit_4_c39r17": [
+    39,
+    17
+  ],
+  "digit_5_c40r17": [
+    40,
+    17
+  ],
+  "digit_6_c41r17": [
+    41,
+    17
+  ],
+  "digit_7_c42r17": [
+    42,
+    17
+  ],
+  "digit_8_c43r17": [
+    43,
+    17
+  ],
+  "digit_9_c44r17": [
+    44,
+    17
+  ],
+  "symbol_colon_c45r17": [
+    45,
+    17
+  ],
+  "symbol_period_c46r17": [
+    46,
+    17
+  ],
+  "symbol_percent_c47r17": [
+    47,
+    17
+  ],
+  "symbol_c48r17": [
+    48,
+    17
+  ],
+  "wall_floor_c00r18": [
+    0,
+    18
+  ],
+  "wall_floor_c01r18": [
+    1,
+    18
+  ],
+  "wall_floor_c02r18": [
+    2,
+    18
+  ],
+  "wall_floor_c03r18": [
+    3,
+    18
+  ],
+  "wall_floor_c04r18": [
+    4,
+    18
+  ],
+  "wall_floor_c05r18": [
+    5,
+    18
+  ],
+  "wall_floor_c06r18": [
+    6,
+    18
+  ],
+  "wall_floor_c07r18": [
+    7,
+    18
+  ],
+  "wall_floor_c08r18": [
+    8,
+    18
+  ],
+  "wall_floor_c09r18": [
+    9,
+    18
+  ],
+  "wall_floor_c10r18": [
+    10,
+    18
+  ],
+  "wall_floor_c11r18": [
+    11,
+    18
+  ],
+  "wall_floor_c12r18": [
+    12,
+    18
+  ],
+  "wall_floor_c13r18": [
+    13,
+    18
+  ],
+  "wall_floor_c14r18": [
+    14,
+    18
+  ],
+  "wall_floor_c15r18": [
+    15,
+    18
+  ],
+  "structure_c16r18": [
+    16,
+    18
+  ],
+  "structure_c17r18": [
+    17,
+    18
+  ],
+  "structure_c18r18": [
+    18,
+    18
+  ],
+  "structure_c19r18": [
+    19,
+    18
+  ],
+  "card_clubs_A_c20r18": [
+    20,
+    18
+  ],
+  "card_clubs_2_c21r18": [
+    21,
+    18
+  ],
+  "card_clubs_3_c22r18": [
+    22,
+    18
+  ],
+  "card_clubs_4_c23r18": [
+    23,
+    18
+  ],
+  "card_clubs_5_c24r18": [
+    24,
+    18
+  ],
+  "card_clubs_6_c25r18": [
+    25,
+    18
+  ],
+  "card_clubs_7_c26r18": [
+    26,
+    18
+  ],
+  "card_clubs_8_c27r18": [
+    27,
+    18
+  ],
+  "card_clubs_9_c28r18": [
+    28,
+    18
+  ],
+  "card_clubs_10_c29r18": [
+    29,
+    18
+  ],
+  "card_clubs_J_c30r18": [
+    30,
+    18
+  ],
+  "card_clubs_Q_c31r18": [
+    31,
+    18
+  ],
+  "card_clubs_K_c32r18": [
+    32,
+    18
+  ],
+  "apple_c33r18": [
+    33,
+    18
+  ],
+  "pear_c34r18": [
+    34,
+    18
+  ],
+  "letter_A_c35r18": [
+    35,
+    18
+  ],
+  "letter_B_c36r18": [
+    36,
+    18
+  ],
+  "letter_C_c37r18": [
+    37,
+    18
+  ],
+  "letter_D_c38r18": [
+    38,
+    18
+  ],
+  "letter_E_c39r18": [
+    39,
+    18
+  ],
+  "letter_F_c40r18": [
+    40,
+    18
+  ],
+  "letter_G_c41r18": [
+    41,
+    18
+  ],
+  "letter_H_c42r18": [
+    42,
+    18
+  ],
+  "letter_I_c43r18": [
+    43,
+    18
+  ],
+  "letter_J_c44r18": [
+    44,
+    18
+  ],
+  "letter_K_c45r18": [
+    45,
+    18
+  ],
+  "letter_L_c46r18": [
+    46,
+    18
+  ],
+  "letter_M_c47r18": [
+    47,
+    18
+  ],
+  "symbol_c48r18": [
+    48,
+    18
+  ],
+  "wall_floor_c00r19": [
+    0,
+    19
+  ],
+  "wall_floor_c01r19": [
+    1,
+    19
+  ],
+  "wall_floor_c02r19": [
+    2,
+    19
+  ],
+  "wall_floor_c03r19": [
+    3,
+    19
+  ],
+  "wall_floor_c04r19": [
+    4,
+    19
+  ],
+  "wall_floor_c05r19": [
+    5,
+    19
+  ],
+  "wall_floor_c06r19": [
+    6,
+    19
+  ],
+  "wall_floor_c07r19": [
+    7,
+    19
+  ],
+  "wall_floor_c08r19": [
+    8,
+    19
+  ],
+  "wall_floor_c09r19": [
+    9,
+    19
+  ],
+  "wall_floor_c10r19": [
+    10,
+    19
+  ],
+  "wall_floor_c11r19": [
+    11,
+    19
+  ],
+  "wall_floor_c12r19": [
+    12,
+    19
+  ],
+  "wall_floor_c13r19": [
+    13,
+    19
+  ],
+  "wall_floor_c14r19": [
+    14,
+    19
+  ],
+  "wall_floor_c15r19": [
+    15,
+    19
+  ],
+  "structure_c16r19": [
+    16,
+    19
+  ],
+  "structure_c17r19": [
+    17,
+    19
+  ],
+  "structure_c18r19": [
+    18,
+    19
+  ],
+  "structure_c19r19": [
+    19,
+    19
+  ],
+  "card_spades_A_c20r19": [
+    20,
+    19
+  ],
+  "card_spades_2_c21r19": [
+    21,
+    19
+  ],
+  "card_spades_3_c22r19": [
+    22,
+    19
+  ],
+  "card_spades_4_c23r19": [
+    23,
+    19
+  ],
+  "card_spades_5_c24r19": [
+    24,
+    19
+  ],
+  "card_spades_6_c25r19": [
+    25,
+    19
+  ],
+  "card_spades_7_c26r19": [
+    26,
+    19
+  ],
+  "card_spades_8_c27r19": [
+    27,
+    19
+  ],
+  "card_spades_9_c28r19": [
+    28,
+    19
+  ],
+  "card_spades_10_c29r19": [
+    29,
+    19
+  ],
+  "card_spades_J_c30r19": [
+    30,
+    19
+  ],
+  "card_spades_Q_c31r19": [
+    31,
+    19
+  ],
+  "card_spades_K_c32r19": [
+    32,
+    19
+  ],
+  "bottle_green_c33r19": [
+    33,
+    19
+  ],
+  "cup_red_c34r19": [
+    34,
+    19
+  ],
+  "letter_N_c35r19": [
+    35,
+    19
+  ],
+  "letter_O_c36r19": [
+    36,
+    19
+  ],
+  "letter_P_c37r19": [
+    37,
+    19
+  ],
+  "letter_Q_c38r19": [
+    38,
+    19
+  ],
+  "letter_R_c39r19": [
+    39,
+    19
+  ],
+  "letter_S_c40r19": [
+    40,
+    19
+  ],
+  "letter_T_c41r19": [
+    41,
+    19
+  ],
+  "letter_U_c42r19": [
+    42,
+    19
+  ],
+  "letter_V_c43r19": [
+    43,
+    19
+  ],
+  "letter_W_c44r19": [
+    44,
+    19
+  ],
+  "letter_X_c45r19": [
+    45,
+    19
+  ],
+  "letter_Y_c46r19": [
+    46,
+    19
+  ],
+  "letter_Z_c47r19": [
+    47,
+    19
+  ],
+  "symbol_c48r19": [
+    48,
+    19
+  ],
+  "wall_floor_c00r20": [
+    0,
+    20
+  ],
+  "wall_floor_c01r20": [
+    1,
+    20
+  ],
+  "wall_floor_c02r20": [
+    2,
+    20
+  ],
+  "wall_floor_c03r20": [
+    3,
+    20
+  ],
+  "wall_floor_c04r20": [
+    4,
+    20
+  ],
+  "wall_floor_c05r20": [
+    5,
+    20
+  ],
+  "wall_floor_c06r20": [
+    6,
+    20
+  ],
+  "wall_floor_c07r20": [
+    7,
+    20
+  ],
+  "wall_floor_c08r20": [
+    8,
+    20
+  ],
+  "wall_floor_c09r20": [
+    9,
+    20
+  ],
+  "wall_floor_c10r20": [
+    10,
+    20
+  ],
+  "wall_floor_c11r20": [
+    11,
+    20
+  ],
+  "wall_floor_c12r20": [
+    12,
+    20
+  ],
+  "wall_floor_c13r20": [
+    13,
+    20
+  ],
+  "wall_floor_c14r20": [
+    14,
+    20
+  ],
+  "wall_floor_c15r20": [
+    15,
+    20
+  ],
+  "structure_c16r20": [
+    16,
+    20
+  ],
+  "structure_c17r20": [
+    17,
+    20
+  ],
+  "structure_c18r20": [
+    18,
+    20
+  ],
+  "structure_c19r20": [
+    19,
+    20
+  ],
+  "structure_c20r20": [
+    20,
+    20
+  ],
+  "structure_c21r20": [
+    21,
+    20
+  ],
+  "structure_c22r20": [
+    22,
+    20
+  ],
+  "structure_c23r20": [
+    23,
+    20
+  ],
+  "structure_c24r20": [
+    24,
+    20
+  ],
+  "structure_c25r20": [
+    25,
+    20
+  ],
+  "structure_c26r20": [
+    26,
+    20
+  ],
+  "structure_c27r20": [
+    27,
+    20
+  ],
+  "structure_c28r20": [
+    28,
+    20
+  ],
+  "structure_c29r20": [
+    29,
+    20
+  ],
+  "structure_c30r20": [
+    30,
+    20
+  ],
+  "structure_c31r20": [
+    31,
+    20
+  ],
+  "structure_c32r20": [
+    32,
+    20
+  ],
+  "symbol_c33r20": [
+    33,
+    20
+  ],
+  "symbol_c34r20": [
+    34,
+    20
+  ],
+  "symbol_hash_c35r20": [
+    35,
+    20
+  ],
+  "symbol_plus_c36r20": [
+    36,
+    20
+  ],
+  "symbol_minus_c37r20": [
+    37,
+    20
+  ],
+  "symbol_multiply_c38r20": [
+    38,
+    20
+  ],
+  "symbol_divide_c39r20": [
+    39,
+    20
+  ],
+  "symbol_equals_c40r20": [
+    40,
+    20
+  ],
+  "symbol_c41r20": [
+    41,
+    20
+  ],
+  "symbol_c42r20": [
+    42,
+    20
+  ],
+  "symbol_c43r20": [
+    43,
+    20
+  ],
+  "symbol_c44r20": [
+    44,
+    20
+  ],
+  "symbol_c45r20": [
+    45,
+    20
+  ],
+  "symbol_c46r20": [
+    46,
+    20
+  ],
+  "symbol_c47r20": [
+    47,
+    20
+  ],
+  "symbol_c48r20": [
+    48,
+    20
+  ],
+  "wall_floor_c00r21": [
+    0,
+    21
+  ],
+  "wall_floor_c01r21": [
+    1,
+    21
+  ],
+  "wall_floor_c02r21": [
+    2,
+    21
+  ],
+  "wall_floor_c03r21": [
+    3,
+    21
+  ],
+  "wall_floor_c04r21": [
+    4,
+    21
+  ],
+  "wall_floor_c05r21": [
+    5,
+    21
+  ],
+  "wall_floor_c06r21": [
+    6,
+    21
+  ],
+  "wall_floor_c07r21": [
+    7,
+    21
+  ],
+  "wall_floor_c08r21": [
+    8,
+    21
+  ],
+  "wall_floor_c09r21": [
+    9,
+    21
+  ],
+  "wall_floor_c10r21": [
+    10,
+    21
+  ],
+  "wall_floor_c11r21": [
+    11,
+    21
+  ],
+  "wall_floor_c12r21": [
+    12,
+    21
+  ],
+  "wall_floor_c13r21": [
+    13,
+    21
+  ],
+  "wall_floor_c14r21": [
+    14,
+    21
+  ],
+  "wall_floor_c15r21": [
+    15,
+    21
+  ],
+  "structure_c16r21": [
+    16,
+    21
+  ],
+  "structure_c17r21": [
+    17,
+    21
+  ],
+  "structure_c18r21": [
+    18,
+    21
+  ],
+  "structure_c19r21": [
+    19,
+    21
+  ],
+  "structure_c20r21": [
+    20,
+    21
+  ],
+  "structure_c21r21": [
+    21,
+    21
+  ],
+  "structure_c22r21": [
+    22,
+    21
+  ],
+  "structure_c23r21": [
+    23,
+    21
+  ],
+  "structure_c24r21": [
+    24,
+    21
+  ],
+  "structure_c25r21": [
+    25,
+    21
+  ],
+  "structure_c26r21": [
+    26,
+    21
+  ],
+  "structure_c27r21": [
+    27,
+    21
+  ],
+  "structure_c28r21": [
+    28,
+    21
+  ],
+  "structure_c29r21": [
+    29,
+    21
+  ],
+  "structure_c30r21": [
+    30,
+    21
+  ],
+  "structure_c31r21": [
+    31,
+    21
+  ],
+  "structure_c32r21": [
+    32,
+    21
+  ],
+  "scroll_c33r21": [
+    33,
+    21
+  ],
+  "scroll_text_c34r21": [
+    34,
+    21
+  ],
+  "scroll_c35r21": [
+    35,
+    21
+  ],
+  "scroll_c36r21": [
+    36,
+    21
+  ],
+  "scroll_c37r21": [
+    37,
+    21
+  ],
+  "scroll_c38r21": [
+    38,
+    21
+  ],
+  "scroll_c39r21": [
+    39,
+    21
+  ],
+  "scroll_c40r21": [
+    40,
+    21
+  ],
+  "gravestone_c41r21": [
+    41,
+    21
+  ],
+  "gravestone_c42r21": [
+    42,
+    21
+  ],
+  "gravestone_c43r21": [
+    43,
+    21
+  ],
+  "gravestone_c44r21": [
+    44,
+    21
+  ],
+  "gravestone_c45r21": [
+    45,
+    21
+  ],
+  "gravestone_c46r21": [
+    46,
+    21
+  ],
+  "gravestone_c47r21": [
+    47,
+    21
+  ],
+  "gravestone_c48r21": [
+    48,
+    21
+  ]
 }

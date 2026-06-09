@@ -233,7 +233,8 @@ const TILES: readonly SpriteSpec[] = [
     description: 'Corrupted/VEIN-tainted floor — grass variant, col 7 row 0.' },
 ];
 
-// ── Named row-0 tiles from sprite-map.json (for direct coordinate verification) ──
+// ── Named row-0 sprites from sprite-map.json (for direct coordinate verification) ──
+// Keys match the sprite-map.json names exactly (col/row in name = spritesheet coord).
 const TILES_NAMED: readonly SpriteSpec[] = [
   { key: 'tile_c01r00', category: 'tile', fallbackColor: 0x0d1220, fallbackShape: 'rect', description: 'Floor tile col 1 row 0.' },
   { key: 'tile_c02r00', category: 'tile', fallbackColor: 0x0d1220, fallbackShape: 'rect', description: 'Floor tile col 2 row 0.' },
@@ -243,7 +244,7 @@ const TILES_NAMED: readonly SpriteSpec[] = [
   { key: 'grass_c06r00', category: 'tile', fallbackColor: 0x1a3a20, fallbackShape: 'rect', description: 'Grass tile col 6 row 0.' },
   { key: 'grass_c07r00', category: 'tile', fallbackColor: 0x1a3a20, fallbackShape: 'rect', description: 'Grass tile col 7 row 0.' },
   { key: 'straight_row_c08r00', category: 'tile', fallbackColor: 0x2a2a2a, fallbackShape: 'rect', description: 'Straight road tile col 8 row 0.' },
-  { key: 'road_corner_right_c09r00', category: 'tile', fallbackColor: 0x2a2a2a, fallbackShape: 'rect', description: 'Road corner right col 9 row 0.' },
+  { key: 'road_corer_right_c09r00', category: 'tile', fallbackColor: 0x2a2a2a, fallbackShape: 'rect', description: 'Road corner right col 9 row 0.' },
   { key: 'road_intersection_no_left_c10r00', category: 'tile', fallbackColor: 0x2a2a2a, fallbackShape: 'rect', description: 'Road intersection (no left) col 10 row 0.' },
   { key: 'road_intersection_c11r00', category: 'tile', fallbackColor: 0x2a2a2a, fallbackShape: 'rect', description: 'Road intersection col 11 row 0.' },
   { key: 'road_full_end_c12r00', category: 'tile', fallbackColor: 0x2a2a2a, fallbackShape: 'rect', description: 'Road full end col 12 row 0.' },
@@ -259,8 +260,30 @@ const TILES_NAMED: readonly SpriteSpec[] = [
   { key: 'warning_cones_c22r00', category: 'tile', fallbackColor: 0x4a2030, fallbackShape: 'rect', description: 'Warning cones tile col 22 row 0.' },
   { key: 'light_bulb_c23r00', category: 'tile', fallbackColor: 0xffcc44, fallbackShape: 'rect', description: 'Light bulb tile col 23 row 0.' },
   { key: 'player_c24r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 24 row 0.' },
-  { key: 'player_c25r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 25 row 0 (same as player).' },
+  { key: 'player_c25r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 25 row 0.' },
   { key: 'player_c26r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 26 row 0.' },
+  { key: 'player_c27r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 27 row 0.' },
+  { key: 'player_c28r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 28 row 0.' },
+  { key: 'player_c29r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 29 row 0.' },
+  { key: 'player_c30r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 30 row 0.' },
+  { key: 'player_c31r00', category: 'entity', fallbackColor: 0xa0ffdc, fallbackShape: 'circle', description: 'Player sprite col 31 row 0.' },
+  { key: 'creature_c32r00', category: 'entity', fallbackColor: 0xff5533, fallbackShape: 'circle', description: 'Creature sprite col 32 row 0.' },
+  { key: 'armor_c33r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 33 row 0.' },
+  { key: 'armor_c34r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 34 row 0.' },
+  { key: 'armor_c35r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 35 row 0.' },
+  { key: 'armor_c36r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 36 row 0.' },
+  { key: 'armor_c37r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 37 row 0.' },
+  { key: 'armor_c38r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 38 row 0.' },
+  { key: 'armor_c39r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 39 row 0.' },
+  { key: 'armor_c40r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 40 row 0.' },
+  { key: 'armor_c41r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 41 row 0.' },
+  { key: 'armor_c42r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 42 row 0.' },
+  { key: 'armor_c43r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 43 row 0.' },
+  { key: 'armor_c44r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 44 row 0.' },
+  { key: 'armor_c45r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 45 row 0.' },
+  { key: 'armor_c46r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 46 row 0.' },
+  { key: 'armor_c47r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 47 row 0.' },
+  { key: 'armor_c48r00', category: 'item', fallbackColor: 0x9a7a4a, fallbackShape: 'rect', description: 'Armour/gear sprite col 48 row 0.' },
 ];
 
 // ── Room-node icons (floor map) ──────────────────────────────────────────────
