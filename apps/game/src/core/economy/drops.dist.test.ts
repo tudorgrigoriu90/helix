@@ -17,7 +17,7 @@ const N = 100_000;
 /** χ² critical value, 1 degree of freedom, α = 0.001. */
 const CHI2_CRIT_1DOF = 10.828;
 
-const BONUS: readonly (keyof Omit<KillDrops, 'vein'>)[] = ['sig', 'mod', 'rareCore', 'epicCore'];
+const BONUS: readonly (keyof Omit<KillDrops, 'vein'>)[] = ['mod', 'rareCore', 'epicCore'];
 
 /** χ² statistic for a Bernoulli(`p`) with `successes` out of `n`. */
 function chiSquaredBernoulli(successes: number, n: number, p: number): number {
@@ -29,7 +29,7 @@ function chiSquaredBernoulli(successes: number, n: number, p: number): number {
 
 function sampleTier(tier: EnemyTier): { counts: Record<string, number>; veinOk: boolean } {
   const rng = makeRng(0x5eed ^ tier.length, 'loot');
-  const counts: Record<string, number> = { sig: 0, mod: 0, rareCore: 0, epicCore: 0 };
+  const counts: Record<string, number> = { mod: 0, rareCore: 0, epicCore: 0 };
   let veinOk = true;
   for (let i = 0; i < N; i++) {
     const d = rollKillDrops(tier, rng);
@@ -40,7 +40,7 @@ function sampleTier(tier: EnemyTier): { counts: Record<string, number>; veinOk: 
 }
 
 describe('drop-rate distribution — T-109 (chi-squared, 100K samples)', () => {
-  for (const tier of ['grunt', 'elite', 'boss'] as const) {
+  for (const tier of ['grunt', 'elite', 'floor_boss', 'zone_warden'] as const) {
     it(`${tier}: empirical drop rates fit the configured probabilities`, () => {
       const rates = DROP_RATES[tier];
       const { counts, veinOk } = sampleTier(tier);
@@ -64,9 +64,9 @@ describe('drop-rate distribution — T-109 (chi-squared, 100K samples)', () => {
   }
 
   it('no-vacuous-pass: a wrong expected probability fails the same test', () => {
-    // Grunt SIG is 0.2; testing it against 0.3 must blow past the critical value.
-    const { counts } = sampleTier('grunt');
-    const chi2Wrong = chiSquaredBernoulli(counts['sig']!, N, 0.3);
+    // Elite mod is 0.3; testing it against 0.4 must blow past the critical value.
+    const { counts } = sampleTier('elite');
+    const chi2Wrong = chiSquaredBernoulli(counts['mod']!, N, 0.4);
     expect(chi2Wrong).toBeGreaterThan(CHI2_CRIT_1DOF);
   });
 });

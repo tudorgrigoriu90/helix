@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "choir_of_teeth",
   "name": "Choir of Teeth",
-  "tier": "boss",
+  "tier": "floor_boss",
   "zone": "shallows",
   "maxHp": 90,
   "stats": { "str": 14, "res": 8, "agi": 6, "int": 9 },

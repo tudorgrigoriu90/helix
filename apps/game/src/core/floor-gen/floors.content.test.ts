@@ -92,7 +92,9 @@ describe('floor-template content — T-291 / T-298 / T-305', () => {
       }
       const boss = reg.get(tpl.bossId);
       expect(boss, `floor ${tpl.floor} boss ${tpl.bossId}`).toBeDefined();
-      expect(boss?.tier, `floor ${tpl.floor} boss ${tpl.bossId}`).toBe('boss');
+      // DR-008: zone finales (5/10/15/20) field a Warden; every other floor a Floor Boss.
+      const expectedTier = tpl.floor % 5 === 0 ? 'zone_warden' : 'floor_boss';
+      expect(boss?.tier, `floor ${tpl.floor} boss ${tpl.bossId}`).toBe(expectedTier);
       expect(boss?.zone, `floor ${tpl.floor} boss ${tpl.bossId}`).toBe(tpl.zone);
     }
   });

@@ -70,10 +70,14 @@ export const ALLOCATABLE_STATS: readonly (keyof EntityStats)[] = ['str', 'res', 
  * grunts + ~1.5 elites yields ~156 XP, enough to clear level 1→2 (100) early and
  * keep pace with the accelerating curve. Flagged for designer review.
  */
+// DR-008's boss tier split is an economy (VEIN/loot) change; XP intentionally
+// stays at the original boss yield for both tiers so levelling pace is
+// unchanged. Re-tune with workbook v1.2 (T-321) if the curve drifts.
 export const XP_PER_KILL: Readonly<Record<EnemyTier, number>> = {
   grunt: 12,
   elite: 40,
-  boss: 200,
+  floor_boss: 200,
+  zone_warden: 200,
 };
 
 /** XP awarded for a single kill of `tier`. */

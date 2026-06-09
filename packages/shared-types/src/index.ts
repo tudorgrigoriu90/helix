@@ -44,11 +44,12 @@ export type {
 export { CURRENT_ITEM_SCHEMA_VERSION } from './item.js';
 
 export type {
+  BossTier,
   EnemyTier,
   EnemyDef,
 } from './enemy.js';
 
-export { CURRENT_ENEMY_SCHEMA_VERSION } from './enemy.js';
+export { CURRENT_ENEMY_SCHEMA_VERSION, isBossTier } from './enemy.js';
 
 export type {
   LaceMood,

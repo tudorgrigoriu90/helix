@@ -25,13 +25,26 @@ import {
  * **Not** in scope (T-288, cross-reference validator): that `zone` matches the
  * floors that pool this enemy, or that ids are globally unique across the enemy
  * registry — those are bundle-level checks.
+ *
+ * Migration: schema v1 had a single `boss` tier; v2 (DR-008, T-301) splits it
+ * into `floor_boss` / `zone_warden`. v1 files still load — their `boss` tier is
+ * migrated by id (the four Zone Wardens were fixed content when v2 landed).
  */
 
 export type EnemyLoaderResult =
   | { readonly ok: true; readonly enemy: EnemyDef }
   | { readonly ok: false; readonly error: ContentError };
 
-const VALID_TIERS = new Set<EnemyTier>(['grunt', 'elite', 'boss']);
+const VALID_TIERS = new Set<EnemyTier>(['grunt', 'elite', 'floor_boss', 'zone_warden']);
+/** Tiers a schema-v1 file may carry (pre-DR-008). */
+const VALID_TIERS_V1 = new Set<string>(['grunt', 'elite', 'boss']);
+/** The four Zone Wardens (floors 5/10/15/20) — fixes the v1 `boss` migration. */
+const V1_ZONE_WARDEN_IDS = new Set<string>([
+  'leviathan_hatchling',
+  'the_great_mycelium',
+  'the_mountains_heart',
+  'the_convergence',
+]);
 const VALID_ZONES = new Set<Zone>(['shallows', 'mycosphere', 'lithic', 'convergence']);
 const VALID_DAMAGE_TYPES = new Set<DamageType>([
   'physical',
@@ -72,12 +85,27 @@ function readAestheticTags(raw: unknown): readonly string[] | ContentError {
   return raw as readonly string[];
 }
 
+/** Reads the on-disk schema version, accepting v1 (migrated) or the current v2. */
+function readSupportedSchemaVersion(payload: Record<string, unknown>): number | ContentError {
+  const v1 = readSchemaVersion(payload, 1);
+  if (!isContentError(v1)) return v1;
+  return readSchemaVersion(payload, CURRENT_ENEMY_SCHEMA_VERSION);
+}
+
+/** Migrates a v1 `boss` tier to its DR-008 treatment; v1 grunt/elite pass through. */
+function migrateV1Tier(tier: string, id: string): EnemyTier {
+  if (tier !== 'boss') return tier as EnemyTier;
+  return V1_ZONE_WARDEN_IDS.has(id) ? 'zone_warden' : 'floor_boss';
+}
+
 export function parseEnemyDef(input: unknown): EnemyLoaderResult {
   const payload = asObject(input);
   if (isContentError(payload)) return { ok: false, error: payload };
 
-  const schemaVersion = readSchemaVersion(payload, CURRENT_ENEMY_SCHEMA_VERSION);
-  if (isContentError(schemaVersion)) return { ok: false, error: schemaVersion };
+  const onDiskVersion = readSupportedSchemaVersion(payload);
+  if (isContentError(onDiskVersion)) return { ok: false, error: onDiskVersion };
+  // Migrated defs surface as the current schema regardless of the file version.
+  const schemaVersion = CURRENT_ENEMY_SCHEMA_VERSION;
 
   const id = readNonEmptyString(payload, 'id');
   if (isContentError(id)) return { ok: false, error: id };
@@ -85,7 +113,13 @@ export function parseEnemyDef(input: unknown): EnemyLoaderResult {
   const name = readNonEmptyString(payload, 'name');
   if (isContentError(name)) return { ok: false, error: name };
 
-  const tier = readEnum<EnemyTier>(payload, 'tier', VALID_TIERS);
+  const tier =
+    onDiskVersion === 1
+      ? (() => {
+          const raw = readEnum<string>(payload, 'tier', VALID_TIERS_V1);
+          return isContentError(raw) ? raw : migrateV1Tier(raw, id);
+        })()
+      : readEnum<EnemyTier>(payload, 'tier', VALID_TIERS);
   if (isContentError(tier)) return { ok: false, error: tier };
 
   const zone = readEnum<Zone>(payload, 'zone', VALID_ZONES);

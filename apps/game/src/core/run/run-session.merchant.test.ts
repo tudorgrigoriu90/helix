@@ -35,7 +35,7 @@ function def(id: string, tier: EnemyDef['tier'], maxHp: number): EnemyDef {
 
 const registry: EnemyRegistry = buildEnemyRegistry([
   def('filterer', 'grunt', 16),
-  def('pressure_warden', 'boss', 60),
+  def('pressure_warden', 'floor_boss', 60),
 ]);
 
 const POOL: readonly ItemDef[] = Array.from({ length: 10 }, (_, i) => ({

@@ -46,9 +46,34 @@ describe('parseEnemyDef — T-283', () => {
   });
 
   it('rejects an unsupported schema version', () => {
-    const res = parseEnemyDef({ ...validRaw(), schemaVersion: 2 });
+    const res = parseEnemyDef({ ...validRaw(), schemaVersion: 3 });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.code).toBe('UNSUPPORTED_SCHEMA_VERSION');
+  });
+
+  it('migrates a v1 `boss` tier to floor_boss (DR-008, T-301)', () => {
+    const res = parseEnemyDef({ ...validRaw(), id: 'pressure_warden', tier: 'boss' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.enemy.tier).toBe('floor_boss');
+      expect(res.enemy.schemaVersion).toBe(2);
+    }
+  });
+
+  it('migrates a v1 `boss` tier to zone_warden for the four Wardens (DR-008, T-301)', () => {
+    const res = parseEnemyDef({ ...validRaw(), id: 'the_convergence', tier: 'boss' });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.enemy.tier).toBe('zone_warden');
+  });
+
+  it('rejects the split tiers in a v1 file and `boss` in a v2 file', () => {
+    expect(parseEnemyDef({ ...validRaw(), tier: 'zone_warden' }).ok).toBe(false);
+    expect(parseEnemyDef({ ...validRaw(), schemaVersion: 2, tier: 'boss' }).ok).toBe(false);
+  });
+
+  it('accepts the split tiers in a v2 file', () => {
+    expect(parseEnemyDef({ ...validRaw(), schemaVersion: 2, tier: 'floor_boss' }).ok).toBe(true);
+    expect(parseEnemyDef({ ...validRaw(), schemaVersion: 2, tier: 'zone_warden' }).ok).toBe(true);
   });
 
   it('requires id, name, maxHp', () => {

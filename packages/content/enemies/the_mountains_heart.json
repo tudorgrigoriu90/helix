@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "the_mountains_heart",
   "name": "The Mountain's Heart",
-  "tier": "boss",
+  "tier": "zone_warden",
   "zone": "lithic",
   "maxHp": 138,
   "stats": { "str": 18, "res": 12, "agi": 5, "int": 6 },

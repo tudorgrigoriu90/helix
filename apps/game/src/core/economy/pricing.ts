@@ -1,4 +1,5 @@
 import type { ItemRarity } from '@shared-types/item';
+import { FLOORS_PER_ZONE, zoneIndexForFloor } from '../campaign';
 
 /**
  * VEIN Dispenser pricing — T-108 (GDD §9 / §10.3, Economy.xlsx).
@@ -27,14 +28,14 @@ export const RARITY_VEIN_MULT: Readonly<Record<ItemRarity, number>> = {
 
 /** Authored: VEIN price of a Common item in Zone 1 (~¼ of a floor's income). */
 export const BASE_DISPENSER_VEIN = 40;
-/** Floors per zone (Economy.xlsx "Assumptions" / GDD §6 — 4 Zones × 5 = 20). */
-export const FLOORS_PER_ZONE = 5;
+/** Floors per zone — canonical value lives in core/campaign (T-323). */
+export { FLOORS_PER_ZONE };
 /** Authored: each zone deeper adds this fraction of the base price. */
 export const ZONE_PRICE_GROWTH = 0.5;
 
 /** The 1-based zone a floor belongs to (Zone 1 = floors 1–5, …, Zone 4 = 16–20). */
 export function zoneForFloor(floor: number): number {
-  return Math.max(1, Math.ceil(floor / FLOORS_PER_ZONE));
+  return zoneIndexForFloor(floor);
 }
 
 /** Price multiplier for `zone`: `1 + (zone−1)·0.5` (Zone 1 = ×1, Zone 4 = ×2.5). */

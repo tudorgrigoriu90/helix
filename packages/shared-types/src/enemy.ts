@@ -15,8 +15,20 @@
 import type { EntityStats, DamageType } from './run-state.js';
 import type { Zone } from './floor-template.js';
 
+/**
+ * Boss tiers (DR-008): every floor has a boss, in one of two treatments.
+ * `floor_boss` — template-composed, one per non-Warden floor (16 total);
+ * `zone_warden` — bespoke zone finale on floors 5/10/15/20 (4 total).
+ */
+export type BossTier = 'floor_boss' | 'zone_warden';
+
 /** Combat role / power band. Bosses are referenced by a floor's `bossId`. */
-export type EnemyTier = 'grunt' | 'elite' | 'boss';
+export type EnemyTier = 'grunt' | 'elite' | BossTier;
+
+/** True when `tier` is either boss treatment (DR-008 two-tier split). */
+export function isBossTier(tier: EnemyTier): tier is BossTier {
+  return tier === 'floor_boss' || tier === 'zone_warden';
+}
 
 export interface EnemyDef {
   /** Bumped when the on-disk JSON shape changes; loader runs migrations. */
@@ -38,5 +50,7 @@ export interface EnemyDef {
   readonly aestheticTags: readonly string[];
 }
 
-/** Current enemy-def schema version. Increment when the on-disk shape changes. */
-export const CURRENT_ENEMY_SCHEMA_VERSION = 1;
+/** Current enemy-def schema version. Increment when the on-disk shape changes.
+ *  v2 (DR-008): the single `boss` tier split into `floor_boss` / `zone_warden`;
+ *  the loader migrates v1 files. */
+export const CURRENT_ENEMY_SCHEMA_VERSION = 2;

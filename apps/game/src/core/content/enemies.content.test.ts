@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { EnemyDef } from '@shared-types/enemy';
+import { isBossTier } from '@shared-types/enemy';
 import type { Zone } from '@shared-types/floor-template';
 import { parseEnemyDef } from './enemy-loader';
 
@@ -74,13 +75,35 @@ describe('enemy content — T-290 / T-296 / T-303', () => {
     const enemies = allEnemies();
     const zonesPresent = new Set(enemies.map((e) => e.zone));
     for (const zone of zonesPresent) {
-      const bosses = enemies.filter((e) => e.zone === zone && e.tier === 'boss');
+      const bosses = enemies.filter((e) => e.zone === zone && isBossTier(e.tier));
       expect(bosses.length, `zone ${zone} has no boss`).toBeGreaterThanOrEqual(1);
     }
   });
 
   it('no boss id is shared — every boss is unique', () => {
-    const bossIds = allEnemies().filter((e) => e.tier === 'boss').map((e) => e.id);
+    const bossIds = allEnemies().filter((e) => isBossTier(e.tier)).map((e) => e.id);
     expect(new Set(bossIds).size).toBe(bossIds.length);
+  });
+
+  it('every shipped zone provides exactly one Zone Warden (DR-008)', () => {
+    const enemies = allEnemies();
+    const zonesPresent = new Set(enemies.map((e) => e.zone));
+    for (const zone of zonesPresent) {
+      const wardens = enemies.filter((e) => e.zone === zone && e.tier === 'zone_warden');
+      expect(wardens.length, `zone ${zone} wardens`).toBe(1);
+    }
+  });
+
+  it('ships exactly 4 Zone Wardens and 16 Floor Bosses once all zones land (DR-008)', () => {
+    const enemies = allEnemies();
+    const wardens = enemies.filter((e) => e.tier === 'zone_warden');
+    const floorBosses = enemies.filter((e) => e.tier === 'floor_boss');
+    expect(wardens.map((e) => e.id).sort()).toEqual([
+      'leviathan_hatchling',
+      'the_convergence',
+      'the_great_mycelium',
+      'the_mountains_heart',
+    ].sort());
+    expect(floorBosses.length).toBe(16);
   });
 });

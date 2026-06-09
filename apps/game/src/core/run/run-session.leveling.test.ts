@@ -36,7 +36,7 @@ function def(id: string, tier: EnemyDef['tier'], maxHp: number): EnemyDef {
 const registry: EnemyRegistry = buildEnemyRegistry([
   def('filterer', 'grunt', 16),
   def('cave_crawler', 'grunt', 18),
-  def('pressure_warden', 'boss', 60),
+  def('pressure_warden', 'floor_boss', 60),
 ]);
 
 function newSession(seed = 7): RunSession {

@@ -30,23 +30,31 @@ describe('rollItemDrops — T-445 (GDD §9.4)', () => {
     }
   });
 
-  it('a boss always drops 2 items, the first guaranteed Rare+', () => {
+  it('a Zone Warden always drops 2 items, the first guaranteed Rare+ (DR-008)', () => {
     for (let seed = 0; seed < 50; seed++) {
-      const out = rollItemDrops('boss', POOL, new Mulberry32(seed));
+      const out = rollItemDrops('zone_warden', POOL, new Mulberry32(seed));
       expect(out).toHaveLength(2);
       expect(['rare', 'legendary']).toContain(out[0]!.rarity);
     }
   });
 
+  it('a Floor Boss always drops 1 Uncommon+ item (DR-008)', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const out = rollItemDrops('floor_boss', POOL, new Mulberry32(seed));
+      expect(out).toHaveLength(1);
+      expect(['uncommon', 'rare', 'legendary']).toContain(out[0]!.rarity);
+    }
+  });
+
   it('falls back to the whole pool when no item matches the band', () => {
     const onlyCommon = [item('c', 'common')];
-    const out = rollItemDrops('boss', onlyCommon, new Mulberry32(1)); // wants Rare+, none exist
+    const out = rollItemDrops('zone_warden', onlyCommon, new Mulberry32(1)); // wants Rare+, none exist
     expect(out).toHaveLength(2);
     expect(out.every((i) => i.id === 'c')).toBe(true);
   });
 
   it('an empty pool drops nothing; rolls are deterministic per RNG state', () => {
-    expect(rollItemDrops('boss', [], new Mulberry32(1))).toEqual([]);
+    expect(rollItemDrops('zone_warden', [], new Mulberry32(1))).toEqual([]);
     expect(rollItemDrops('elite', POOL, new Mulberry32(9))).toEqual(rollItemDrops('elite', POOL, new Mulberry32(9)));
   });
 });
