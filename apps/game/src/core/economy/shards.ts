@@ -22,8 +22,8 @@ export const SHARD_PER_VEIN = 0.005;
 export const SHARD_DAILY_RUN = 5;
 /** Authored: flat shards per achievement milestone unlocked (GDD §15.5 "achievements"). */
 export const SHARD_ACHIEVEMENT = 10;
-/** Revive cost in shards (GDD §15.5) — the canonical hard-currency sink. */
-export const SHARD_REVIVE_COST = 75;
+// The 75-Shard revive cost was removed by DR-010: the revive is rewarded-ad
+// only and Shards are cosmetics-only — they are never a gameplay currency.
 
 export interface RunShardSources {
   /** Total VEIN earned during the run. */

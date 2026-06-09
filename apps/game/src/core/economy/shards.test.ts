@@ -6,13 +6,11 @@ import {
   SHARD_PER_VEIN,
   SHARD_DAILY_RUN,
   SHARD_ACHIEVEMENT,
-  SHARD_REVIVE_COST,
 } from './shards';
 
 describe('Shard Crystal earn rates — T-107 (GDD §15.5, Economy.xlsx)', () => {
   it('uses the workbook conversion rate', () => {
     expect(SHARD_PER_VEIN).toBe(0.005);
-    expect(SHARD_REVIVE_COST).toBe(75);
   });
 
   it('converts run VEIN to shards (floor 1 income → 0.7575)', () => {

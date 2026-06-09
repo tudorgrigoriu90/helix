@@ -79,7 +79,6 @@ export interface RunSummaryData {
   readonly organismName: string;
 }
 
-const REVIVE_SC_COST = 75;
 
 const DEFAULT_SUMMARY: RunSummaryData = {
   meta: newMetaState(),
@@ -276,10 +275,12 @@ export class PostRunScene extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '8px', color: C.dim,
     }).setOrigin(0.5, 0);
 
-    // Primary CTA — "CONTINUE" opens the S033 revive offer; "RETURN" goes straight to hub.
+    // Primary CTA — "CONTINUE" opens the S033 revive offer; "RETURN" goes straight
+    // to hub. DR-010: the revive is rewarded-ad only, and the offer is *hidden*
+    // entirely when no ad is available (E030/E031) — no SC fallback.
     const hubX = CX + 8;
     const hg = this.add.graphics();
-    const canRevive = this.summary.reviveAvailable;
+    const canRevive = this.summary.reviveAvailable && adService.canOffer().allowed;
     const label = canRevive ? 'CONTINUE' : 'RETURN';
 
     hg.fillStyle(0x1a3028).fillRoundedRect(hubX, btY, halfW, 50, 10);
@@ -321,9 +322,9 @@ export class PostRunScene extends Phaser.Scene {
     overlay.fillStyle(0x000000, 0.7).fillRect(0, 0, W, H);
 
     const px = 24;
-    const py = H / 2 - 170;
+    const py = H / 2 - 145;
     const pw = W - 48;
-    const ph = 340;
+    const ph = 290;
 
     const pg = this.add.graphics().setDepth(11);
     pg.fillStyle(C.surface).fillRoundedRect(px, py, pw, ph, 16);
@@ -351,41 +352,15 @@ export class PostRunScene extends Phaser.Scene {
     const btnW = pw - 32;
     const btnX = px + 16;
 
-    // WATCH AD — hidden once this run's 3-ad cap is spent (E032); the SC path
-    // below remains the alternative. canOffer() also covers the cooldown window.
-    const offer = adService.canOffer();
-    if (offer.allowed) {
-      this.buildReviveBtn(btnX, btnY, btnW, btnH, 'WATCH AD', 'free · rewarded ad', C.accentN, 0x1a3028, 12, () => {
-        void this.tryAdRevive();
-      });
-    } else {
-      const reason = offer.reason === 'cap_reached' ? 'Ad limit reached this run' : 'Ad cooling down';
-      const ng = this.add.graphics().setDepth(12);
-      ng.fillStyle(0x0e1626, 0.5).fillRoundedRect(btnX, btnY, btnW, btnH, 10);
-      ng.lineStyle(1, C.border).strokeRoundedRect(btnX, btnY, btnW, btnH, 10);
-      this.add.text(CX, btnY + 14, reason, {
-        fontFamily: 'monospace', fontSize: '12px', color: C.dim,
-      }).setOrigin(0.5, 0).setDepth(13);
-      this.add.text(CX, btnY + 32, 'use Shard Crystals below', {
-        fontFamily: 'monospace', fontSize: '9px', color: C.dim,
-      }).setOrigin(0.5, 0).setDepth(13);
-    }
-
-    // 75 SC button
-    const shards = this.summary.meta.shardCrystals;
-    const canAfford = shards >= REVIVE_SC_COST;
-    this.buildReviveBtn(
-      btnX, btnY + btnH + 10, btnW, btnH,
-      `${REVIVE_SC_COST} SC`,
-      canAfford ? `balance: ${shards.toFixed(0)} SC` : 'not enough Shard Crystals',
-      canAfford ? C.goldN : 0x555566,
-      canAfford ? 0x241e00 : 0x0e1626,
-      12,
-      canAfford ? () => { this.doScRevive(); } : null,
-    );
+    // WATCH AD — the only revive path (DR-010). The panel can only open while
+    // an ad is offerable (the CONTINUE CTA hides otherwise), so no fallback
+    // surface is needed; a failed load still degrades through S135.
+    this.buildReviveBtn(btnX, btnY, btnW, btnH, 'WATCH AD', 'free · rewarded ad', C.accentN, 0x1a3028, 12, () => {
+      void this.tryAdRevive();
+    });
 
     // DECLINE
-    this.add.text(CX, btnY + btnH * 2 + 32, 'DECLINE — lose this run', {
+    this.add.text(CX, btnY + btnH + 32, 'DECLINE — lose this run', {
       fontFamily: 'monospace', fontSize: '11px', color: C.dim,
     }).setOrigin(0.5).setDepth(12).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('HubScene', { meta: this.summary.meta }))
@@ -432,8 +407,8 @@ export class PostRunScene extends Phaser.Scene {
       case 'capped':
       case 'cooldown':
       case 'silent':
-        // E031 / gate refusals: null reward, no popup — the player can still use
-        // the SC path or decline. Stay on the revive panel.
+        // E031 / gate refusals: null reward, no popup — the player can still
+        // decline. Stay on the revive panel.
         return;
     }
   }
@@ -480,15 +455,6 @@ export class PostRunScene extends Phaser.Scene {
     const zone = this.add.zone(bx, by, bw, 34).setOrigin(0, 0)
       .setInteractive({ useHandCursor: true }).setDepth(23);
     zone.on('pointerdown', dismiss);
-  }
-
-  private doScRevive(): void {
-    const updatedMeta: typeof this.summary.meta = {
-      ...this.summary.meta,
-      shardCrystals: this.summary.meta.shardCrystals - REVIVE_SC_COST,
-    };
-    this.summary = { ...this.summary, meta: updatedMeta };
-    this.doRevive();
   }
 
   private doRevive(): void {

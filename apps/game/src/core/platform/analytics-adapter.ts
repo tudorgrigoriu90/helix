@@ -104,9 +104,9 @@ export interface EventSchema {
   };
   /** Tutorial completed. */
   readonly tutorial_complete: Record<string, never>;
-  /** Revive offer accepted. */
+  /** Revive offer accepted (DR-010: rewarded-ad only — no purchasable revive). */
   readonly revive_accepted: {
-    readonly method: 'ad' | 'shards';
+    readonly method: 'ad';
   };
 }
 
