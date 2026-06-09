@@ -66,3 +66,12 @@ flowchart TD
 | S131     | Nothing to restore toast     | Auto-dismiss 3s                                                                                             |
 | AD_FLOW  | AdMob rewarded ad            | **10s timeout, never blocks gameplay, max 3 ads per run hard cap**                                          |
 | S135     | Ad failed modal              | **NO REWARD on failure** (no goodwill grant); **no retry button** (graceful degradation)                    |
+
+---
+
+## AMENDMENT — DR-010 / DR-011 (2026-06-09)
+
+- **S033 Revive (Scope 2):** rewarded-ad only — the 75-SC path is removed (DR-010). Offer hidden when no ad available (E030/E031).
+- **VEIN pack:** confirmed non-existent — VEIN Crystals are never purchasable (DR-010); no store surface may reference one.
+- **Pass price:** S124 $4.99/mo, S125 $39.99/yr confirmed locked (DR-010).
+- **S123 Supporter Pack — now defined (DR-011):** "First Descent" Supporter Pack, **$9.99 one-time**. Grants: exclusive supporter share frame + exclusive run-end title card + LACE thank-you Codex entry. Purely cosmetic/lore. Locks to "owned"; restorable via S129.

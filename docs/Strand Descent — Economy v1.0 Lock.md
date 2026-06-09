@@ -15,6 +15,51 @@ computed against a **superseded 30-floor campaign** (see §2). Numbers may still
 tune during playtest, but the **structure and the baseline curves below are
 fixed** and all gameplay code must reconcile to them.
 
+> **AMENDMENT — DR-007 (2026-06-09).** The meta-progression model is locked to the
+> **GDD draft-only model**: mutations are free in-run draft picks; **SIG is an
+> in-run resonance stat (cap 40), granted only by acquired mutations, and resets
+> on death**. SIG is **not** a persistent currency, is **not** dropped by enemies,
+> and is **not** spent to unlock or upgrade mutations. All SIG-as-currency and
+> mutation-cost modelling in this lock and in workbook v1.1 (Mutation Costs tab,
+> SIG drop columns, "runs-to-full-kit") is **superseded** — see strikethrough
+> markers in §3/§6 below. Workbook v1.2 must remove the Mutation Costs tab and
+> SIG income columns; until then, those tabs are non-binding. Permanent
+> progression is Sigma Strains + cosmetics + Codex only (GDD §11.2).
+
+> **AMENDMENT — DR-008 (2026-06-09).** Boss cadence is locked to **boss-per-floor
+> via a two-tier system**: 16 template-composed Floor Bosses + 4 Zone Wardens at
+> floors 5/10/15/20. The Currencies model in workbook v1.1 assumed bosses only at
+> zone ends ("boss floors halve commons", boss kill = 120 VEIN). Under DR-008 a
+> **Floor Boss drop tier is added (provisional 45 VEIN; Wardens stay at 120)**,
+> **Repo-review note (2026-06-09):** shipped content already has a boss on every
+> floor (20 `bossId`s, 20 boss enemy JSONs) and `drops.ts` pays them ALL the flat
+> `boss: 120` rate — i.e. the live code over-pays 16 Floor Bosses relative to the
+> workbook's zone-end-only model, and the v1.1 T-12 reconciliation matched
+> per-kill *values* but not the kill mix. DR-008 fixes both sides: tier split
+> `floor_boss: 45` / `zone_warden: 120` in `drops.ts`, and workbook v1.2 models a
+> boss kill on every floor. **The §3 headline VEIN figures are stale pending the
+> v1.2 recompute**; all other locked curves are unchanged. Loot guarantees
+> re-tier per GDD §9.4 (Floor Boss 1× Uncommon+; Warden 2× incl. 1 Rare+).
+
+> **AMENDMENT — DR-009 (2026-06-09).** Act-based descent (session = one ~25-min
+> act; checkpoints after Strand Events) changes **session packaging only** — no
+> per-floor income, pricing, or curve changes. The Proto-Strand (+5 SIG, Floor 2)
+> fits within the existing cap-40 math (max in-run SIG = 35). One modelling note
+> for workbook v1.2: any DAU/retention assumption expressed as "runs per day"
+> should be restated as **acts per day** (a full run now spans multiple sessions
+> by design); the run-pacing 5.0 min/floor target is unchanged and remains the
+> binding number.
+
+> **AMENDMENT — DR-010 (2026-06-09). Monetization integrity batch.** (1) Deep
+> Signal Pass locked at **$4.99/mo / $39.99/yr** — the workbook's $9.99 model and
+> 40%-attach baseline are superseded (see §4 T-13). (2) The **$0.99 VEIN pack SKU
+> is deleted** — VEIN Crystals are never purchasable (GDD §15.5 pledge holds).
+> (3) **Revive is rewarded-ad only** — the 75-Shard revive is removed; Shard
+> Crystals are a cosmetics-only currency. IAP catalogue tab and revenue scenarios
+> to re-run in workbook v1.2 (expect a small mix shift from IAP to ad revenue on
+> the revive moment; scenario totals were never materially driven by the deleted
+> SKUs).
+
 ---
 
 ## 1. What was reviewed
@@ -78,19 +123,25 @@ canonical bands; `shards.ts` doc-comment corrected from the 30-floor VEIN total.
 | Metric                              | v1.1 (20f) | prior v1.0 (30f) | Source |
 | ----------------------------------- | ---------: | ---------------: | ------ |
 | Total VEIN / full clear             | **3,232**  | 4,797.5          | Currencies E50 |
-| Total SIG / full clear              | **115.6**  | 167.125          | Currencies F51 |
+| ~~Total SIG / full clear~~          | ~~115.6~~  | ~~167.125~~      | **SUPERSEDED by DR-007** — SIG is in-run only, max 40 (GDD §4.2) |
 | Total Shards / full clear           | **16.16**  | 23.99            | Currencies I52 |
 | Full-clear time (min)               | **99.9**   | 143.65           | Run Pacing I45 |
 | Avg minutes / floor (target 5.0)    | **5.00**   | 4.79             | Run Pacing I47 |
 | Avg turns-to-kill                   | **8.10**   | 7.5              | Enemy Stats F80 |
 | Max turns-to-kill (deepest boss)    | **26**     | 26               | Enemy Stats F81 |
 | Zone bosses (floor, TtK)            | 5·26, 10·25, 15·24, 20·23 | — | Enemy Stats |
-| Full mutation kit (one of each → Mk III) | **1,479 SIG** | 1,479 | Mutation Costs |
-| Runs to full kit                    | **13**     | 9                | Mutation Costs F23 |
+| ~~Full mutation kit (one of each → Mk III)~~ | ~~1,479 SIG~~ | ~~1,479~~ | **SUPERSEDED by DR-007** — no mutation purchase/upgrade system |
+| ~~Runs to full kit~~                | ~~13~~     | ~~9~~            | **SUPERSEDED by DR-007** |
 
-The shorter campaign is *healthier* for the grind economy: SIG/run drops, pushing
+~~The shorter campaign is *healthier* for the grind economy: SIG/run drops, pushing
 runs-to-full-kit from 9 → **13** (still inside the 5–20 design band, better IAP
-motivation), while average floor time lands dead on the 5.0-minute target.
+motivation), while average floor time lands dead on the 5.0-minute target.~~
+
+**(Superseded by DR-007.)** Under the draft-only model there is no runs-to-kit
+grind metric. The surviving claim is: average floor time lands dead on the
+5.0-minute target. Long-horizon pull is carried by Sigma Strains, Origin
+unlocks, and the Codex — pacing for those unlocks replaces the kit grind as the
+retention model in workbook v1.2.
 
 ---
 
@@ -100,16 +151,25 @@ motivation), while average floor time lands dead on the 5.0-minute target.
 × expected kills/floor (8 commons + 1.5 elites, boss floors halve commons) + the
 50-VEIN floor-clear constant reproduces the Currencies PER-FLOOR INCOME column and
 matches `core/economy/drops.ts` (`VEIN_PER_KILL`, `FLOOR_VEIN_CONSTANT`,
-`expectedFloorVein`) exactly. One full clear (3,232 VEIN) buys **6.5× a $0.99 VEIN
-pack** — free play earns meaningfully, drops are not stingy. ✔
+`expectedFloorVein`) exactly. ~~One full clear (3,232 VEIN) buys **6.5× a $0.99 VEIN
+pack**~~ **(VEIN pack SKU deleted per DR-010 — VEIN Crystals are not purchasable,
+GDD §15.5).** Free-play earn rates remain generous: a full clear funds roughly
+6–7 full Dispenser kits at Zone-1 prices — drops are not stingy. ✔ *(per-kill
+mix updated by DR-008 — see amendment above)*
 
-**T-13 — Pass conversion sensitivity.** The Deep Signal Pass ($9.99) is the best
+**T-13 — Pass conversion sensitivity.** ~~The Deep Signal Pass ($9.99) is the best
 minutes-saved-per-dollar SKU in the catalogue (**37.1** vs the next-best 23.2) and
 sits in the $5–$15 battle-pass band. Pass Sensitivity tab: at the conservative M6
 cohort (322 payers), monthly Pass revenue spans $450 (20% attach @ $9.99) to
-$4,506 (80% @ $24.99); planning baseline is 40% attach @ $9.99. Pessimistic 1.5%
-conversion remains the planning floor (Assumptions conversion_pct_pess = 2% is the
-modelled low case). ✔
+$4,506 (80% @ $24.99); planning baseline is 40% attach @ $9.99.~~ **SUPERSEDED by
+DR-010:** the Pass is locked at **$4.99/mo / $39.99/yr** (GDD §15.3 / UFD
+S124-S125). The "minutes-saved-per-dollar" SKU metric is retired (the Pass sells
+cosmetics and lore, never time or power — DR-007/GDD §15.3); workbook v1.2
+replaces it with a cosmetic-attach model (drivers: share frequency / frame
+visibility, codex completion, LACE tone identity) and re-runs Pass Sensitivity at
+$4.99 with attach derived from the GDD §15.6 conversion band (1.5–2.5% of DAU).
+Pessimistic 1.5% conversion remains the planning floor. ✔ (structure), ⚠ (numbers
+pending v1.2)
 
 ---
 
@@ -143,10 +203,10 @@ README explicitly forbids editing a formula to make the answer prettier). 8.10 v
 | ------------- | ------------------------------------------------- | -------------------------------------- | ------ |
 | Campaign      | max_floor 20, zones 4, floors_per_zone 5, boss/5  | `pricing.ts` FLOORS_PER_ZONE = 5; floor content; `xp.ts` cap 20 | ✔ aligned (was the defect) |
 | VEIN drops    | grunt 8 / elite 25 / boss 120; floor const 50     | `drops.ts` VEIN_PER_KILL, FLOOR_VEIN_CONSTANT | ✔ |
-| Drop rates    | grunt/elite/boss SIG/mod/rare/epic probabilities  | `drops.ts` DROP_RATES                  | ✔ |
+| Drop rates    | grunt/elite/boss mod/rare/epic probabilities (**SIG drop columns removed per DR-007**) | `drops.ts` DROP_RATES (SIG entries to be deleted) | ⚠ code change required (DR-007) |
 | Shards        | shard_per_vein_conversion 0.005                   | `shards.ts` SHARD_PER_VEIN             | ✔ |
 | Dispenser     | rarity scale 1 / 2.5 / 6 / 15; zone growth        | `pricing.ts` RARITY_VEIN_MULT, ZONE_PRICE_GROWTH | ✔ |
-| Mutation cost | base 10, ×1.8/level, rarity 1/2.5/6/15            | mutation cost system (S-3.4)           | ✔ |
+| ~~Mutation cost~~ | ~~base 10, ×1.8/level, rarity 1/2.5/6/15~~    | ~~mutation cost system (S-3.4)~~       | **SUPERSEDED by DR-007 — system removed; mutations grant +10 SIG flat in-run (GDD §4.2)** |
 | XP curve      | xp_base 100, growth 0.15                           | `xp.ts` XP_BASE, XP_GROWTH             | ✔ |
 
 Daily-run (+5) and achievement (+10) shard bonuses and the Dispenser base price
@@ -158,6 +218,28 @@ forward into the lock.
 
 ## 7. Open items carried past the lock (non-blocking)
 
+- **DR-007 follow-up (workbook v1.2):** delete the Mutation Costs tab; remove SIG
+  income columns from Currencies/Drop Rates; replace the runs-to-full-kit
+  retention proxy with a Sigma-Strain / Origin / Codex unlock-pacing model.
+- **DR-007 follow-up (code), scoped after repo review 2026-06-09:** the grant
+  model is already shipped (`core/mutation/sig.ts`, `sigBonus` in content,
+  SIG_CAP=40 at run scope) — **no rename needed**. Remaining change: delete the
+  SIG bonus-drop from `drops.ts` DROP_RATES (rolled but never consumed anywhere —
+  dead code) and its workbook columns. No S-3.4 purchase system exists in code.
+- **DR-008 follow-up (workbook v1.2):** add Floor Boss row to Enemy Stats / drop
+  model (provisional 45 VEIN); update Currencies kill-mix (Floor Boss replaces
+  one elite-equivalent on non-Warden floors; "halve commons" applies to Warden
+  floors only); recompute §3 headline totals.
+- **DR-008 follow-up (code):** add `FLOOR_BOSS` tier to `drops.ts` VEIN_PER_KILL
+  and loot guarantees; implement the Floor Boss descriptor schema + the one-time
+  2-phase template behavior in the turn engine; re-run the balance harness with
+  per-floor bosses and re-publish the clear-rate curve.
+- **DR-010 follow-up (workbook v1.2):** delete the VEIN pack SKU row; re-price
+  Pass tabs at $4.99/$39.99; replace minutes-saved SKU ratings with the
+  cosmetic-attach model; re-run revenue scenarios.
+- **DR-010 follow-up (code):** remove the Shard-revive branch (UFD S033 → ad-only
+  with hidden-offer fallback); remove the VEIN pack from the IAP catalogue /
+  store config; verify `shards.ts` sinks are cosmetics-only.
 - **Conditional-format heat maps / comments** in the workbook are preserved by the
   edit. The Director should open the v1.1 workbook once in Excel to let it
   recompute (fullCalcOnLoad is set) and re-save to Drive, bumping the Drive copy.

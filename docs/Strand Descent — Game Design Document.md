@@ -79,7 +79,7 @@ PEGI 12 / ESRB T (Teen). Content: mild violence, strategic combat, body horror t
 ### 1.7 Core Pillars
 
 1. **Become Something New Every Run.** No two runs produce the same organism. The end-run "What You Became" screen is shareable and collectible.
-2. **Think, Don't React.** Turn-based combat designed for mobile commutes. Enemy behaviour is deterministic and legible, so skill comes from reasoning, positioning, and build synergy — not reflexes and not memorizing telegraphs. One floor = ~5 minutes. One full run = 20–45 minutes.
+2. **Think, Don't React.** Turn-based combat designed for mobile commutes. Enemy behaviour is deterministic and legible, so skill comes from reasoning, positioning, and build synergy — not reflexes and not memorizing telegraphs. One floor = ~5 minutes. One **act** (zone) = ~25 minutes — the designed session unit. A full descent = 4 acts (~100 minutes), playable across sessions via descent checkpoints (DR-009, §1.9).
 3. **The VEIN Is Alive.** LACE reacts to player choices throughout the run. Comments on mutations, mocks poor decisions, rewards creative play.
 4. **Depth Without Complexity.** Geometric art, icon-driven UI, no illustrated sprites required. Learnable in 5 minutes, masterable in 200 hours.
 
@@ -87,13 +87,14 @@ PEGI 12 / ESRB T (Teen). Content: mild violence, strategic combat, body horror t
 
 > *"Slay the Spire meets Hades, set inside a living alien megastructure, narrated by an ancient intelligence that is very interested in what you are becoming."*
 
-### 1.9 Session Design
+### 1.9 Session Design (revised per DR-009 — act-based descent)
 
-- Target session length: 8–12 minutes (commute-safe)
-- Full run length: 20–45 minutes
-- Natural pause points: any Safe Room, between any two turns
+- **Session unit: one act.** Each Zone (5 floors) is a session-complete act of ~25 minutes.
+- **Full descent:** 4 acts, ~100 minutes total, intended to be played across multiple sessions.
+- **Descent checkpoints:** after each Strand Event (post-Warden, floors 5/10/15) the player chooses **"Descend"** or **"Rest"**. Rest suspends the run at the checkpoint and returns to the Hub; the Hub shows a **"Continue Descent"** card (organism-so-far, mutations, next act). LACE narrates the rest in-fiction. A checkpoint is a *pause point, never a retry point* — death still ends the run from wherever it occurs. One suspended run at a time; suspended runs never expire.
+- **Safety-net pauses unchanged:** any Safe Room, between any two turns, or mid-turn via save-every-turn (TDD §5.5). On any resume, LACE delivers a one-line situational recap to fix cold re-entry.
+- Target single session length: 8–25 minutes (commute-safe)
 - Offline support: full offline play (no internet required for core gameplay)
-- Platform behavior: background suspension mid-turn supported via save-every-turn (see TDD §5.5)
 
 ### 1.10 Launch Scope (Path A — Locked)
 
@@ -182,7 +183,9 @@ START RUN
   → Choose Origin (pre-VEIN background, affects starting conditions)
   → Enter Floor 1
   → [FLOOR LOOP — repeat per floor]
+  → PROTO-STRAND on Floor 2 (pick 1 of 2 Minor mutations — DR-009b, §5.4 Rule 6)
   → Strand Event at floors 5, 10, 15 (pick 1 mutation from 3 offered)
+      → then DESCENT CHECKPOINT: "Descend" (continue) or "Rest" (suspend to Hub)
   → Reach Floor 20 → CONVERGENCE ending
   OR
   → Die at any floor → Run ends → Meta-progression screen
@@ -197,8 +200,10 @@ ENTER FLOOR
   → Minimap reveals room layout (partially — fog of war)
   → Navigate tile grid room by room
     → [ROOM LOOP — repeat per room]
-  → Find and defeat Floor Boss
-  → Collect Boss Loot
+  → Find and defeat the floor's boss
+      (Floor Boss on floors 1–4, 6–9, 11–14, 16–19;
+       ZONE WARDEN on floors 5, 10, 15, 20 — see §8.4/§8.4a, DR-008)
+  → Collect Boss Loot (tiered by boss type — §9.4)
   → Proceed to stairs → Next floor
   OR
   → Die in any room → Run ends
@@ -238,7 +243,9 @@ FLOOR BOSS DEFEATED
   → Player selects one mutation
   → Character model updates (color overlay + icon emblem added)
   → LACE comments on the choice
-  → Descend to next floor group
+  → DESCENT CHECKPOINT (DR-009): "Descend" → next floor group
+                                  "Rest"    → run suspends at checkpoint, return to Hub
+                                              (resume later via "Continue Descent")
 ```
 
 Note: when a player has already accumulated 4 mutations (the cap — see §4.2), the Strand Event is replaced by a **VEIN Intermission** (S071 in the UFD): no mutation card, +100 VEIN Crystals, LACE saturation line.
@@ -302,8 +309,8 @@ All characters start with identical base stats regardless of Origin. Origins mod
 
 - **SIG cap: 40** (4 mutations max)
 - **Strand Event mutations grant +10 SIG each** (3 mutations × +10 = 30)
-- **LACE event-room mutations grant +5 SIG each** (max 1 per run)
-- **Max mutations per run: 4** (3 from Strand Events + 1 from LACE event room)
+- **Bonus-slot mutations grant +5 SIG** — the bonus slot is filled by EITHER the Floor 2 **Proto-Strand** pick (DR-009b) OR a LACE event-room mutation; **max 1 bonus mutation per run** (max in-run total: 35 SIG)
+- **Max mutations per run: 4** (3 from Strand Events + 1 bonus slot)
 
 ### 4.3 In-Run Levelling
 
@@ -412,6 +419,13 @@ LACE: "The deep ocean kills most things. You are adapting
 - Per Strand Event: 1 reroll available (rewarded ad or earned Adaptation Token).
 - Reroll affects **1 player-selected card only** (tap-and-hold to mark).
 - Reroll draws from the same RNG sub-stream so determinism is preserved.
+
+**Rule 6 — Proto-Strand (DR-009b)**
+- Triggers once per run on **Floor 2** (after clearing the Floor 2 boss room).
+- Offers **2 cards, Minor tier only**, drawn uniformly across all 5 families (no family weighting yet — the player has no build to weight toward).
+- Grants **+5 SIG** and fills the run's **bonus mutation slot** (shared with the LACE event-room mutation — whichever comes first; see §4.2, §7.3).
+- **No reroll** at the Proto-Strand (keeps the moment fast and the ad surface clean this early).
+- Purpose: the player makes their first identity choice within the first ~10 minutes of every run.
 
 ### 5.5 Dominant Traits
 
@@ -531,10 +545,11 @@ Base crit chance: 5%. Multiplier: 1.5×. Increased by AGI, Voidborn mutations, c
 
 When HP reaches 0, the run ends. There is **no automatic revive**.
 
-- **First revive per run:** Free via rewarded ad **OR** 75 Shard Crystals.
+- **First revive per run:** Free via rewarded ad **only** (DR-010 — the 75-Shard-Crystal alternative is removed; money never buys survival).
 - **Second revive:** **NOT AVAILABLE.** Cap is 1 per run.
 - Revive restores player to **50% HP** in the room where they died. Enemies in the room are reset to full HP.
 - Revive is offered **AFTER** the "What You Became" share screen to protect the emotional moment (UFD S031 → S033).
+- If the ad fails to load/fill (offline, no inventory), the revive is unavailable — graceful degradation per E030/E031, no goodwill grant.
 
 `death_cause` enum (locked, for analytics): `enemy_kill`, `boss_kill`, `hazard`, `status_tick`, `surrender`, `mutation_backfire`.
 
@@ -580,17 +595,27 @@ Minimap shows room outlines but not room type until visited. Safe-room locations
 
 **LACE Event Room (5% weight):** LACE presents a narrative choice with mechanical consequences. Examples:
 - *"A previous Sigma-carrier left something here. Take it?"* — YES: gain a random item, 30% chance cursed. NO: +5 SIG, LACE approves.
-- *"The VEIN is offering you an early adaptation."* — YES: gain a random Minor mutation immediately (counts toward 4-mutation cap, grants **+5 SIG only**). NO: +20 VEIN Crystals, LACE neutral.
+- *"The VEIN is offering you an early adaptation."* — YES: gain a random Minor mutation immediately (fills the **bonus mutation slot**, grants **+5 SIG only**). NO: +20 VEIN Crystals, LACE neutral. **If the bonus slot is already occupied (Proto-Strand taken — the common case), this option is replaced by +40 VEIN Crystals (DR-009b).**
 - *"Something is following you. Engage it?"* — YES: bonus elite combat encounter, rare loot on win. NO: lose 10 HP, LACE says nothing.
 
-### 7.4 Boss Rooms
+### 7.4 Boss Rooms (revised per DR-008 — two-tier boss system)
 
-- 10×10 grid
+**Floor Boss rooms (floors 1–4, 6–9, 11–14, 16–19):**
+
+- Standard combat-room size band (10–14 per side, §6.1)
 - Locked door (one-way — cannot return to previous rooms)
-- LACE pre-boss narration (3–4 lines)
-- Boss has unique visual + 2–3 phase patterns
-- On defeat: Boss Loot Chest (guaranteed), Codex Fragment (50% chance)
-- Strand Event triggers after Floor 5, 10, 15 boss defeats only
+- LACE templated one-line intro (fragment-assembled, not hand-written)
+- Floor Boss is template-composed (§8.4a): zone archetype + scaled stats + 2-phase generic pattern
+- On defeat: Boss Loot (1 guaranteed item, Uncommon+), Codex Fragment (25% chance)
+
+**Zone Warden rooms (floors 5, 10, 15, 20):**
+
+- **14×14 grid** — the largest arena (aligned with §6.1; the prior 10×10 figure in this section is superseded)
+- Locked door (one-way)
+- LACE pre-fight narration (3–4 hand-written lines)
+- Warden has unique visual + 3 phase patterns and bespoke AI
+- On defeat: Warden Loot Chest (guaranteed 2 items, 1 Rare+), Codex Fragment (50% chance)
+- Strand Event triggers after the Floor 5, 10, 15 Warden defeats only; Floor 20 Warden leads to the Convergence
 
 ### 7.5 Floor Difficulty Scaling
 
@@ -624,10 +649,13 @@ Item tier scales with floor:
 | Common   | Floor 1+    | Basic (move → attack)                    |
 | Uncommon | Floor 4+    | 2-action (move + special cycle)          |
 | Elite    | Floor 8+    | 3-phase, can buff/debuff                 |
-| Boss     | 1 per floor | Unique AI, phase transitions at 66% / 33% HP |
+| Floor Boss | 1 per non-Warden floor (16 total) | Template-composed (§8.4a): zone archetype + scaled stats, 2-phase pattern at 50% HP |
+| Zone Warden | Floors 5 / 10 / 15 / 20 (4 total) | Bespoke unique AI, phase transitions at 66% / 33% HP |
 | Apex     | Floors 16–20 | Multi-phase, environmental use          |
 
 ### 8.3 Enemy Catalogue (Overview — full stats in Appendix B)
+
+> The named "Boss" in each zone list below is that zone's **Zone Warden** (DR-008). The 16 Floor Bosses are template-composed (§8.4a) and are not individually catalogued — their recipes live in `packages/content/floors/` boss descriptors.
 
 **Zone 1 — The Shallows:**
 
@@ -661,14 +689,29 @@ Item tier scales with floor:
 - Thermal Colossus (Square, Red) — Burns all tiles it moves through
 - **Boss — The Awakened Lattice** — Final boss; all damage types, all phases
 
-### 8.4 Boss Design Principles
+### 8.4 Zone Warden Design Principles (revised per DR-008)
 
-- Pre-fight LACE narration (3–4 lines of context)
+- Pre-fight LACE narration (3–4 lines of context, hand-written)
 - Phase 1 (100–67% HP): establishes core mechanic
 - Phase 2 (66–34% HP): adds complication (new ability or hazard)
 - Phase 3 (33–1% HP): becomes dangerous (faster, more abilities)
 - Unique visual reaction to the player's dominant mutation family (e.g., Leviathan Warden deals less damage to Abyssal players)
 - Death line from LACE, context-specific to the player's build
+
+### 8.4a Floor Boss Template System (DR-008)
+
+Floor Bosses are **data, not bespoke design** (per TDD P7). Each is a JSON descriptor composing:
+
+- **Base archetype:** one enemy type from the zone palette (visual = enlarged shape, 4px border, zone accent glow)
+- **Stat scale:** archetype stats × a floor-boss multiplier (provisional ×3 HP, ×1.5 damage; tuned via the balance harness)
+- **Ability loadout:** 1–2 abilities drawn from the zone's existing ability pool
+- **Phase pattern:** generic 2-phase template — at 50% HP, gain +1 ability use per turn OR spawn 1 zone hazard pattern (descriptor chooses which)
+- **Zone gimmick arrangement:** each zone defines one signature hazard-tile arrangement for its Floor Boss rooms (e.g., Mycosphere boss rooms always flank the arena with spore tiles), so rooms feel authored without per-boss work
+- **LACE treatment:** templated one-line intro and defeat fragments; no hand-written narration
+
+Authoring budget: ~1 hour per Floor Boss descriptor. No new AI code per boss — the template's behaviors are implemented once in the turn engine.
+
+> **Code reality note (2026-06-09):** all 16 Floor Bosses (and the 4 Wardens) are *already authored* as individual enemy JSONs in `packages/content/enemies/` with per-floor `bossId`s — DR-008 therefore **reclassifies** existing content (tier split `floor_boss` / `zone_warden`, loot + VEIN + LACE treatment per tier) rather than commissioning new bosses. The template rules above govern future boss authoring and the treatment differences between the two tiers.
 
 ---
 
@@ -727,7 +770,8 @@ Examples: Hungry Blade (+50% melee, -3 HP per attack); Void Eye (see HP, +20% vo
 - Common enemies: 50% chance, 1 item (Common)
 - Uncommon enemies: 75% chance, 1 item (Common/Uncommon)
 - Elite enemies: 100% chance, 1 item (Uncommon/Rare)
-- Boss: Guaranteed 2 items (1 Rare+, 1 random)
+- Floor Boss: Guaranteed 1 item (Uncommon+) — per DR-008
+- Zone Warden: Guaranteed 2 items (1 Rare+, 1 random) — per DR-008
 - Loot room: 1 guaranteed item (floor-appropriate tier)
 - Merchant: 4–6 items for purchase; refresh once per floor; 1 rewarded-ad refresh per merchant
 
@@ -792,7 +836,8 @@ Target dialogue lines for Path A launch:
 | Mutation-choice reaction    | 120 (40 × 3 moods)  |
 | Safe-room reflections       | 80 (20 floors × 4 states) |
 | Death narrations            | 100 (20 floors × 5 causes) |
-| Boss pre/post fight         | 48 (8 bosses × 6)   |
+| Zone Warden pre/post fight  | 24 (4 Wardens × 6, hand-written) |
+| Floor Boss templated fragments | ~24 (intro + defeat fragments per zone, grammar-assembled) |
 | Achievement lines           | 100 (50 × 2)        |
 | Critical-hit pool           | 40 (20 + 20)        |
 | Hub idle quips              | 50                  |
@@ -1181,6 +1226,7 @@ Strand Descent is **free to play.** Revenue comes from three sources:
 | Sigma Archive Pack    | $1.99 one-time  | 3 cosmetic Origin skins                                  |
 | LACE Tone Pack        | $2.99 one-time  | 2 LACE voice/text tone variants                          |
 | Organism Frame Pack   | $0.99 one-time  | 5 "What You Became" share screen frames                  |
+| **"First Descent" Supporter Pack** (DR-011) | $9.99 one-time | Exclusive supporter share frame + exclusive run-end title card + a LACE thank-you Codex entry. Purely cosmetic/lore; locks to "owned" (UFD S123). Goodwill SKU — marketed honestly as "support the developer." |
 
 Ancestor Echo IAP is **removed** (carry-over mutation is now the Convergence Echo Sigma Strain at 200 runs).
 
@@ -1189,8 +1235,7 @@ Ancestor Echo IAP is **removed** (carry-over mutation is now the Convergence Ech
 **VEIN Crystals (soft):** Earned in-run from enemies and loot rooms. Spent at the Dispenser for items. **Cannot be purchased.** Resets on death.
 
 **Shard Crystals (hard):** Earned slowly from achievements and daily runs. Can be purchased ($0.99 = 100 Shards). Spent on:
-- **Revive (75 Shards)** — first revive only per run; alternative to rewarded ad
-- Cosmetic packs
+- Cosmetic packs **only** (DR-010 — the 75-Shard revive is removed; revive is rewarded-ad only, see §6.7). Shard Crystals never touch gameplay.
 
 **Adaptation Tokens** (NEW POLICY):
 
@@ -1218,6 +1263,8 @@ Four scenarios. Lead segment narrowed (per One-Pager v1.1) means LTV is higher p
 ---
 
 ## Section 16 — Replayability Systems
+
+> **Build order (DR-011):** §16.2 Prestige Mode, §16.3 Weekly Challenge Runs, and §16.4 Daily Sigma Signal are **deferred to post-Gate-2 (Months 11+)**. They remain designed here and kill-switched OFF by default (TDD §11.6); no engineering or content work is scheduled on them before closed alpha exits. Leaderboards (which Weekly Challenges depend on) carry the replay-validation anti-cheat work and are built in the same window. Pre-Gate-2 effort concentrates on the core loop, LACE, and the share pipeline (pulled into prototype scope per DR-011).
 
 ### 16.1 Run Differentiation Layers
 
@@ -1366,14 +1413,19 @@ Firebase event taxonomy is locked. Minimum events to ship by Gate 1 (Month 5):
 - `room_entered` `{room_type, floor_n}`
 - `combat_started` `{floor_n, enemy_count, enemy_types}`
 - `combat_ended` `{result, hp_remaining, ap_spent}`
-- `boss_engaged` `{boss_id, floor_n, build}`
-- `boss_defeated` `{boss_id, time_taken, hp_remaining}`
+- `boss_engaged` `{boss_id, boss_tier: floor_boss | zone_warden, floor_n, build}`
+- `boss_defeated` `{boss_id, boss_tier, time_taken, hp_remaining}`
 - `floor_completed` `{floor_n, rooms_cleared, time_taken}`
 - `run_ended` `{result, floor_reached, duration, build_final}`
 
 **Strand events:**
 
 - `strand_event_shown` `{floor_n, cards_offered[3], is_tutorial}`
+- `proto_strand_shown` `{cards_offered[2]}` (DR-009b)
+- `proto_strand_selected` `{mutation_id, family}` (DR-009b)
+- `descent_checkpoint_offered` `{floor_n}` (DR-009)
+- `descent_checkpoint_rested` `{floor_n, session_duration}` (DR-009)
+- `descent_resumed` `{act_n, hours_since_suspend}` (DR-009)
 - `mutation_selected` `{mutation_id, family, was_reroll}`
 - `mutation_rerolled` `{via_ad / via_token, original, new}`
 - `dominant_trait_unlocked` `{trait_id}`
@@ -1557,7 +1609,8 @@ Passive: [description]
 Active:  [name] — [description]
          Cost: [X] AP   Cooldown: [X] turns
          Damage/Effect: [value]
-SIG:     +[10/15/20]
+SIG:     +10  (flat per DR-007 — all Strand mutations grant +10 regardless of tier,
+              preserving the §4.2 cap-40 math: 3 × 10 + 5 LACE-event = 35 ≤ 40)
 LACE:    "[quote]"
 ```
 
@@ -1621,3 +1674,8 @@ Lives in the separate `Strand Descent — Economy.xlsx` file. Tabs:
 **Revision history:**
 
 - **v1.0 (consolidated) — 2026-05-27** — Merged GDD v1.0 base content, v1.1 Addendum patches (01–13), and Decision Records DR-001 through DR-006. Resolves all v1.0 internal conflicts (Patch 11). Engine locked to Phaser; device floor to iPhone X / iOS 15+ / Android 10+; scope to Path A; LACE plan to templated-default; Pass mechanics per DR-006. Supersedes all prior versions and the standalone Addendum and Decision Records documents.
+- **DR-007 — 2026-06-09** — Meta-progression model locked to the draft-only design already described in §4/§5/§11: SIG is in-run only (cap 40, resets on death), granted solely by acquired mutations (+10 flat per Strand mutation, +5 LACE event-room mutation). Supersedes the Economy workbook's SIG-as-currency / mutation-cost model and the TDD's stale `sigCost` field name (the shipped code and content already use `sigBonus`; docs aligned to it). Appendix A SIG format corrected from +[10/15/20] to +10 flat to preserve §4.2 cap math.
+- **DR-008 — 2026-06-09** — Boss cadence locked: **boss-per-floor via a two-tier system.** 16 template-composed **Floor Bosses** (§8.4a, data-driven, ~1h authoring each, templated LACE lines, 1 Uncommon+ loot) + 4 hand-authored **Zone Wardens** at floors 5/10/15/20 (bespoke AI, 14×14 arena, hand-written LACE narration, 2-item Rare+ loot). Strand Events remain attached to Warden defeats. Supersedes the ambiguous single "Boss" tier, the 10×10 boss-room figure in §7.4, and the "8 bosses" LACE line budget. Floor Boss VEIN drop tier added to economy (provisional 45 VEIN) — Currencies totals stale pending workbook v1.2.
+- **DR-009 / DR-009b — 2026-06-09** — Run structure locked: **act-based descent.** Each Zone is a ~25-minute session-complete act; after each Strand Event the player chooses Descend or Rest (descent checkpoint — pause point, never retry point; one suspended run, never expires; Hub gains a "Continue Descent" card; LACE recap line on every resume). §1.7 Pillar 2 and §1.9 corrected — the prior "full run = 20–45 minutes" claim contradicted the locked 5.0 min/floor economy (full descent ≈ 100 min). **Proto-Strand** added (§5.4 Rule 6): Floor 2, 2 Minor cards, +5 SIG, fills the bonus mutation slot shared with the LACE event-room mutation; first build choice now lands inside ~10 minutes of every run.
+- **DR-010 — 2026-06-09** — Monetization integrity batch: Deep Signal Pass locked at $4.99/mo / $39.99/yr (workbook's $9.99 model superseded); the $0.99 VEIN pack SKU deleted (VEIN Crystals never purchasable — §15.5 pledge holds); revive is rewarded-ad only (§6.7 — 75-Shard path removed; Shard Crystals are a cosmetics-only currency; offer hidden when no ad available per E030/E031).
+- **DR-011 — 2026-06-09** — Scope discipline batch: (1) Weekly Challenges, Leaderboards, Daily Sigma Signal, and Prestige/Evolved modes deferred to post-Gate-2 (§16 build-order note); (2) the share pipeline ("What You Became" screen, organism portrait generation, name generator, share adapter) pulled forward into **prototype/Gate-1 scope** — unprompted sharing is a Gate-2 criterion and 60% of installs are bet on the loop; (3) UFD S123 Supporter Pack defined and added to §15.4: "First Descent" Supporter Pack, $9.99 one-time, purely cosmetic/lore.

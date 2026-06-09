@@ -59,3 +59,22 @@ flowchart TD
 | S069 | LACE reaction                | Mood-aware comment; LACE mood may shift here                                                                                                                           |
 | S070 | Dominant Trait reveal        | Big celebration; **first time grants achievement**                                                                                                                     |
 | S071 | VEIN Intermission (NEW)      | Replaces Strand Event when player has **4 mutations (max)**. Grants 100 VC + LACE saturation line.                                                                     |
+
+---
+
+## AMENDMENT — DR-009 / DR-009b (2026-06-09)
+
+**New screen S072 — Descent Checkpoint (after S069/S070, before EXIT):**
+
+| ID | Screen | Notes |
+| --- | --- | --- |
+| S072 | Descent Checkpoint | Two options: **"DESCEND"** (continue to S029) / **"REST"** (suspend run at checkpoint, return to Hub S017). LACE rest line (e.g. *"Rest. The VEIN is patient. Your new strand will settle."*). No timer. Not shown after the Floor 20 Warden (Convergence follows directly). Also follows S071 (VEIN Intermission). |
+
+**Flow delta:** `S069 --> CHK_DOM`; `CHK_DOM -->|No| S072`; `S070 --> S072`; `S071 --> S072`; `S072 -->|Descend| EXIT[S029]`; `S072 -->|Rest| HUB[S017, run suspended]`.
+
+**Proto-Strand (Floor 2) — reuses this scope as a reduced variant:**
+
+- Trigger: Floor 2 boss-room clear. Flow: S060 (proto intro line) → S061 → S062 → S064 → S068 → S069 → exit to S023. 
+- **2 cards, Minor tier only**, uniform family draw, **no S065 reroll branch**, no S072 checkpoint.
+- Grants +5 SIG; fills the bonus mutation slot (shared with the LACE event-room mutation, GDD §4.2/§7.3).
+- `strand_event_shown.is_proto: true` variant or dedicated `proto_strand_shown` event (taxonomy locked in GDD §19).

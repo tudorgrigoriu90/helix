@@ -469,7 +469,7 @@ Every mutation is a JSON file under `packages/content/mutations/`:
   "id": "abyssal_pressure_skin",
   "family": "abyssal",
   "tier": "minor",
-  "sigCost": 10,
+  "sigBonus": 10,
   "name": {
     "en": "Pressure Skin",
     "fr": "Peau de Pression"
@@ -485,13 +485,22 @@ Every mutation is a JSON file under `packages/content/mutations/`:
 }
 ```
 
+> **DR-007 (2026-06-09):** the canonical field is **`sigBonus`** — the shipped
+> code (`core/mutation/sig.ts`, `shared-types/mutation.ts`) and all content JSONs
+> already use it; the `sigCost` name that previously appeared in this section was
+> a doc-only artifact and is retired. SIG is never a cost — mutations *grant* SIG
+> (+10 per Strand Event mutation, +5 for the bonus-slot mutation). SIG lives at
+> **run scope only**, caps at 40 (`SIG_CAP`), and resets on death. There is no
+> persistent mutation unlock/upgrade system. `validate-content.ts` should reject
+> any `sigCost`/`sigGrant` alias.
+
 ### 8.2 Mutation Engine
 
 The MutationEngine:
 
 - Loads all mutation JSONs at startup, validates against schema
 - On Strand Event: queries 3 candidates (1 dominant family, 1 adjacent, 1 wild) using deterministic `rng.mutationdraw`
-- On selection: applies modifiers to player stats, registers passives in the turn engine, raises SIG by mutation cost
+- On selection: applies modifiers to player stats, registers passives in the turn engine, raises in-run SIG by the mutation's `sigBonus` (cap 40 — DR-007; see `core/mutation/sig.ts`)
 - On unlock of Dominant Trait (3+ same family): applies trait effect
 - On VEIN Intermission trigger (4 mutations already): grants +100 VC instead, fires `vein_intermission_shown` analytics event
 
@@ -1247,6 +1256,11 @@ All prior open questions are resolved. Recorded here for traceability.
 | DR-005 | 500-DAU pre-commit             | Continue per plan; ship Season 1; reduced cadence                              |
 | DR-006a | Pass Origin skins             | Apply only to Origins unlocked through play; "preview" state for locked        |
 | DR-006b | Pass codex completion         | Separate "Pass Archive" section; base codex 100% achievable without Pass       |
+| DR-007 | Meta-progression model (2026-06-09) | **Draft-only locked.** Mutations are free in-run draft picks; SIG is in-run resonance (cap 40, resets on death), granted by mutations only — never dropped, never spent, never persistent. No mutation purchase/upgrade system exists in code (confirmed — `sigBonus` grant semantics already shipped); the workbook's Mutation Costs tab is retired in v1.2. Remaining code change: delete the never-consumed SIG bonus-drop from `drops.ts`. Permanent progression = Sigma Strains + cosmetics + Codex only. |
+| DR-008 | Boss cadence (2026-06-09) | **Two-tier boss-per-floor.** 16 data-driven Floor Bosses (JSON descriptor: zone archetype + stat scale + 2-phase template + zone gimmick tiles; behaviors implemented once in the turn engine) + 4 bespoke Zone Wardens at floors 5/10/15/20. All 20 floor `bossId`s and 20 boss enemy JSONs already exist in `packages/content/`; DR-008 *reclassifies* them — `EnemyTier` splits `boss` → `floor_boss` (16) / `zone_warden` (F5/F10/F15/F20) in `shared-types/enemy.ts`; `boss_engaged`/`boss_defeated` events carry `boss_tier`. `drops.ts` `VEIN_PER_KILL` splits the current flat `boss: 120` into `floor_boss: 45` / `zone_warden: 120` (code currently over-pays every floor boss at the Warden rate vs the workbook's zone-end-only model); harness and Currencies tab re-reconcile in workbook v1.2. |
+| DR-009 | Run structure + early hook (2026-06-09) | **Act-based descent + Proto-Strand.** RunState gains `checkpoint: {floor, act} \| null`, set on "Rest" at the post-Strand-Event choice (new screen S072); Hub renders a "Continue Descent" card when a checkpointed RunState exists. Checkpoints are pause-only — no retry semantics, no extra save slots (single RunState unchanged). LACE engine gains a `resume_recap` trigger context fired on any run resume. Proto-Strand: deterministic trigger after the Floor 2 boss room, 2 Minor cards via `rng.mutationdraw`, no reroll, fills the bonus mutation slot. New analytics: `proto_strand_*`, `descent_checkpoint_*`, `descent_resumed`. Engine cost ≈ one choice screen + Hub surface + one trigger context. |
+| DR-010 | Monetization integrity (2026-06-09) | Pass locked **$4.99/mo / $39.99/yr**; **VEIN pack SKU deleted** (VEIN never purchasable); **revive is rewarded-ad only** (Shard-revive branch removed from S033; offer hidden when ad unavailable per E030/E031; Shard Crystals are cosmetics-only). Code: store/IAP catalogue config, S033 flow, `shards.ts` sink audit. Workbook v1.2 re-runs Pass Sensitivity at $4.99 with a cosmetic-attach model. |
+| DR-011 | Build order / scope discipline (2026-06-09) | **Deferred to post-Gate-2:** `dailySignal.ts`, `weeklyChallenge.ts` Cloud Functions, leaderboards (incl. replay-validation anti-cheat submission path), Prestige/Evolved modes — all remain kill-switched OFF (§11.6). **Pulled into prototype scope:** share pipeline — `build-share-image.ts`, organism name generator (`packages/content/organism-names/`), ShareScene, share adapter; Gate 1 testers must be able to share their organism. Supporter Pack added to IAP catalogue ($9.99 one-time, cosmetic). |
 
 ---
 
@@ -1281,7 +1295,7 @@ After TDD acceptance:
 - [ ] Combat resolution end-to-end
 - [ ] Save/resume working (atomic write + schemaVersion + 3-generation backup)
 
-**Month 2–5: Prototype Floor 1 vertical slice toward Gate 1.**
+**Month 2–5: Prototype Floor 1 vertical slice toward Gate 1 — including the share pipeline (DR-011): "What You Became" screen, organism portrait generation, name generator, share adapter. Gate 1 testers must be able to share.**
 
 ---
 

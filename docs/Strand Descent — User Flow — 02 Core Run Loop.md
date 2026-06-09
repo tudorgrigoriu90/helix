@@ -70,4 +70,30 @@ flowchart TD
 | S030  | Death sequence              | 3-sec death animation. `death_cause` enum (**locked**): `enemy_kill`, `boss_kill`, `hazard`, `status_tick`, `surrender`, `mutation_backfire`                        |
 | S031  | Run summary "What You Became" | Portrait + name + share CTA                                                                                                                                       |
 | S032  | Meta rewards                | SC granted, achievements popped                                                                                                                                     |
-| S033  | Revive offer                | Watch ad or 75 SC; shown **AFTER share** to protect emotional moment                                                                                                |
+| S033  | Revive offer                | **Rewarded ad only (DR-010** — 75 SC path removed); shown **AFTER share** to protect emotional moment; if ad unavailable, offer is hidden (E030/E031)                |
+
+---
+
+## AMENDMENT — DR-009 / DR-009b (2026-06-09)
+
+**Act-based descent + Proto-Strand. Changes to this scope:**
+
+| ID | Screen | Change |
+| --- | --- | --- |
+| S017 | Hub Scene | Gains a **"Continue Descent" card** when a checkpointed run exists: organism-so-far render, mutation icons, "Act N — [Zone name]". Tapping resumes via S022 at the next floor entrance. Replaces the generic CONTINUE button for checkpointed runs; mid-floor suspended runs keep the existing S100 resume modal. |
+| S023 | FloorScene | Floor 2 boss-room clear triggers the **Proto-Strand** (see Scope 4 amendment) before S029. |
+| S029 | Floor descent | Reached only via "Descend" at S072 (Scope 4); narration unchanged. |
+| NEW — resume recap | (no screen) | On ANY run resume (checkpoint or mid-floor), LACE delivers a one-line situational recap before input is accepted. |
+
+**Flow delta:** `Strand Descent[Scope 4] --> S072{Descend / Rest} -->|Descend| S029` and `S072 -->|Rest| HUB (run suspended at checkpoint)`.
+
+**Rules:** checkpoint = pause point, never retry point; death ends the run from anywhere; one suspended run at a time; suspended runs never expire.
+
+**New analytics:** `descent_checkpoint_offered`, `descent_checkpoint_rested`, `descent_resumed {act_n, hours_since_suspend}`, `proto_strand_shown`, `proto_strand_selected`.
+
+---
+
+## AMENDMENT — DR-011 (2026-06-09)
+
+- **S019 Daily Sigma intro / S020 Weekly Challenge intro:** features deferred to post-Gate-2 (DR-011). Hub entry points hidden until the corresponding Remote Config flags (`feature.daily_signal`, `feature.weekly_challenge`) are ON; screens remain specified here for that phase.
+- **S031 "What You Became":** pulled into prototype/Gate-1 scope including portrait generation and share CTA (DR-011).
