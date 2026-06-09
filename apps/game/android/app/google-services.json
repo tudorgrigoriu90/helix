@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "702398841150",
+    "project_id": "strand-descent",
+    "storage_bucket": "strand-descent.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702398841150:android:d8d953e79a9383ac482c6f",
+        "android_client_info": {
+          "package_name": "software.empathy.strand"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQM_5DkwrE0Is6q_wGdYF2hPIGWhRszFM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
