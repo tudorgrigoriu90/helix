@@ -81,50 +81,58 @@ export class ColdSplashScene extends Phaser.Scene {
   }
 
   /**
-   * Draws a staircase double-helix into a Graphics object centred at (cx, top)
-   * and returns it at alpha=0 ready to be tweened in.
+   * Draws a staircase double-helix centred at (cx, top), returned at alpha=0.
    *
-   * Each strand descends as a right-angle staircase (horizontal tread → vertical
-   * riser) rather than a smooth sine curve. The two strands are interlocked
-   * mirrors — strand 1 starts top-right, strand 2 starts top-left — so their
-   * risers always fall on opposite sides of each landing. The shared full-width
-   * treads double as DNA rungs. The overall silhouette reads as a descending
-   * double helix rendered in Manhattan geometry, evoking the VEIN's floor
-   * structure: each landing = one floor of descent.
+   * The overall shape is the same sinusoidal double helix as before — two
+   * strands offset by half a cycle, connected by rungs at each crossover —
+   * but every strand segment is rendered as a right-angle stair step (horizontal
+   * tread → vertical riser) instead of a smooth diagonal. With 40 steps over
+   * two full sine cycles, each step is just a few pixels, so the strands read
+   * as descending staircases that together form the DNA ladder silhouette.
    */
   private buildHelix(cx: number, top: number, height: number): Phaser.GameObjects.Graphics {
     const g = this.add.graphics().setAlpha(0);
-    const levels = 6; // 6 stair-landings over the logo height
+    const steps = 40;
     const amp = 27;
 
-    const yAt = (i: number): number => top + (i / levels) * height;
-    // Strand 1: right at even landings, left at odd
-    const x1At = (i: number): number => cx + (i % 2 === 0 ? amp : -amp);
-    // Strand 2: left at even landings, right at odd (interlocked mirror)
-    const x2At = (i: number): number => cx - (i % 2 === 0 ? amp : -amp);
+    for (let i = 1; i <= steps; i++) {
+      const frac = i / steps;
+      const fracPrev = (i - 1) / steps;
+      const angle = frac * Math.PI * 4; // two full cycles over the logo height
+      const anglePrev = fracPrev * Math.PI * 4;
 
-    // Strand 1 — teal staircase: full-width tread (= DNA rung) + riser per level
-    for (let i = 0; i < levels; i++) {
-      const ya = yAt(i);
-      const yb = yAt(i + 1);
-      g.lineStyle(2.5, 0xa0ffdc, 0.85);
-      g.lineBetween(cx - amp, ya, cx + amp, ya); // tread / rung
-      g.lineBetween(x1At(i + 1), ya, x1At(i + 1), yb); // riser
+      const y = top + frac * height;
+      const yPrev = top + fracPrev * height;
+
+      const x1 = cx + Math.sin(angle) * amp;
+      const x2 = cx - Math.sin(angle) * amp;
+      const x1p = cx + Math.sin(anglePrev) * amp;
+      const x2p = cx - Math.sin(anglePrev) * amp;
+
+      // Strand 1 — teal: horizontal tread then vertical riser (staircase step)
+      g.lineStyle(2, 0xa0ffdc, 0.85);
+      g.lineBetween(x1p, yPrev, x1, yPrev); // tread
+      g.lineBetween(x1, yPrev, x1, y);       // riser
+
+      // Strand 2 — blue: same staircase pattern, mirrored side
+      g.lineStyle(2, 0x3a6080, 0.65);
+      g.lineBetween(x2p, yPrev, x2, yPrev); // tread
+      g.lineBetween(x2, yPrev, x2, y);       // riser
+
+      // Rung at crossover (sin ≈ 0 → strands nearest the centre axis)
+      if (Math.abs(Math.sin(angle)) < 0.22) {
+        g.lineStyle(1, 0x2a4060, 0.45).lineBetween(x1, y, x2, y);
+      }
     }
-    // Closing bottom tread for strand 1
-    g.lineStyle(2.5, 0xa0ffdc, 0.85).lineBetween(cx - amp, yAt(levels), cx + amp, yAt(levels));
 
-    // Strand 2 — blue risers only (treads already drawn as strand-1 rungs above)
-    for (let i = 0; i < levels; i++) {
-      g.lineStyle(2.5, 0x3a6080, 0.65)
-        .lineBetween(x2At(i + 1), yAt(i), x2At(i + 1), yAt(i + 1));
-    }
-
-    // Terminal cap dots at the four rung-end corners
-    g.fillStyle(0xa0ffdc, 0.75).fillCircle(cx + amp, yAt(0), 3.5); // top-right
-    g.fillStyle(0x3a6080, 0.55).fillCircle(cx - amp, yAt(0), 3.5); // top-left
-    g.fillStyle(0xa0ffdc, 0.75).fillCircle(cx + amp, yAt(levels), 3.5); // bottom-right
-    g.fillStyle(0x3a6080, 0.55).fillCircle(cx - amp, yAt(levels), 3.5); // bottom-left
+    // Terminal dots
+    g.fillStyle(0xa0ffdc, 0.75).fillCircle(cx + Math.sin(0) * amp, top, 3.5);
+    g.fillStyle(0x3a6080, 0.55).fillCircle(cx - Math.sin(0) * amp, top, 3.5);
+    g.fillStyle(0xa0ffdc, 0.75).fillCircle(
+      cx + Math.sin(Math.PI * 4) * amp,
+      top + height,
+      3.5,
+    );
 
     return g;
   }
