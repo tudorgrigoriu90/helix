@@ -149,6 +149,18 @@ export interface EventSchema {
   readonly revive_accepted: {
     readonly method: 'ad';
   };
+
+  // ── Share funnel (T-331, GDD §19 — the UA engine's primary KPI) ───────────
+  /** SHARE tapped on the run summary (S140). */
+  readonly organism_share_tapped: {
+    readonly organismName: string;
+    readonly floorReached: number;
+  };
+  /** The OS share sheet completed (S149). */
+  readonly organism_share_completed: {
+    readonly format: 'vertical' | 'square';
+    readonly outcome: 'shared' | 'dismissed' | 'unavailable';
+  };
 }
 
 // ── T-248: AnalyticsAdapter interface ────────────────────────────────────────

@@ -5,6 +5,7 @@ import type { DeathCause } from '@shared-types/run-state';
 import { newMetaState } from '../core/save';
 import { adService } from '../platform/ads-bootstrap';
 import { classifyRewardOutcome } from '../core/ads';
+import { logEvent } from '../core/platform/analytics-adapter';
 
 /**
  * S031 "What You Became" + S032 Meta rewards — T-196 / T-197.
@@ -261,19 +262,27 @@ export class PostRunScene extends Phaser.Scene {
   // ── Buttons ──────────────────────────────────────────────────────────────
 
   private buildButtons(): void {
-    // SHARE stub (Scope 8 — ships with share flow).
+    // SHARE — opens the S143/S144 share flow (T-331).
     const btY = H - 124;
     const halfW = 150;
     const shareX = CX - halfW - 8;
     const sg = this.add.graphics();
     sg.fillStyle(C.surface).fillRoundedRect(shareX, btY, halfW, 50, 10);
-    sg.lineStyle(1, C.border).strokeRoundedRect(shareX, btY, halfW, 50, 10);
+    sg.lineStyle(1.5, C.accentN, 0.6).strokeRoundedRect(shareX, btY, halfW, 50, 10);
     this.add.text(shareX + halfW / 2, btY + 18, 'SHARE', {
-      fontFamily: 'monospace', fontSize: '14px', color: C.dim,
+      fontFamily: 'monospace', fontSize: '14px', color: C.accent,
     }).setOrigin(0.5, 0);
-    this.add.text(shareX + halfW / 2, btY + 36, 'soon', {
+    this.add.text(shareX + halfW / 2, btY + 36, 'what you became', {
       fontFamily: 'monospace', fontSize: '8px', color: C.dim,
     }).setOrigin(0.5, 0);
+    const shareZone = this.add.zone(shareX, btY, halfW, 50).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    shareZone.on('pointerdown', () => {
+      logEvent('organism_share_tapped', {
+        organismName: this.summary.organismName,
+        floorReached: this.summary.floorReached,
+      });
+      this.scene.start('ShareScene', { summary: this.summary });
+    });
 
     // Primary CTA — "CONTINUE" opens the S033 revive offer; "RETURN" goes straight
     // to hub. DR-010: the revive is rewarded-ad only, and the offer is *hidden*
