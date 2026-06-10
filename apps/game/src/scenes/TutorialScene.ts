@@ -71,13 +71,13 @@ const PENDING_ROOMS = new Set<string>();
 /** Scripted LACE guidance shown on entering each room (the tutorial's voice). */
 const GUIDANCE: Record<string, string> = {
   [FLOOR_ZERO_ROOM_IDS.entry]:
-    'LACE: You are inside the VEIN now. Nothing here will hurt you yet.\nTap the lit chamber ahead to move.',
+    'LACE: You are inside the VEIN now. Nothing here will hurt you yet.\n[tap the lit chamber ahead to move]',
   [FLOOR_ZERO_ROOM_IDS.combat]:
     'LACE: Something is alive in here. You will have to deal with it.\n[first combat — T-139]',
   [FLOOR_ZERO_ROOM_IDS.strand]:
-    'LACE: The VEIN is offering to change you. This is a Strand Event — pick one.',
+    'LACE: The VEIN is offering to change you. This is a Strand Event — one strand stays, one goes.',
   [FLOOR_ZERO_ROOM_IDS.boss]:
-    'LACE: This one has a name. Names mean trouble.\nLow on health? Tap an item to use it, then finish this.',
+    'LACE: This one has a name. Names mean trouble.\n[low on health? tap an item to use it]',
 };
 
 export class TutorialScene extends Phaser.Scene {
@@ -250,7 +250,7 @@ export class TutorialScene extends Phaser.Scene {
     this.view = 'map';
     const status = this.session.snapshot.status;
     if (status === 'defeat') {
-      this.pushLog('You fell. The VEIN is patient — try again.');
+      this.pushLog('You fell. The VEIN is patient.');
       this.restart();
       return;
     }
@@ -331,7 +331,7 @@ export class TutorialScene extends Phaser.Scene {
     const current = this.session.snapshot.currentRoomId;
     const bossId = floor.bossRoomId;
 
-    this.guideText.setText(GUIDANCE[current] ?? 'LACE: Keep moving.');
+    this.guideText.setText(GUIDANCE[current] ?? 'LACE: The way forward is lit.');
 
     const bounds: Bounds = computeBounds(floor.rooms);
     const transform: LayoutTransform = computeLayout(
@@ -410,7 +410,7 @@ export class TutorialScene extends Phaser.Scene {
   private renderCombat(): void {
     const state = this.combat;
     if (state === null) return;
-    this.guideText.setText('LACE: Close the distance, then strike when you stand beside it.\nEND TURN when your AP is spent.');
+    this.guideText.setText('LACE: Distance decides everything here. Adjacency is an invitation.\n[move beside it to strike; END TURN when AP is spent]');
 
     const tile = this.combatTile(state);
     const gx = this.combatGridX(state);
@@ -475,7 +475,7 @@ export class TutorialScene extends Phaser.Scene {
   }
 
   private renderStrand(): void {
-    this.guideText.setText('LACE: Two paths. Both will keep you alive. Tap the one you want.');
+    this.guideText.setText('LACE: Two paths. Both will keep you alive. The body decides; the VEIN remembers.\n[tap a card to choose]');
     this.hudText.setText('STRAND EVENT — pick 1 of 2');
 
     const cardW = this.scale.width - 48;

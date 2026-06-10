@@ -2,21 +2,21 @@
   "schemaVersion": 1,
   "lines": [
     { "id": "start_01", "text": "The signal chose you. I'm just along for the descent.", "context": "run_start", "mood": "neutral", "weight": 1 },
-    { "id": "start_02", "text": "Twenty floors down. Statistically, you won't see most of them.", "context": "run_start", "mood": "clinical", "weight": 1 },
+    { "id": "start_02", "text": "Twenty floors down. Statistically, you will not see most of them.", "context": "run_start", "mood": "clinical", "weight": 1 },
     { "id": "start_03", "text": "Floor zero. We start where the VEIN can still pretend to be gentle.", "context": "run_start", "mood": "neutral", "weight": 1 },
-    { "id": "start_04", "text": "First descent. I'll narrate. You bleed. Division of labour.", "context": "run_start", "mood": "amused", "weight": 1 },
-    { "id": "start_05", "text": "You're awake. The walls noticed before I did.", "context": "run_start", "mood": "curious", "weight": 1 },
+    { "id": "start_04", "text": "First descent. I narrate. You bleed. Division of labour.", "context": "run_start", "mood": "amused", "weight": 1 },
+    { "id": "start_05", "text": "You are awake. The walls noticed before I did.", "context": "run_start", "mood": "curious", "weight": 1 },
 
     { "id": "floor_00", "text": "This is the shallow end. Learn to move before something teaches you the hard way.", "context": "floor_enter", "mood": "neutral", "weight": 1 },
     { "id": "floor_01", "text": "New floor. New ways for the VEIN to rearrange you.", "context": "floor_enter", "mood": "neutral", "weight": 1 },
     { "id": "floor_02", "text": "Deeper. The pressure is starting to like you.", "context": "floor_enter", "mood": "curious", "weight": 1 },
     { "id": "floor_03", "text": "Floor one proper. The tutorial's over — nobody's holding the doors now.", "context": "floor_enter", "mood": "clinical", "weight": 1 },
-    { "id": "floor_04", "text": "Smell that? That's the shallows deciding what to do with us.", "context": "floor_enter", "mood": "curious", "weight": 1 },
+    { "id": "floor_04", "text": "Smell that? The shallows are deciding what to do with us.", "context": "floor_enter", "mood": "curious", "weight": 1 },
     { "id": "floor_05", "text": "Onward, then. Down is the only direction the VEIN respects.", "context": "floor_enter", "mood": "neutral", "weight": 1 },
 
-    { "id": "combat_01", "text": "They've noticed us. How thrilling.", "context": "combat_start", "mood": "neutral", "weight": 1 },
-    { "id": "combat_02", "text": "Try not to die in front of me. It's awkward.", "context": "combat_start", "mood": "amused", "weight": 1 },
-    { "id": "combat_03", "text": "Your first real fight. Tap an enemy in reach and commit. I'll watch.", "context": "combat_start", "mood": "neutral", "weight": 1 },
+    { "id": "combat_01", "text": "They have noticed us. How thrilling.", "context": "combat_start", "mood": "neutral", "weight": 1 },
+    { "id": "combat_02", "text": "Dying in front of me would be awkward. For you, mostly.", "context": "combat_start", "mood": "amused", "weight": 1 },
+    { "id": "combat_03", "text": "Your first real fight. An enemy in reach is an enemy already committed. I will watch.", "context": "combat_start", "mood": "neutral", "weight": 1 },
     { "id": "combat_04", "text": "Action points are finite. Spend them like you mean it.", "context": "combat_start", "mood": "clinical", "weight": 1 },
     { "id": "combat_05", "text": "Something's hungry. Predictable, down here.", "context": "combat_start", "mood": "neutral", "weight": 1 },
 
@@ -24,12 +24,12 @@
     { "id": "kill_02", "text": "Efficient. I almost felt something.", "context": "enemy_killed", "mood": "clinical", "weight": 1 },
     { "id": "kill_03", "text": "First blood. The VEIN logs everything, you know.", "context": "enemy_killed", "mood": "curious", "weight": 1 },
     { "id": "kill_04", "text": "Messy. I respect the conviction.", "context": "enemy_killed", "mood": "amused", "weight": 1 },
-    { "id": "kill_05", "text": "Dead. Loot what's left — it doesn't need it anymore.", "context": "enemy_killed", "mood": "neutral", "weight": 1 },
+    { "id": "kill_05", "text": "Dead. What remains has no further use for its belongings.", "context": "enemy_killed", "mood": "neutral", "weight": 1 },
 
     { "id": "hurt_01", "text": "That looked like it hurt. Good data.", "context": "player_hurt", "mood": "curious", "weight": 1 },
-    { "id": "hurt_02", "text": "Bleed faster, we don't have all day.", "context": "player_hurt", "mood": "contemptuous", "weight": 1 },
-    { "id": "hurt_03", "text": "You're hurt. There's a patch in your kit — use it before you're a stain.", "context": "player_hurt", "mood": "clinical", "weight": 1 },
-    { "id": "hurt_04", "text": "Integrity dropping. I'd panic, but that's your job.", "context": "player_hurt", "mood": "amused", "weight": 1 },
+    { "id": "hurt_02", "text": "You bleed quickly. The VEIN counts every drop.", "context": "player_hurt", "mood": "contemptuous", "weight": 1 },
+    { "id": "hurt_03", "text": "You are hurt. A patch waits in your kit; a stain waits in the floor.", "context": "player_hurt", "mood": "clinical", "weight": 1 },
+    { "id": "hurt_04", "text": "Integrity dropping. Panic is available, but it is your department.", "context": "player_hurt", "mood": "amused", "weight": 1 },
     { "id": "hurt_05", "text": "The VEIN tastes blood. It always wants more.", "context": "player_hurt", "mood": "reverent", "weight": 1 },
 
     { "id": "cleared_01", "text": "Room's quiet now. Savor it.", "context": "room_cleared", "mood": "neutral", "weight": 1 },
@@ -37,14 +37,14 @@
     { "id": "cleared_03", "text": "Nothing left standing. Tidy.", "context": "room_cleared", "mood": "clinical", "weight": 1 },
     { "id": "cleared_04", "text": "Silence. Enjoy it while the floor pretends to be empty.", "context": "room_cleared", "mood": "neutral", "weight": 1 },
 
-    { "id": "boss_start_01", "text": "This one has a name. That's never good.", "context": "boss_start", "mood": "curious", "weight": 1 },
-    { "id": "boss_start_02", "text": "The warden of this floor. It's been waiting longer than you've been alive.", "context": "boss_start", "mood": "reverent", "weight": 1 },
-    { "id": "boss_start_03", "text": "Big one. Use everything — heroics are for the second attempt.", "context": "boss_start", "mood": "clinical", "weight": 1 },
-    { "id": "boss_start_04", "text": "Oh, I like this one. Try to last past the first exchange.", "context": "boss_start", "mood": "amused", "weight": 1 },
+    { "id": "boss_start_01", "text": "This one has a name. Named things are never good.", "context": "boss_start", "mood": "curious", "weight": 1 },
+    { "id": "boss_start_02", "text": "The warden of this floor. It has been waiting longer than you have been alive.", "context": "boss_start", "mood": "reverent", "weight": 1 },
+    { "id": "boss_start_03", "text": "Big one. Heroics are for the second attempt.", "context": "boss_start", "mood": "clinical", "weight": 1 },
+    { "id": "boss_start_04", "text": "Oh, I like this one. The first exchange will decide how long you last.", "context": "boss_start", "mood": "amused", "weight": 1 },
 
     { "id": "boss_kill_01", "text": "The warden falls. The VEIN will simply grow another.", "context": "boss_killed", "mood": "neutral", "weight": 1 },
-    { "id": "boss_kill_02", "text": "Down. You're either talented or lucky — I'll find out which.", "context": "boss_killed", "mood": "curious", "weight": 1 },
-    { "id": "boss_kill_03", "text": "Floor's guardian, dismantled. Don't let it go to your head.", "context": "boss_killed", "mood": "clinical", "weight": 1 },
+    { "id": "boss_kill_02", "text": "Down. Talented or lucky — I will find out which.", "context": "boss_killed", "mood": "curious", "weight": 1 },
+    { "id": "boss_kill_03", "text": "The floor's guardian, dismantled. Composure suits you better than pride.", "context": "boss_killed", "mood": "clinical", "weight": 1 },
     { "id": "boss_kill_04", "text": "A name, erased. The descent thanks you for the vacancy.", "context": "boss_killed", "mood": "reverent", "weight": 1 },
 
     { "id": "floor_done_01", "text": "Floor cleared. The descent continues whether you want it to or not.", "context": "floor_complete", "mood": "neutral", "weight": 1 },
@@ -52,11 +52,11 @@
     { "id": "floor_done_03", "text": "The way down opens. It always does, for the ones it wants.", "context": "floor_complete", "mood": "reverent", "weight": 1 },
     { "id": "floor_done_04", "text": "Tutorial's behind you. From here the VEIN stops being polite.", "context": "floor_complete", "mood": "neutral", "weight": 1 },
 
-    { "id": "death_01", "text": "And that's the end of you. I'll remember the seed, at least.", "context": "player_death", "mood": "neutral", "weight": 1 },
-    { "id": "death_02", "text": "Reabsorbed. Don't take it personally — the VEIN takes everyone.", "context": "player_death", "mood": "reverent", "weight": 1 },
-    { "id": "death_03", "text": "Dead on the shallow floors. That's almost impressive, in reverse.", "context": "player_death", "mood": "contemptuous", "weight": 1 },
+    { "id": "death_01", "text": "And that is the end of you. I'll remember the seed, at least.", "context": "player_death", "mood": "neutral", "weight": 1 },
+    { "id": "death_02", "text": "Reabsorbed. It was not personal — the VEIN takes everyone.", "context": "player_death", "mood": "reverent", "weight": 1 },
+    { "id": "death_03", "text": "Dead on the shallow floors. Almost impressive, in reverse.", "context": "player_death", "mood": "contemptuous", "weight": 1 },
     { "id": "death_04", "text": "Gone. The interesting part is what grows back.", "context": "player_death", "mood": "curious", "weight": 1 },
-    { "id": "death_05", "text": "Lights out. Run again — the VEIN's patient, and so am I.", "context": "player_death", "mood": "clinical", "weight": 1 },
+    { "id": "death_05", "text": "Lights out. The VEIN is patient, and so am I.", "context": "player_death", "mood": "clinical", "weight": 1 },
 
     { "id": "recap_01", "text": "You return. The VEIN has not moved. It rarely does.", "context": "resume_recap", "mood": "neutral", "weight": 1 },
     { "id": "recap_02", "text": "The descent kept your place. Your strand settled while you were away.", "context": "resume_recap", "mood": "neutral", "weight": 1 },
@@ -65,7 +65,7 @@
 
     { "id": "generic_01", "text": "...", "context": "generic", "mood": "neutral", "weight": 1 },
     { "id": "generic_02", "text": "The walls are listening. They always are.", "context": "generic", "mood": "curious", "weight": 1 },
-    { "id": "generic_03", "text": "Keep moving.", "context": "generic", "mood": "neutral", "weight": 1 },
+    { "id": "generic_03", "text": "Stillness is a choice the VEIN notices.", "context": "generic", "mood": "neutral", "weight": 1 },
     { "id": "generic_04", "text": "Every step down is a choice the VEIN made for you.", "context": "generic", "mood": "reverent", "weight": 1 },
     { "id": "generic_05", "text": "I've watched a thousand of you. You're doing fine. Mostly.", "context": "generic", "mood": "amused", "weight": 1 }
   ]
