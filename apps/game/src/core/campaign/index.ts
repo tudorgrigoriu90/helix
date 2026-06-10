@@ -36,3 +36,11 @@ export function zoneIndexForFloor(floor: number): number {
 export function zoneForFloor(floor: number): Zone {
   return ZONES[Math.min(zoneIndexForFloor(floor), ZONES.length) - 1]!;
 }
+
+/** Player-facing zone names (GDD §7.1) — keyed by biome id. */
+export const ZONE_DISPLAY_NAMES: Readonly<Record<Zone, string>> = {
+  shallows: 'The Shallows',
+  mycosphere: 'Mycosphere',
+  lithic: 'Lithic Deep',
+  convergence: 'Convergence',
+};

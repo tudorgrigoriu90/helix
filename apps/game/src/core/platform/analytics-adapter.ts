@@ -78,6 +78,47 @@ export interface EventSchema {
     readonly floorNumber: number;
     readonly vcGained: number;
   };
+  /** Floor 2 Proto-Strand offered (DR-009b, T-313). */
+  readonly proto_strand_shown: {
+    /** Comma-joined ids of the two cards offered. */
+    readonly cardsOffered: string;
+  };
+  /** Floor 2 Proto-Strand card taken (DR-009b, T-313). */
+  readonly proto_strand_selected: {
+    readonly mutationId: string;
+    readonly family: string;
+  };
+
+  // ── Descent checkpoints (DR-009, T-313) ───────────────────────────────────
+  /** S072 Descend/Rest choice surfaced after a Strand Event. */
+  readonly descent_checkpoint_offered: {
+    readonly floorNumber: number;
+  };
+  /** Player chose Rest — run suspended at the checkpoint. */
+  readonly descent_checkpoint_rested: {
+    readonly floorNumber: number;
+    readonly sessionDurationMs: number;
+  };
+  /** A checkpoint-suspended run resumed from the Hub card. */
+  readonly descent_resumed: {
+    readonly actN: number;
+    /** Hours between Rest and resume; -1 when the rest timestamp is unknown. */
+    readonly hoursSinceSuspend: number;
+  };
+
+  // ── Boss fights (DR-008, T-313) ───────────────────────────────────────────
+  /** A boss-room encounter begins. */
+  readonly boss_engaged: {
+    readonly bossId: string;
+    readonly bossTier: 'floor_boss' | 'zone_warden';
+    readonly floorNumber: number;
+  };
+  /** A boss falls. */
+  readonly boss_defeated: {
+    readonly bossId: string;
+    readonly bossTier: 'floor_boss' | 'zone_warden';
+    readonly floorNumber: number;
+  };
 
   // ── Room navigation ───────────────────────────────────────────────────────
   /** Player enters a room. */

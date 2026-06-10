@@ -30,6 +30,9 @@ export interface ResumeSummary {
 export type ResumeDecision =
   /** Show the S100 "Resume Run?" modal with this summary. */
   | { readonly kind: 'prompt'; readonly summary: ResumeSummary }
+  /** A run suspended at a descent checkpoint (DR-009): skip S100 and go to the
+   *  Hub, whose "Continue Descent" card owns the resume surface. */
+  | { readonly kind: 'checkpoint' }
   /** No resumable run — go to the normal first-launch / Hub flow. */
   | { readonly kind: 'fresh' };
 
@@ -42,6 +45,9 @@ export function decideResume(loaded: LoadResult<RunSessionSave> | null): ResumeD
 
   const save = loaded.value;
   if (TERMINAL_STATUSES.has(save.status)) return { kind: 'fresh' };
+
+  // DR-009: checkpoint-suspended runs resume from the Hub card, not S100.
+  if (save.checkpoint !== undefined) return { kind: 'checkpoint' };
 
   return {
     kind: 'prompt',

@@ -7,14 +7,17 @@ import { Mulberry32, makeRng } from '../rng/mulberry32';
 import { buildAdjacency, generateFloor } from '../floor-gen';
 import {
   drawMutationCards,
+  drawProtoStrandCards,
   rerollCard,
   applyMutation,
   resolveStrandEvent,
   gainMutationSig,
   unlockedDominantTraits,
+  PROTO_STRAND_FLOOR,
   type DrawnCard,
   type StrandOutcome,
 } from '../mutation';
+import { zoneIndexForFloor } from '../campaign';
 import { buildEncounterState, type EnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
 import {
@@ -62,6 +65,10 @@ export type RunStatus =
   | 'exploring'
   | 'in_combat'
   | 'strand_event'
+  /** Floor 2 Proto-Strand — the reduced early-build draw (DR-009b, T-311). */
+  | 'proto_strand'
+  /** S072 Descend/Rest choice after a Strand Event resolves (DR-009, T-310). */
+  | 'descent_checkpoint'
   | 'floor_complete'
   | 'victory'
   | 'defeat';
@@ -84,14 +91,18 @@ export interface RunSnapshot {
   readonly level: number;
   /** Unspent level-up stat points awaiting allocation (GDD §4.3). */
   readonly pendingStatPoints: number;
+  /** The act (1-based zone) the player is in — DR-009 act-based descent. */
+  readonly act: number;
 }
 
 /** Schema version for the persisted run-session shape.
  *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
  *  v4 added `veinEarned`; v5 added mid-combat persistence (`combat` +
- *  `combatRngState`); v6 added `pendingLoot` (uncollected drops). Older saves
- *  load fine — missing fields default to 0/none. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 6;
+ *  `combatRngState`); v6 added `pendingLoot` (uncollected drops); v7 added
+ *  `checkpoint` (DR-009 descent checkpoints) + `bonusMutationUsed`
+ *  (DR-009b shared bonus slot). Older saves load fine — missing fields
+ *  default to 0/none. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 7;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -118,6 +129,17 @@ export interface RunSessionSave {
   readonly veinEarned?: number;
   /** Uncollected drops awaiting pickup (added in save v6; absent → none). */
   readonly pendingLoot?: readonly ItemDef[];
+  /**
+   * Present when the run was suspended at a descent checkpoint (DR-009 S072
+   * "Rest", save v7): the session already sits at the next floor's entrance and
+   * the Hub shows the "Continue Descent — Act N" card instead of the generic
+   * resume modal. Never expires; cleared on resume.
+   */
+  readonly checkpoint?: { readonly act: number; readonly restedAtMs?: number };
+  /** True once the run's single bonus mutation slot is spent — by the Floor 2
+   *  Proto-Strand or a LACE event-room mutation, whichever came first
+   *  (DR-009b, save v7). */
+  readonly bonusMutationUsed?: boolean;
   /**
    * The live combat state, present only when `status === 'in_combat'` and the
    * scene has synced it via {@link RunSession.syncCombat} (save v5). Its presence
@@ -239,6 +261,19 @@ export class RunSession {
   // Drops rolled on kills / loot rooms awaiting pickup (T-445/T-446). Consumed by
   // the pickup flow (takeLoot); persisted so a reload doesn't lose them.
   private pendingLoot: ItemDef[] = [];
+  // DR-009 (T-310): set by restAtCheckpoint() so the next save carries the
+  // checkpoint marker; cleared when that save is resumed. The timestamp is
+  // injected by the caller (the core stays clock-free, NFR P2).
+  private checkpointSuspended = false;
+  private checkpointRestedAtMs: number | undefined;
+  // Set right after applySave restored a checkpoint-suspended run; the scene
+  // consumes it once (descent_resumed analytics + LACE resume recap).
+  private resumedCheckpoint: { readonly act: number; readonly restedAtMs?: number } | null = null;
+  // DR-009b (T-311): the run's single bonus mutation slot, shared between the
+  // Floor 2 Proto-Strand and the LACE event-room mutation.
+  private bonusMutationUsedFlag = false;
+  // Cached Proto-Strand offer (regenerates deterministically on resume).
+  private protoCards: readonly DrawnCard[] = [];
 
   constructor(options: RunSessionOptions) {
     this.masterSeed = options.seed;
@@ -270,6 +305,7 @@ export class RunSession {
       xp: this.xp,
       level: levelForTotalXp(this.xp),
       pendingStatPoints: this.pendingStatPoints,
+      act: zoneIndexForFloor(this.floorNumber),
     };
   }
 
@@ -301,6 +337,15 @@ export class RunSession {
       pendingStatPoints: this.pendingStatPoints,
       ...(persistCombat ? { combat: this.combatState!, combatRngState: this.combatRngState } : {}),
       ...(this.pendingLoot.length > 0 ? { pendingLoot: [...this.pendingLoot] } : {}),
+      ...(this.checkpointSuspended
+        ? {
+            checkpoint: {
+              act: zoneIndexForFloor(this.floorNumber),
+              ...(this.checkpointRestedAtMs !== undefined ? { restedAtMs: this.checkpointRestedAtMs } : {}),
+            },
+          }
+        : {}),
+      ...(this.bonusMutationUsedFlag ? { bonusMutationUsed: true } : {}),
     };
   }
 
@@ -320,6 +365,12 @@ export class RunSession {
     // lower-bound estimate of income so resumed runs still convert some Shards.
     this.veinEarned = save.veinEarned ?? this.veinCrystals;
     this.pendingLoot = save.pendingLoot !== undefined ? [...save.pendingLoot] : [];
+    this.bonusMutationUsedFlag = save.bonusMutationUsed === true;
+    // Resuming consumes the checkpoint marker (DR-009: a checkpoint is a pause
+    // point, not a retry point) — subsequent saves are ordinary mid-floor saves.
+    this.resumedCheckpoint = save.checkpoint ?? null;
+    this.checkpointSuspended = false;
+    this.checkpointRestedAtMs = undefined;
     // A mid-combat save (v5+) carries the encounter; restore it so the run
     // resumes mid-fight. Otherwise an in-combat status degrades to exploring.
     if (save.status === 'in_combat' && save.combat !== undefined) {
@@ -450,6 +501,7 @@ export class RunSession {
       this.bankVein(FLOOR_VEIN_CONSTANT);
       if (this.floorNumber >= this.finalFloor) this.status = 'victory';
       else if (this.strandEventDue()) this.status = 'strand_event';
+      else if (this.protoStrandDue()) this.status = 'proto_strand';
       else this.status = 'floor_complete';
     } else {
       this.status = 'exploring';
@@ -681,12 +733,38 @@ export class RunSession {
     this.veinEarned += amount;
   }
 
-  /** Advances to the next floor after a boss clear (and any Strand Event). */
+  /** Advances to the next floor after a boss clear (and any Strand Event /
+   *  S072 checkpoint choice — "Descend" lands here, DR-009). */
   descend(): void {
-    if (this.status !== 'floor_complete') {
+    if (this.status !== 'floor_complete' && this.status !== 'descent_checkpoint') {
       throw new Error(`descend: floor not complete (status: ${this.status})`);
     }
     this.loadFloor(this.floorNumber + 1);
+  }
+
+  /**
+   * S072 "Rest" (DR-009, T-310): suspends the run at the descent checkpoint.
+   * The session advances to the next floor's entrance — a checkpoint is a pause
+   * point, never a retry point — and the next {@link toSave} carries the
+   * `checkpoint` marker the Hub's "Continue Descent" card keys on. The caller
+   * persists the save and returns to the Hub; one suspended run at a time falls
+   * out of the single save slot, and a suspended run never expires.
+   */
+  restAtCheckpoint(restedAtMs?: number): void {
+    if (this.status !== 'descent_checkpoint') {
+      throw new Error(`restAtCheckpoint: not at a checkpoint (status: ${this.status})`);
+    }
+    this.loadFloor(this.floorNumber + 1);
+    this.checkpointSuspended = true;
+    this.checkpointRestedAtMs = restedAtMs;
+  }
+
+  /** The checkpoint marker of the save just restored (or null), consumed once —
+   *  the scene uses it for `descent_resumed` analytics + the LACE resume recap. */
+  consumeCheckpointResume(): { readonly act: number; readonly restedAtMs?: number } | null {
+    const was = this.resumedCheckpoint;
+    this.resumedCheckpoint = null;
+    return was;
   }
 
   // ── Strand Event (GDD §5) ─────────────────────────────────────────────────
@@ -772,10 +850,15 @@ export class RunSession {
    * Floor 0 tutorial Strand (T-140) and LACE event rooms (GDD §18.6). Carries the
    * mutation onto the run player, accrues SIG at the room rate, and refreshes
    * Dominant Traits — the same effects as a Strand pick, without the cadence gate.
+   *
+   * A `lace_event` pick (the default) consumes the run's single bonus mutation
+   * slot, shared with the Floor 2 Proto-Strand (DR-009b); the scripted tutorial
+   * pick does not — it is part of Floor 0's script, not the bonus economy.
    */
-  applyMutationChoice(mutation: MutationDef): void {
+  applyMutationChoice(mutation: MutationDef, source: 'lace_event' | 'tutorial' = 'lace_event'): void {
     this.player = applyMutation(this.player, mutation);
     this.sig = gainMutationSig(this.sig, mutation, 'lace_event');
+    if (source === 'lace_event') this.bonusMutationUsedFlag = true;
     this.refreshDominantTraits();
   }
 
@@ -793,7 +876,64 @@ export class RunSession {
     this.strandRng = null;
     this.strandOutcome = null;
     this.strandCards = [];
-    this.status = 'floor_complete';
+    // DR-009 (S072): every Strand Event resolution — card pick or Intermission —
+    // flows into the Descend/Rest checkpoint. The final floor never reaches
+    // here (its boss clear is victory), so the F20 Warden exclusion holds.
+    this.status = 'descent_checkpoint';
+  }
+
+  // ── Proto-Strand (DR-009b, T-311) ────────────────────────────────────────
+
+  /** True when this boss clear should open the Floor 2 Proto-Strand: the early
+   *  draw fires once, only if the bonus mutation slot is still free and the
+   *  pool can actually offer an unowned Minor (so the offer is never empty). */
+  private protoStrandDue(): boolean {
+    if (this.floorNumber !== PROTO_STRAND_FLOOR || this.bonusMutationUsedFlag) return false;
+    const ownedIds = new Set(this.player.mutations);
+    return this.mutationPool.some((m) => m.tier === 'minor' && !ownedIds.has(m.id));
+  }
+
+  /** True once the run's single bonus mutation slot is spent (DR-009b) —
+   *  the LACE event room swaps its mutation offer for VEIN when so. */
+  get bonusMutationUsed(): boolean {
+    return this.bonusMutationUsedFlag;
+  }
+
+  /**
+   * Opens the Floor 2 Proto-Strand, returning the two-card offer (DR-009b:
+   * Minor only, uniform families, no reroll). Idempotent for the floor and
+   * deterministic from the seed, so it survives a save/resume.
+   */
+  beginProtoStrand(): readonly DrawnCard[] {
+    if (this.status !== 'proto_strand') {
+      throw new Error(`beginProtoStrand: not at the Proto-Strand (status: ${this.status})`);
+    }
+    if (this.protoCards.length === 0) {
+      this.protoCards = drawProtoStrandCards({
+        pool: this.mutationPool,
+        owned: this.ownedMutationDefs(),
+        rng: makeRng((this.masterSeed ^ Math.imul(this.floorNumber, 0x9e3779b1)) >>> 0, 'mutationdraw'),
+      });
+    }
+    return this.protoCards;
+  }
+
+  /** Takes a Proto-Strand card: applies the mutation, grants the flat +5 SIG
+   *  (bonus-slot rate), fills the shared bonus slot, and completes the floor. */
+  chooseProtoStrandMutation(mutationId: string): void {
+    if (this.status !== 'proto_strand') {
+      throw new Error(`chooseProtoStrandMutation: not at the Proto-Strand (status: ${this.status})`);
+    }
+    const card = this.beginProtoStrand().find((c) => c.mutation.id === mutationId);
+    if (card === undefined) {
+      throw new Error(`chooseProtoStrandMutation: "${mutationId}" is not in the current offer`);
+    }
+    this.player = applyMutation(this.player, card.mutation);
+    this.sig = gainMutationSig(this.sig, card.mutation, 'lace_event'); // bonus-slot rate: +5
+    this.bonusMutationUsedFlag = true;
+    this.refreshDominantTraits();
+    this.protoCards = [];
+    this.status = 'floor_complete'; // no S072 after the Proto-Strand (DR-009b)
   }
 
   /** Recomputes the active Dominant Trait families onto the player (GDD §5.5) so
@@ -822,6 +962,7 @@ export class RunSession {
     this.combatState = null; // a new floor is never mid-combat
     this.combatRngState = 0;
     this.pendingLoot = []; // uncollected loot doesn't follow you down a floor
+    this.protoCards = []; // transient — regenerates deterministically if due
     this.restIfSafe(this.current);    // before auto-clear (once-per-room guard applies)
     this.autoClearIfTrivial(this.current);
     this.status = 'exploring';

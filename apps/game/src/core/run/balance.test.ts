@@ -205,8 +205,14 @@ function playRun(seed: number, finalFloor: number): string {
     const status = s.snapshot.status;
     if (status === 'victory' || status === 'defeat') return status;
 
-    if (status === 'floor_complete') {
-      s.descend();
+    if (status === 'floor_complete' || status === 'descent_checkpoint') {
+      s.descend(); // the harness never Rests — it plays the full descent
+      continue;
+    }
+
+    if (status === 'proto_strand') {
+      const offer = s.beginProtoStrand();
+      s.chooseProtoStrandMutation(offer[0]!.mutation.id);
       continue;
     }
 

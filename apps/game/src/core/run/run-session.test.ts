@@ -199,7 +199,7 @@ describe('RunSession — Strand Events', () => {
     s.chooseStrandMutation(pick.id);
     expect(s.snapshot.player.mutations).toContain(pick.id);
     expect(s.snapshot.sig).toBe(pick.sigBonus); // +10 from the strand pick
-    expect(s.snapshot.status).toBe('floor_complete');
+    expect(s.snapshot.status).toBe('descent_checkpoint'); // S072 Descend/Rest (DR-009)
     s.descend();
     expect(s.snapshot.floorNumber).toBe(2);
   });
@@ -240,7 +240,7 @@ describe('RunSession — Strand Events', () => {
     const veinBefore = s.snapshot.veinCrystals; // kills + floor loot already banked (T-110)
     s.acceptIntermission();
     expect(s.snapshot.veinCrystals).toBe(veinBefore + 100); // intermission adds 100 on top
-    expect(s.snapshot.status).toBe('floor_complete');
+    expect(s.snapshot.status).toBe('descent_checkpoint'); // S072 follows S071 too (DR-009)
   });
 
   it('descend is blocked while a Strand Event is open', () => {

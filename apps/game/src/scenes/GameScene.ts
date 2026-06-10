@@ -10,7 +10,7 @@ import type { ItemDef } from '@shared-types/item';
 import type { EntityStats, DeathCause, StatusEffect } from '@shared-types/run-state';
 import type { MetaState } from '@shared-types/meta-state';
 import type { MutationDef, MutationFamily } from '@shared-types/mutation';
-import { dominantTraitFor, unlockedSynergies } from '../core/mutation';
+import { dominantTraitFor, unlockedSynergies, type DrawnCard } from '../core/mutation';
 import type { Effect } from '../core/turn-engine/effect';
 import type { LaceContext, LaceLine } from '@shared-types/lace-line';
 import { TurnEngine } from '../core/turn-engine/turn-engine';
@@ -149,6 +149,8 @@ export class GameScene extends Phaser.Scene {
   private reviveUsed = false;
   /** T-198: set by init() when this scene restart is a post-death revive. */
   private pendingRevive = false;
+  /** A save handed forward to restore instead of starting fresh (T-161/T-310). */
+  private pendingResume: RunSessionSave | null = null;
 
   private view: View = 'map';
   /** T-175: current ability bar page (0-indexed); page N shows slots N×6 … N×6+5. */
@@ -218,6 +220,9 @@ export class GameScene extends Phaser.Scene {
     if (typeof data['originId'] === 'string') this.originId = data['originId'];
     if (typeof data['seed'] === 'number') this.seed = data['seed'];
     this.pendingRevive = data['revive'] === true;
+    // T-161/T-310: a save handed forward by S100 RESUME or the Hub's
+    // "Continue Descent" card — restored instead of starting a fresh run.
+    this.pendingResume = data['resumeSave'] !== undefined ? (data['resumeSave'] as RunSessionSave) : null;
   }
 
   create(): void {
@@ -245,6 +250,8 @@ export class GameScene extends Phaser.Scene {
     this.loadContent();
     if (this.pendingRevive) {
       void this.resumeWithRevive();
+    } else if (this.pendingResume !== null) {
+      this.resumeFromSave(this.pendingResume);
     } else {
       this.startRun();
     }
@@ -340,6 +347,79 @@ export class GameScene extends Phaser.Scene {
     this.say('run_start');
     this.playFloorMusic();
     this.persist();
+    this.renderAll();
+  }
+
+  /**
+   * T-161/T-310/T-312: restore a saved run — from S100 RESUME or the Hub's
+   * "Continue Descent" card. Rebuilds the session from the save's own seed,
+   * fires `descent_resumed` for checkpoint resumes, restores the right view
+   * (mid-combat saves re-enter the fight), and delivers the LACE resume recap.
+   */
+  private resumeFromSave(save: RunSessionSave): void {
+    this.seed = save.seed;
+    this.session = new RunSession({
+      seed: save.seed,
+      template: this.template,
+      floorTemplates: this.floorTemplates,
+      registry: this.enemyRegistry,
+      finalFloor: FINAL_FLOOR,
+      mutations: this.mutationPool,
+      strandEventEveryNFloors: STRAND_INTERVAL,
+      itemPool: this.itemPool,
+    });
+    this.session.applySave(save);
+    this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
+    this.view = 'map';
+    this.combat = null;
+    this.targeting = null;
+    this.enemiesKilled = 0;
+    this.damageTakenThisRun = 0;
+    this.runStartMs = Date.now();
+    this.runRecorded = false;
+    this.lastRunShards = 0;
+    this.deathCause = 'enemy_kill';
+    this.achievementsEarned = [];
+    this.reviveUsed = false;
+    this.strandIntroShown = false;
+    adService.reset();
+    this.revealingEnemies = false;
+
+    const checkpoint = this.session.consumeCheckpointResume();
+    if (checkpoint !== null) {
+      logEvent('descent_resumed', {
+        actN: this.session.snapshot.act,
+        hoursSinceSuspend:
+          checkpoint.restedAtMs !== undefined
+            ? (Date.now() - checkpoint.restedAtMs) / 3_600_000
+            : -1,
+      });
+    }
+
+    // Restore the surface the run was suspended on.
+    const status = this.session.snapshot.status;
+    if (status === 'in_combat') {
+      const active = this.session.activeCombat();
+      if (active !== null) {
+        this.combat = active.state;
+        this.combatRng = new Mulberry32(active.rngState);
+        this.view = 'combat';
+      }
+    } else if (status === 'strand_event') {
+      this.session.beginStrandEvent();
+      this.view = 'strand';
+      this.strandIntroShown = true; // no second S060 intro on resume
+    } else if (status === 'proto_strand') {
+      this.session.beginProtoStrand();
+      this.view = 'strand';
+      this.strandIntroShown = true;
+      this.strandRerollUsed = true;
+    }
+
+    // T-312: one-line situational recap on ANY resume, exactly once.
+    this.say('resume_recap');
+    this.persist();
+    this.playFloorMusic();
     this.renderAll();
   }
 
@@ -489,6 +569,14 @@ export class GameScene extends Phaser.Scene {
       floorNumber: this.session.snapshot.floorNumber,
       enemyCount: encounter.enemies.length,
     });
+    const engagedBoss = this.roomBossDef(room);
+    if (engagedBoss !== undefined) {
+      logEvent('boss_engaged', {
+        bossId: engagedBoss.id,
+        bossTier: engagedBoss.tier as 'floor_boss' | 'zone_warden',
+        floorNumber: this.session.snapshot.floorNumber,
+      });
+    }
     this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
     if (room.type === 'boss') playMusic(this, 'music_boss');
     this.combat = encounter;
@@ -1189,9 +1277,19 @@ export class GameScene extends Phaser.Scene {
       turnsElapsed: state.turn,
     });
 
-    const wasBoss = this.session.currentRoom().type === 'boss';
+    const room = this.session.currentRoom();
+    const wasBoss = room.type === 'boss';
+    const bossDef = this.roomBossDef(room);
+    const bossFloor = this.session.snapshot.floorNumber;
     const xpBefore = this.session.snapshot.xp;
     this.session.endEncounter(state);
+    if (bossDef !== undefined && state.phase !== 'defeat') {
+      logEvent('boss_defeated', {
+        bossId: bossDef.id,
+        bossTier: bossDef.tier as 'floor_boss' | 'zone_warden',
+        floorNumber: bossFloor,
+      });
+    }
     const xpGained = this.session.snapshot.xp - xpBefore;
     this.combat = null;
     this.targeting = null;
@@ -1224,6 +1322,9 @@ export class GameScene extends Phaser.Scene {
     } else if (status === 'strand_event') {
       this.say('boss_killed');
       this.openStrandEvent();
+    } else if (status === 'proto_strand') {
+      this.say('boss_killed');
+      this.openProtoStrand();
     } else if (status === 'floor_complete') {
       this.say('floor_complete');
       if (wasBoss) this.playFloorMusic();
@@ -1248,6 +1349,14 @@ export class GameScene extends Phaser.Scene {
       this.view = 'levelup';
     }
     this.maybeShowLoot();
+  }
+
+  /** The boss enemy def of a boss room (DR-008 tier analytics), or undefined. */
+  private roomBossDef(room: PopulatedRoom): EnemyDef | undefined {
+    if (room.type !== 'boss') return undefined;
+    return room.enemies
+      .map((e) => this.enemyRegistry.get(e.enemyDefId))
+      .find((d): d is EnemyDef => d !== undefined && isBossTier(d.tier));
   }
 
   private recordRun(won: boolean): void {
@@ -1751,8 +1860,36 @@ export class GameScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  /** DR-009b (T-311): the Floor 2 Proto-Strand reuses the strand view as a
+   *  reduced variant — two Minor cards, no reroll, no S072 checkpoint after. */
+  private openProtoStrand(): void {
+    const offer = this.session.beginProtoStrand();
+    this.strandSelected = null;
+    this.strandRerollUsed = true; // the Proto-Strand has no reroll (GDD §5.4 Rule 6)
+    this.strandConfirmPending = false;
+    this.dominantTraitReveal = [];
+    this.strandAnimateCards = 'all';
+    this.view = 'strand';
+    logEvent('proto_strand_shown', {
+      cardsOffered: offer.map((c) => c.mutation.id).join(','),
+    });
+    this.say('generic');
+    this.persist();
+    this.renderAll();
+  }
+
+  /** True while the strand view is showing the Proto-Strand variant. */
+  private isProtoStrand(): boolean {
+    return this.session.snapshot.status === 'proto_strand';
+  }
+
+  /** The cards the strand view is presenting — Proto-Strand or Strand Event. */
+  private strandViewOffer(): readonly DrawnCard[] {
+    return this.isProtoStrand() ? this.session.beginProtoStrand() : this.session.strandOffer;
+  }
+
   private onStrandPointer(x: number, y: number): void {
-    const cards = this.session.strandOffer;
+    const cards = this.strandViewOffer();
     if (cards.length === 0) return;
     for (let i = 0; i < cards.length; i++) {
       const r = this.strandCardRect(i);
@@ -1768,7 +1905,8 @@ export class GameScene extends Phaser.Scene {
 
   private takeStrandCard(): void {
     if (this.strandSelected === null) return;
-    const card = this.session.strandOffer[this.strandSelected];
+    const wasProto = this.isProtoStrand();
+    const card = this.strandViewOffer()[this.strandSelected];
     if (card === undefined) return;
 
     // T-185: two-tap confirm for new players
@@ -1784,11 +1922,18 @@ export class GameScene extends Phaser.Scene {
     const prevOwnedDefs = this.mutationPool.filter((m) => prevSnap.player.mutations.includes(m.id));
     const prevSynCount = unlockedSynergies(prevOwnedDefs).length;
     const prevTraits = [...(prevSnap.player.dominantTraits ?? [])];
-    this.session.chooseStrandMutation(card.mutation.id);
+    if (wasProto) {
+      this.session.chooseProtoStrandMutation(card.mutation.id);
+    } else {
+      this.session.chooseStrandMutation(card.mutation.id);
+    }
     playSfx(this, 'sfx_mutation');
     this.laceText.setText(`LACE: ${card.mutation.lace}`);
 
     const mut = card.mutation;
+    if (wasProto) {
+      logEvent('proto_strand_selected', { mutationId: mut.id, family: mut.family });
+    }
     logEvent('mutation_chosen', {
       mutationId: mut.id,
       family: mut.family,
@@ -1796,6 +1941,7 @@ export class GameScene extends Phaser.Scene {
       slot: mut.grantsAbility !== null ? 'active' : 'passive',
     });
     this.playMutationPulse();
+    this.maybeOfferCheckpoint();
 
     // T-190: new hybrid synergy → reverent mood signal.
     const afterSnap = this.session.snapshot;
@@ -1835,9 +1981,32 @@ export class GameScene extends Phaser.Scene {
 
   private continueIntermission(): void {
     this.session.acceptIntermission();
+    this.maybeOfferCheckpoint();
     this.view = 'map';
     this.persist();
     this.renderAll();
+  }
+
+  // ── Descent checkpoint (DR-009, T-310 — S072) ─────────────────────────────
+
+  /** Fires the S072 analytics + LACE beat the moment a Strand Event resolution
+   *  lands on the Descend/Rest choice. The choice itself renders as the map
+   *  view's DESCEND / REST buttons. */
+  private maybeOfferCheckpoint(): void {
+    if (this.session.snapshot.status !== 'descent_checkpoint') return;
+    logEvent('descent_checkpoint_offered', { floorNumber: this.session.snapshot.floorNumber });
+    this.laceText.setText('LACE: The VEIN is patient. A new strand settles best in stillness.');
+  }
+
+  /** S072 "Rest": suspend the run at the checkpoint and return to the Hub. */
+  private restAtCheckpoint(): void {
+    logEvent('descent_checkpoint_rested', {
+      floorNumber: this.session.snapshot.floorNumber,
+      sessionDurationMs: Date.now() - this.runStartMs,
+    });
+    this.session.restAtCheckpoint(Date.now());
+    this.persist();
+    this.scene.start('HubScene', { meta: this.meta });
   }
 
   // ── Loot ──────────────────────────────────────────────────────────────────
@@ -3072,7 +3241,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const cards = this.session.strandOffer;
+    const cards = this.strandViewOffer();
 
     // T-192: VEIN Intermission — polished gold panel.
     if (cards.length === 0) {
@@ -3080,11 +3249,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Title
-    const titleT = this.add.text(W / 2, STAGE_Y + 8, 'STRAND EVENT', {
+    // Title — the Floor 2 Proto-Strand is the same surface, reduced (DR-009b).
+    const proto = this.isProtoStrand();
+    const titleT = this.add.text(W / 2, STAGE_Y + 8, proto ? 'PROTO-STRAND' : 'STRAND EVENT', {
       fontFamily: 'monospace', fontSize: '12px', color: C.green, letterSpacing: 4,
     }).setOrigin(0.5, 0);
-    const subT = this.add.text(W / 2, STAGE_Y + 24, 'choose your mutation', {
+    const subT = this.add.text(W / 2, STAGE_Y + 24, proto ? 'your first adaptation' : 'choose your mutation', {
       fontFamily: 'monospace', fontSize: '9px', color: C.dim,
     }).setOrigin(0.5, 0);
     this.transient.push(titleT, subT);
@@ -3414,7 +3584,7 @@ export class GameScene extends Phaser.Scene {
         });
         return;
       }
-      const cards = this.session.strandOffer;
+      const cards = this.strandViewOffer();
       // T-192: VEIN Intermission
       if (cards.length === 0) { this.button(20, 'CONTINUE', C.yellow, () => this.continueIntermission()); return; }
       if (this.strandSelected !== null) {
@@ -3467,6 +3637,13 @@ export class GameScene extends Phaser.Scene {
     if (this.view === 'levelup') return;
     if (this.view === 'map' && this.session.snapshot.status === 'floor_complete') {
       this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
+      return;
+    }
+    // S072 descent checkpoint (DR-009): Descend continues the act, Rest
+    // suspends the run at the checkpoint and returns to the Hub.
+    if (this.view === 'map' && this.session.snapshot.status === 'descent_checkpoint') {
+      this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
+      this.button(210, 'REST', C.green, () => this.restAtCheckpoint());
       return;
     }
   }

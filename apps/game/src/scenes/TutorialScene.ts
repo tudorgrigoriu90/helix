@@ -188,7 +188,7 @@ export class TutorialScene extends Phaser.Scene {
   /** Takes a tutorial Strand card: applies the mutation to the run, then opens
    *  the way onward. A scripted, downside-free intro to the real Strand Event. */
   private chooseStrandCard(mutation: MutationDef): void {
-    this.session.applyMutationChoice(mutation);
+    this.session.applyMutationChoice(mutation, 'tutorial');
     this.strandResolved = true;
     this.view = 'map';
     this.pushLog(`Became: ${mutation.name}.`);

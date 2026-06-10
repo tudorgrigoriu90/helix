@@ -46,6 +46,9 @@ export type LaceContext =
   | 'boss_killed'
   | 'floor_complete'
   | 'player_death'
+  /** One-line situational recap on ANY run resume — checkpoint or mid-floor
+   *  (DR-009, T-312). Fires exactly once per resume. */
+  | 'resume_recap'
   | 'generic';
 
 export interface LaceLine {

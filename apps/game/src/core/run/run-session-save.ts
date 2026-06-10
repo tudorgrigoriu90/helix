@@ -18,7 +18,8 @@ import {
  */
 
 const VALID_STATUSES = new Set<RunStatus>([
-  'exploring', 'in_combat', 'strand_event', 'floor_complete', 'victory', 'defeat',
+  'exploring', 'in_combat', 'strand_event', 'proto_strand', 'descent_checkpoint',
+  'floor_complete', 'victory', 'defeat',
 ]);
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -66,6 +67,11 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     }
     if (parsed['pendingLoot'] !== undefined && !Array.isArray(parsed['pendingLoot'])) {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save has malformed pendingLoot' } };
+    }
+    // Checkpoint marker (v7, DR-009): when present it must carry a numeric act.
+    const checkpoint = parsed['checkpoint'];
+    if (checkpoint !== undefined && (!isObject(checkpoint) || typeof checkpoint['act'] !== 'number')) {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed checkpoint' } };
     }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };

@@ -58,6 +58,11 @@
     { "id": "death_04", "text": "Gone. The interesting part is what grows back.", "context": "player_death", "mood": "curious", "weight": 1 },
     { "id": "death_05", "text": "Lights out. Run again — the VEIN's patient, and so am I.", "context": "player_death", "mood": "clinical", "weight": 1 },
 
+    { "id": "recap_01", "text": "You return. The VEIN has not moved. It rarely does.", "context": "resume_recap", "mood": "neutral", "weight": 1 },
+    { "id": "recap_02", "text": "The descent kept your place. Your strand settled while you were away.", "context": "resume_recap", "mood": "neutral", "weight": 1 },
+    { "id": "recap_03", "text": "Back again. The floor below has been counting the silence.", "context": "resume_recap", "mood": "curious", "weight": 1 },
+    { "id": "recap_04", "text": "Nothing here forgot you. The depth holds a precise memory.", "context": "resume_recap", "mood": "reverent", "weight": 1 },
+
     { "id": "generic_01", "text": "...", "context": "generic", "mood": "neutral", "weight": 1 },
     { "id": "generic_02", "text": "The walls are listening. They always are.", "context": "generic", "mood": "curious", "weight": 1 },
     { "id": "generic_03", "text": "Keep moving.", "context": "generic", "mood": "neutral", "weight": 1 },

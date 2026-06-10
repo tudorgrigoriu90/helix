@@ -148,6 +148,8 @@ export class GameBootScene extends Phaser.Scene {
     if (decision.kind === 'prompt') {
       this.showResumeModal(decision.summary);
     } else {
+      // 'fresh', and 'checkpoint' (DR-009): a checkpoint-suspended run resumes
+      // from the Hub's "Continue Descent" card, not the S100 modal.
       this.scene.start('HubScene', { meta: this.meta });
     }
   }

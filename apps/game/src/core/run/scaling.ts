@@ -17,12 +17,12 @@ import type { EntityStats } from '@shared-types/run-state';
  * already compounds with this multiplier, the original rates put the Floor-20
  * clear rate at 0% for the harness's competent policy — the endings, the five
  * finales, and Convergence content were unreachable (review finding F5). At
- * 0.12 / 0.07 the harness curve descends 97 / 95 / 88 / 33 / 10% across
+ * 0.12 / 0.065 the harness curve descends 97 / 95 / 90 / 50 / 5% across
  * F1/F5/F10/F15/F20 — punishing but reachable, inside the T-324 band.
  */
 
 export const HP_SCALE_PER_FLOOR = 0.12;
-export const STAT_SCALE_PER_FLOOR = 0.07;
+export const STAT_SCALE_PER_FLOOR = 0.065;
 
 function factor(floor: number, perFloor: number): number {
   return 1 + Math.max(0, floor - 1) * perFloor;

@@ -10,6 +10,12 @@ export {
   type DrawOneParams,
 } from './card-draw';
 export { rerollCard, type RerollParams } from './reroll';
+export {
+  drawProtoStrandCards,
+  PROTO_STRAND_CARD_COUNT,
+  PROTO_STRAND_FLOOR,
+  type ProtoStrandParams,
+} from './proto-strand';
 export { applyMutation } from './apply';
 export {
   unlockedDominantTraits,
