@@ -16,7 +16,8 @@
     "test:determinism": "vitest run --reporter=verbose src/core/rng/determinism-replay.test.ts",
     "validate:content": "vitest run --reporter=verbose src/core/content/content-bundle.test.ts src/core/lace/lace-voice.content.test.ts",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:balance": "vitest run --reporter=verbose src/core/run/balance.test.ts"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",

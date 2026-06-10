@@ -143,6 +143,17 @@ grind metric. The surviving claim is: average floor time lands dead on the
 unlocks, and the Codex — pacing for those unlocks replaces the kit grind as the
 retention model in workbook v1.2.
 
+> **T-304 annotation (2026-06-10) — provisional totals after the DR-008 code
+> split landed.** `drops.ts` now pays `floor_boss: 45` / `zone_warden: 120`,
+> so per-run boss income is 16×45 + 4×120 = **1,200 VEIN** (the live code had
+> been paying 20×120 = 2,400 — the F2 over-pay this lock flagged). Full-clear
+> VEIN drops ~1,200 below the v1.1 headline 3,232 until workbook v1.2 (T-321)
+> re-models the kill mix at the split rates and re-locks this table. The
+> re-run balance harness (boss-per-floor at corrected drops; scaling re-tuned
+> to 0.12/0.065 per T-324) publishes its clear-rate curve as the
+> `clear-rate-curve` CI artifact; current curve: F1 97% · F5 95% · F10 90% ·
+> F15 50% · F20 5% (apex inside the locked [2%, 30%] band).
+
 ---
 
 ## 4. T-12 / T-13 sanity checks

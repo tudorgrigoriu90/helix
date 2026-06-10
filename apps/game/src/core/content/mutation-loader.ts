@@ -189,6 +189,17 @@ export function parseMutationDef(input: unknown): MutationLoaderResult {
   const name = readNonEmptyString(payload, 'name');
   if (isContentError(name)) return { ok: false, error: name };
 
+  // T-325 (DR-007): the SIG-as-cost model is dead — reject its field names so
+  // it cannot creep back in through content (`sigBonus` is the only spelling).
+  for (const alias of ['sigCost', 'sigGrant'] as const) {
+    if (payload[alias] !== undefined) {
+      return {
+        ok: false,
+        error: contentError('INVALID_VALUE', `"${alias}" is not a mutation field — SIG grants are authored as "sigBonus" (DR-007)`, alias),
+      };
+    }
+  }
+
   const sigBonus = readNonNegativeInt(payload, 'sigBonus');
   if (isContentError(sigBonus)) return { ok: false, error: sigBonus };
 

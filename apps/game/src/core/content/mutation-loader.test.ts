@@ -143,6 +143,11 @@ describe('parseMutationDef — T-83 (GDD §5 / TDD §8.1)', () => {
     expectErr(parseMutationDef({ ...valid(), family: 'crystal' }), 'INVALID_VALUE', 'family');
   });
 
+  it('rejects the dead SIG-as-cost aliases sigCost / sigGrant (T-325, DR-007)', () => {
+    expectErr(parseMutationDef({ ...valid(), sigCost: 10 }), 'INVALID_VALUE', 'sigCost');
+    expectErr(parseMutationDef({ ...valid(), sigGrant: 10 }), 'INVALID_VALUE', 'sigGrant');
+  });
+
   it('rejects an unknown tier', () => {
     expectErr(parseMutationDef({ ...valid(), tier: 'legendary' }), 'INVALID_VALUE', 'tier');
   });

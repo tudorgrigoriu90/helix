@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { describe, it, expect, afterAll } from 'vitest';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { Action, Position } from '@shared-types/action';
@@ -9,6 +9,7 @@ import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances } from '../floor-gen';
 import { RunSession } from './run-session';
 import { buildEnemyRegistry } from './encounter';
+import { HP_SCALE_PER_FLOOR, STAT_SCALE_PER_FLOOR } from './scaling';
 import { parseEnemyDef } from '../content/enemy-loader';
 import { parseFloorTemplate } from '../floor-gen/floor-template-loader';
 import { parseItemDef } from '../content/item-loader';
@@ -278,9 +279,32 @@ function clearRate(finalFloor: number, seeds = 40): number {
 
 // ── Tests ─────────────────────────────────────────────────────────────────
 
+// T-304: the measured clear rates, published as a CI artifact when
+// BALANCE_CURVE_OUT names a path (see .github/workflows/ci.yml).
+const measuredCurve: Record<string, number> = {};
+
+afterAll(() => {
+  const out = process.env['BALANCE_CURVE_OUT'];
+  if (out === undefined || Object.keys(measuredCurve).length === 0) return;
+  writeFileSync(
+    out,
+    JSON.stringify(
+      {
+        generatedFor: 'T-304 (DR-008 boss-per-floor at split drop rates)',
+        scaling: { hpPerFloor: HP_SCALE_PER_FLOOR, statPerFloor: STAT_SCALE_PER_FLOOR },
+        band: { apexMin: APEX_CLEAR_MIN, apexMax: APEX_CLEAR_MAX },
+        clearRates: measuredCurve,
+      },
+      null,
+      2,
+    ),
+  );
+});
+
 describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
   it('floor 1 is reliably winnable', () => {
     const f1 = clearRate(1, 60);
+    measuredCurve['F1'] = f1;
     // eslint-disable-next-line no-console
     console.log(`  F1 clear rate: ${(f1 * 100).toFixed(0)}%`);
     expect(f1).toBeGreaterThanOrEqual(FLOOR1_CLEAR_MIN);
@@ -289,6 +313,7 @@ describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
   it('difficulty curve descends across zone milestones', () => {
     const depths = [5, 10, 15, 20];
     const rates = depths.map((d) => clearRate(d, 40));
+    depths.forEach((d, i) => { measuredCurve[`F${d}`] = rates[i]!; });
     // eslint-disable-next-line no-console
     console.log(
       depths

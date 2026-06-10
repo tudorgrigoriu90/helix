@@ -42,6 +42,15 @@ jobs:
       - name: Validate content schemas
         run: pnpm validate
 
+      - name: Balance harness — publish clear-rate curve (T-304)
+        run: BALANCE_CURVE_OUT=$PWD/clear-rate-curve.json pnpm --filter @helix/game test:balance
+
+      - name: Upload clear-rate curve artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clear-rate-curve
+          path: clear-rate-curve.json
+
       - name: Build — web (production)
         run: pnpm build:web
 
