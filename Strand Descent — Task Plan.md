@@ -5,7 +5,7 @@
 | Project codename | HELIX                                                |
 | Working title    | Strand Descent (locked 2026-05-27)                           |
 | Owner            | Tudor Grigoriu / Empathy Software                    |
-| Version          | 1.0                                                  |
+| Version          | 1.1 (E-14 reconciliation, 2026-06-11)                |
 | Status           | Pre-Production Lock — task source of truth           |
 | Created          | 2026-05-27                                           |
 | Target tracker   | Atlassian Jira (workspace TBD) — see Open Assumptions |
@@ -60,6 +60,10 @@ For a solo+AI team most roles collapse onto the Director plus Claude Code. Roles
 ---
 
 ## Reality Check (2026-05-29)
+
+### Review-Series Reconciliation (2026-06-11)
+
+The 2026-06-09 product/code review (`docs/Strand Descent — Product Review & Task Plan.md`) introduced a remediation task series originally numbered T-300–T-344 — colliding with this plan's existing T-300–T-449. The series was **renumbered to T-500–T-544** (last two digits preserved: old T-300 → T-500) and imported below as **Epic E-14**, so this document remains the single tracking source. The review document keeps the full rationale and acceptance criteria per task; status is tracked **only here**. T-318's LACE boss-line budget was corrected for DR-008 in the same pass.
 
 The build deliberately departed from strict task-ID order to **prove the core loop is fun before deepening the engine** — if a turn-based descent isn't satisfying at Floor 1, there's no point layering systems on top. So work fanned out across stories to stand up a **playable Floor 1 vertical slice** (the `RUN` sandbox): floor generation end-to-end (S-3.3), the save/resume layer (S-3.7: T-110/111/112/113/115/116, T-114/117 partial), the web storage adapter (S-5.1: T-222/223/225), a LACE narrator core (S-3.5: T-96/104), Zone-1 content (T-290 enemies, T-292 items), and a sprite pipeline (T-151) — all ahead of their nominal slot. Three sandbox scenes (`COMBAT` / `FLOOR GRAPH` / `RUN`) bridge E-3 ↔ E-4.
 
@@ -121,6 +125,7 @@ Two playtest bugs fixed and the player-facing shell de-cluttered, one commit:
 | E-11   | Web Demo                           | Months 12–15           | DEMO_MODE bundle                                            |
 | E-12   | QA & Performance                   | Months 3–18            | Test infra, perf budgets, manual checklists                 |
 | E-13   | Launch Operations                  | Months 12–18           | Apple Indie / Google Indie submission, UA, press, listings  |
+| E-14   | 2026-06-09 Review Remediation (DR-007–011) | Months 4–16    | Code-side propagation of the decision lock — see `docs/Strand Descent — Product Review & Task Plan.md` |
 
 ---
 
@@ -778,7 +783,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-315 | 400–500 fragments for Soft launch (full coverage)                     | Director | P2       | TDD §9.5       | Fallback if no writer signed |
 | T-316 | LACE Critical hit pool (20 lines on player crit; 20 on player crit-hit) | Director | P1     | GDD §10.1      | |
 | T-317 | LACE Death narrations (100 lines: 20 floors × 5 death_causes)         | Director | P1       | GDD §10.2      | |
-| T-318 | LACE Boss pre/post-fight lines (48: 8 bosses × 6)                     | Director | P1       | GDD §10.2      | |
+| T-318 | LACE Boss pre/post-fight lines — re-budgeted for DR-008 (boss-per-floor, two tiers): 4 Zone Wardens hand-written (24: 4 × 6) + 16 Floor Bosses templated fragments (96: 16 × 6). Supersedes the pre-DR-008 "48: 8 bosses × 6" budget. See T-503/T-543. | Director | P1       | GDD §10.2, DR-008 | |
 | T-319 | LACE Hub idle quips (50)                                              | Director | P1       | GDD §10.2      | |
 | T-320 | LACE Floor-entry lines (100: 20 floors × 5 moods)                     | Director | P1       | GDD §10.2      | |
 
@@ -1041,6 +1046,61 @@ See T-294, T-300, T-310 in E-7. Codex stays in-house (Director's voice).
 
 ---
 
+## E-14 — 2026-06-09 Review Remediation (DR-007–011)
+
+**Scope:** Code-side propagation of the decision lock DR-007–DR-011 plus the guardrails and carried product issues from the external review. Full rationale, findings (F1–F8), and per-task acceptance criteria live in `docs/Strand Descent — Product Review & Task Plan.md`; this epic is the **only** place status is tracked. Series renumbered T-3xx → T-5xx on 2026-06-11 (collision with this plan's T-300–T-449).
+
+### S-14.1 — Decision propagation into code (DR-007/008)
+
+| ID    | Title                                                  | Role          | Priority | Refs             | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
+| T-500 | Remove the dead SIG bonus-drop from `core/economy/drops.ts` (F1, DR-007). Shifts the loot RNG stream — re-baseline determinism fixtures in the same PR. | Game Engineer | P1 | Review §T-500, DR-007 | |
+| T-501 | Tier split `boss` → `floor_boss` / `zone_warden` in `shared-types/enemy.ts` + migrate 20 boss JSONs; validator asserts exactly 4 wardens on floors 5/10/15/20 (F4, DR-008). | Game Engineer | P1 | Review §T-501, DR-008 | |
+| T-502 | Economy split per tier: `VEIN_PER_KILL` floor_boss 45 / zone_warden 120; loot guarantees floor_boss 1× Uncommon+, zone_warden 2× incl. 1 Rare+ (F2, DR-008). | Game Engineer | P1 | Review §T-502, DR-008 | |
+| T-503 | Warden treatment pass: 3-phase bespoke patterns (66/33%), 14×14 arena, hand-written LACE pre/post lines; Floor Bosses keep generic 2-phase template. | Game Engineer / Director | P2 | Review §T-503, DR-008 | |
+| T-504 | Re-run the balance harness post-T-500/502 and re-publish the clear-rate curve as a CI artifact; annotate Economy Lock §3. | QA | P1 | Review §T-504 | |
+
+### S-14.2 — DR-009 run structure + early hook
+
+| ID    | Title                                                  | Role          | Priority | Refs             | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
+| T-510 | Descent checkpoints: `RunState.checkpoint`, S072 Descend/Rest choice, Hub "Continue Descent" card, save schema bump + migration (DR-009). | Game Engineer | P1 | Review §T-510, UFD 02/04 | |
+| T-511 | Proto-Strand: deterministic Floor 2 post-boss 2-card Minor draft, +5 SIG, no reroll (DR-009b). | Game Engineer | P1 | Review §T-511, GDD §5.4 | |
+| T-512 | LACE `resume_recap` trigger context — one-line situational recap on any resume. | Game Engineer / Director | P1 | Review §T-512 | |
+| T-513 | New analytics events: `proto_strand_*`, `descent_checkpoint_*`, `descent_resumed`, `boss_tier` param — added to typed `EventSchema`. | Game Engineer | P2 | Review §T-513 | |
+
+### S-14.3 — Code quality & guardrails
+
+| ID    | Title                                                  | Role          | Priority | Refs             | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
+| T-520 | Decompose `run-session.ts` (881 lines) along checkpoint/save, economy, combat seams to honor the 300-line convention (F8). | Game Engineer | P2 | Review §T-520, TDD §18.1 | |
+| T-521 | Economy workbook v1.2: delete Mutation Costs tab + SIG columns; model boss-per-floor kill mix at split rates; re-price Pass at $4.99; delete VEIN SKU row; restate runs/day as acts/day; re-lock §3. | Director | P1 | Review §T-521 | Workbook lives outside repo |
+| T-522 | Economy↔lock reconciliation test: checked-in `economy-lock.json` + Vitest asserting code constants equal it. | QA | P1 | Review §T-522 | |
+| T-523 | Canonical `campaign.ts`: single source for MAX_FLOOR / ZONES / FLOORS_PER_ZONE / WARDEN_FLOORS / `zoneForFloor()`; validator asserts floor JSONs agree. | Game Engineer | P2 | Review §T-523 | |
+| T-524 | Harness band thresholds (F5): F20 clear rate within [0.02, 0.30] so "endings unreachable" fails CI. | QA | P1 | Review §T-524 | |
+| T-525 | Content validator rejects `sigCost`/`sigGrant` aliases (F3). | Game Engineer | P3 | Review §T-525, DR-007 | |
+
+### S-14.4 — DR-010/011 requirements on upcoming code
+
+| ID    | Title                                                  | Role          | Priority | Refs             | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
+| T-530 | LACE voice linter (`tools/validate-lace.ts`) wired into `pnpm validate`; fix GDD §18 tutorial lines that violate the voice bible. | Game Engineer / Director | P1 | Review §T-530 | |
+| T-531 | Share pipeline in prototype scope (DR-011): `build-share-image.ts`, name generator wiring, ShareScene, share adapter; 1080×1920 + 1080×1080 < 2 s. | Frontend | P1 | Review §T-531, UFD 08 | Overlaps S-10.1/S-10.2 — deliver there, track here |
+| T-532 | Store/IAP per DR-010: $4.99/$39.99 pass, 3 cosmetic packs + $9.99 Supporter Pack, no VEIN SKU, ad-only revive, server receipt validation. | Game Engineer | P3 | Review §T-532, DR-010 | Overlaps S-9.x — deliver there, track here |
+| T-533 | Deferral enforcement (DR-011): daily/weekly/leaderboards/Prestige stay unbuilt post-Gate-2; Hub entries hidden behind Remote Config flags. | Game Engineer | P2 | Review §T-533, DR-011 | Flags already hard-coded OFF (T-40) |
+
+### S-14.5 — Carried product/growth issues
+
+| ID    | Title                                                  | Role          | Priority | Refs             | Notes |
+| ----- | ------------------------------------------------------ | ------------- | -------- | ---------------- | ----- |
+| T-540 | Branch.io scale cliff: budget paid tier or spec store-native-attribution fallback; share URLs behind swappable adapter. | Director | P2 | Review §T-540 | |
+| T-541 | `runs_anon` write validation: staged writes + Cloud Function validation + server-derived names + per-UID caps; audit `firestore.rules`. | Game Engineer | P2 | Review §T-541 | Blaze-gated (see 2026-06-06 note) |
+| T-542 | Leaderboard submission + replay anti-cheat: `(seed, input_log)` re-simulated with shared `core/`; design doc before build. | Game Engineer | P2 | Review §T-542 | Blaze-gated, post-Gate-2 (DR-011) |
+| T-543 | LACE corpus re-budget: 66 mutations (commentary 132 / reactions ~198) + DR-008 boss treatment counts; update writer-contract SOW. | Director | P2 | Review §T-543 | T-318 budget already corrected |
+| T-544 | Compliance pass: Privacy Manifest, Play Data Safety, EU consent gating AdMob init, ATT decision, PEGI/ESRB body-horror check via Month-6 TestFlight. | Director | P3 | Review §T-544 | |
+
+---
+
 ## Cross-Epic Dependency Highlights
 
 | Dependency                                          | Implication                                                                                  |
@@ -1102,7 +1162,7 @@ Per UFD §11 and GDD scope discipline — these are intentionally **not** broken
 | Field      | Value                                                  |
 | ---------- | ------------------------------------------------------ |
 | Document   | Strand Descent — Task Plan                                     |
-| Version    | 1.0                                                    |
+| Version    | 1.1 (E-14 reconciliation, 2026-06-11)                  |
 | Owner      | Tudor Grigoriu / Empathy Software                      |
 | Created    | 2026-05-27                                             |
 | Status     | Pre-Production Lock — task source of truth             |
