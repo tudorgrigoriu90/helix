@@ -1,4 +1,5 @@
 import type { EnemyDef } from '@shared-types/enemy';
+import { isBossTier, ZONE_WARDEN_FLOORS } from '@shared-types/enemy';
 import type { ItemDef } from '@shared-types/item';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { MutationDef } from '@shared-types/mutation';
@@ -12,7 +13,8 @@ import { contentError } from './validation';
  * This checks the relationships *between* files — the bugs a schema can't catch:
  *
  *   - a floor's `enemyPool` / `bossId` point at enemies that actually exist
- *   - a floor's `bossId` resolves to a `boss`-tier enemy
+ *   - a floor's `bossId` resolves to the boss tier DR-008 assigns that floor:
+ *     `zone_warden` on zone-end floors (5/10/15/20), `floor_boss` elsewhere
  *   - no two enemy (or item) files share an id
  *
  * Pure and total: returns every problem found (empty array = clean) so the
@@ -49,7 +51,7 @@ export function crossReferenceContent(bundle: ContentBundle): ContentError[] {
       errors.push(
         contentError('INVALID_VALUE', `floor ${floor.floor} bossId references unknown enemy "${floor.bossId}"`, 'bossId'),
       );
-    } else if (boss.tier !== 'boss') {
+    } else if (!isBossTier(boss.tier)) {
       errors.push(
         contentError(
           'INVALID_VALUE',
@@ -57,6 +59,18 @@ export function crossReferenceContent(bundle: ContentBundle): ContentError[] {
           'bossId',
         ),
       );
+    } else {
+      // DR-008 (T-501): zone-end floors field a Zone Warden, all others a Floor Boss.
+      const expected = ZONE_WARDEN_FLOORS.includes(floor.floor) ? 'zone_warden' : 'floor_boss';
+      if (boss.tier !== expected) {
+        errors.push(
+          contentError(
+            'INVALID_VALUE',
+            `floor ${floor.floor} bossId "${floor.bossId}" is tier "${boss.tier}", expected "${expected}" (DR-008)`,
+            'bossId',
+          ),
+        );
+      }
     }
   }
 

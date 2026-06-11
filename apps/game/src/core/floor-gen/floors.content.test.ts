@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { EnemyDef } from '@shared-types/enemy';
+import { ZONE_WARDEN_FLOORS } from '@shared-types/enemy';
 import type { FloorTemplate, Zone } from '@shared-types/floor-template';
 import { parseFloorTemplate } from './floor-template-loader';
 import { parseEnemyDef } from '../content/enemy-loader';
@@ -92,7 +93,9 @@ describe('floor-template content — T-291 / T-298 / T-305', () => {
       }
       const boss = reg.get(tpl.bossId);
       expect(boss, `floor ${tpl.floor} boss ${tpl.bossId}`).toBeDefined();
-      expect(boss?.tier, `floor ${tpl.floor} boss ${tpl.bossId}`).toBe('boss');
+      // DR-008 (T-501): zone-end floors field a Zone Warden, all others a Floor Boss.
+      const expectedTier = ZONE_WARDEN_FLOORS.includes(tpl.floor) ? 'zone_warden' : 'floor_boss';
+      expect(boss?.tier, `floor ${tpl.floor} boss ${tpl.bossId}`).toBe(expectedTier);
       expect(boss?.zone, `floor ${tpl.floor} boss ${tpl.bossId}`).toBe(tpl.zone);
     }
   });

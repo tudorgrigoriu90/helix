@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "the_great_mycelium",
   "name": "The Great Mycelium",
-  "tier": "boss",
+  "tier": "zone_warden",
   "zone": "mycosphere",
   "maxHp": 124,
   "stats": { "str": 17, "res": 11, "agi": 5, "int": 6 },

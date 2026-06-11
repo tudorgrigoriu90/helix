@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "the_deep_furnace",
   "name": "The Deep Furnace",
-  "tier": "boss",
+  "tier": "floor_boss",
   "zone": "lithic",
   "maxHp": 123,
   "stats": { "str": 17, "res": 10, "agi": 7, "int": 9 },

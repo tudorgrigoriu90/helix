@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "hook_crab",
   "name": "Hook Crab",
   "tier": "grunt",

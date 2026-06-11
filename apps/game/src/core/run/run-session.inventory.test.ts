@@ -16,7 +16,7 @@ function template(): FloorTemplate {
 }
 const registry: EnemyRegistry = buildEnemyRegistry([
   { schemaVersion: 1, id: 'filterer', name: 'F', tier: 'grunt', zone: 'shallows', maxHp: 16, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
-  { schemaVersion: 1, id: 'pressure_warden', name: 'B', tier: 'boss', zone: 'shallows', maxHp: 60, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
+  { schemaVersion: 1, id: 'pressure_warden', name: 'B', tier: 'floor_boss', zone: 'shallows', maxHp: 60, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
 ]);
 
 const mk = (category: ItemCategory, id: string): ItemDef => ({ id, name: id, rarity: 'common', category, effect: null });

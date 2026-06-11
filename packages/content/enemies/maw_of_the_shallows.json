@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "maw_of_the_shallows",
   "name": "Maw of the Shallows",
-  "tier": "boss",
+  "tier": "floor_boss",
   "zone": "shallows",
   "maxHp": 92,
   "stats": { "str": 14, "res": 8, "agi": 5, "int": 6 },

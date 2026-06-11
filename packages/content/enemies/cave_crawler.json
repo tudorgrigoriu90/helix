@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "cave_crawler",
   "name": "Cave Crawler",
   "tier": "grunt",

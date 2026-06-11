@@ -1,4 +1,5 @@
 import type { EnemyTier } from '@shared-types/enemy';
+import { isBossTier } from '@shared-types/enemy';
 import type { ItemDef, ItemRarity } from '@shared-types/item';
 import type { Mulberry32 } from '../rng/mulberry32';
 
@@ -29,7 +30,10 @@ interface TierDrop {
 const TIER_DROP: Readonly<Record<EnemyTier, TierDrop>> = {
   grunt: { chance: 0.5, count: 1, bands: ['common'] },
   elite: { chance: 1, count: 1, bands: ['uncommon', 'rare'] },
-  boss: { chance: 1, count: 2, bands: ['rare', 'legendary'] }, // overridden below (1 Rare+, 1 any)
+  // Both boss tiers keep the historical boss drop until the T-502 economy
+  // split differentiates them (DR-008). Overridden below (1 Rare+, 1 any).
+  floor_boss: { chance: 1, count: 2, bands: ['rare', 'legendary'] },
+  zone_warden: { chance: 1, count: 2, bands: ['rare', 'legendary'] },
 };
 
 const ALL_RARITIES: readonly ItemRarity[] = ['common', 'uncommon', 'rare', 'legendary'];
@@ -81,7 +85,7 @@ export function rollItemDrops(tier: EnemyTier, pool: readonly ItemDef[], rng: Mu
   if (rng.next() >= cfg.chance) return [];
 
   const out: (ItemDef | undefined)[] = [];
-  if (tier === 'boss') {
+  if (isBossTier(tier)) {
     out.push(pickFromBands(pool, ['rare', 'legendary'], rng)); // guaranteed Rare+
     out.push(pickFromBands(pool, ALL_RARITIES, rng)); // plus one of any rarity
   } else {

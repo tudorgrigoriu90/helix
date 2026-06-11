@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { EnemyDef } from '@shared-types/enemy';
+import { isBossTier } from '@shared-types/enemy';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { RunState } from '@shared-types/run-state';
@@ -2263,7 +2264,7 @@ export class GameScene extends Phaser.Scene {
         drawHp(cx, cy, e.hp / e.maxHp, GC.hpRed);
         const def = this.enemyRegistry.get(e.enemyDefId);
         const name = def ? def.name : e.enemyDefId;
-        addLabel(cx, gy + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def?.tier === 'boss' ? C.red : C.yellow);
+        addLabel(cx, gy + e.pos.y * tile, `${name}\n${e.hp}/${e.maxHp}`, def !== undefined && isBossTier(def.tier) ? C.red : C.yellow);
 
         // T-159: in-reach marker — a red caret over any enemy that can strike the
         // player from where it stands right now (player phase only).
@@ -2275,7 +2276,7 @@ export class GameScene extends Phaser.Scene {
 
         // T-159: boss wind-up tell. Baseline enemies are read from their threat
         // range (above); only scripted boss telegraphs get an explicit icon.
-        if (def?.tier === 'boss' && e.telegraph !== null && e.telegraph !== 'idle') {
+        if (def !== undefined && isBossTier(def.tier) && e.telegraph !== null && e.telegraph !== 'idle') {
           const tg = this.add.text(cx, gy + e.pos.y * tile - 12, this.telegraphIcon(e.telegraph), {
             fontFamily: 'monospace', fontSize: '13px', color: '#ff4444',
           }).setOrigin(0.5, 1).setDepth(3);

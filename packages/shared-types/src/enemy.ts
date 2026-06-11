@@ -15,8 +15,35 @@
 import type { EntityStats, DamageType } from './run-state.js';
 import type { Zone } from './floor-template.js';
 
+/**
+ * Boss tiers — DR-008 (boss-per-floor, two tiers). Every floor ends in a boss:
+ * the four zone-end floors (5/10/15/20) field a bespoke `zone_warden`; the
+ * other sixteen field a `floor_boss` on the generic template.
+ */
+export type BossTier = 'floor_boss' | 'zone_warden';
+
 /** Combat role / power band. Bosses are referenced by a floor's `bossId`. */
-export type EnemyTier = 'grunt' | 'elite' | 'boss';
+export type EnemyTier = 'grunt' | 'elite' | BossTier;
+
+/** True for either boss tier (DR-008). */
+export function isBossTier(tier: EnemyTier): tier is BossTier {
+  return tier === 'floor_boss' || tier === 'zone_warden';
+}
+
+/** Floors whose boss is a Zone Warden (DR-008: one per zone end). */
+export const ZONE_WARDEN_FLOORS: readonly number[] = [5, 10, 15, 20];
+
+/**
+ * The four authored Zone Wardens, in floor order (5/10/15/20). A stable
+ * contract fact locked by DR-008 — used by the v1→v2 enemy migration and the
+ * content-bundle gate.
+ */
+export const ZONE_WARDEN_IDS: readonly string[] = [
+  'leviathan_hatchling',
+  'the_great_mycelium',
+  'the_mountains_heart',
+  'the_convergence',
+];
 
 export interface EnemyDef {
   /** Bumped when the on-disk JSON shape changes; loader runs migrations. */
@@ -38,5 +65,9 @@ export interface EnemyDef {
   readonly aestheticTags: readonly string[];
 }
 
-/** Current enemy-def schema version. Increment when the on-disk shape changes. */
-export const CURRENT_ENEMY_SCHEMA_VERSION = 1;
+/**
+ * Current enemy-def schema version. Increment when the on-disk shape changes.
+ * v2 (T-501, DR-008): the single `boss` tier split into
+ * `floor_boss` / `zone_warden`; the loader migrates v1 files.
+ */
+export const CURRENT_ENEMY_SCHEMA_VERSION = 2;

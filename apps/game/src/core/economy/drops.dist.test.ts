@@ -40,7 +40,7 @@ function sampleTier(tier: EnemyTier): { counts: Record<string, number>; veinOk: 
 }
 
 describe('drop-rate distribution — T-109 (chi-squared, 100K samples)', () => {
-  for (const tier of ['grunt', 'elite', 'boss'] as const) {
+  for (const tier of ['grunt', 'elite', 'floor_boss', 'zone_warden'] as const) {
     it(`${tier}: empirical drop rates fit the configured probabilities`, () => {
       const rates = DROP_RATES[tier];
       const { counts, veinOk } = sampleTier(tier);

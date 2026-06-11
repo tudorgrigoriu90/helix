@@ -1,5 +1,5 @@
 import type { EnemyDef, EnemyTier } from '@shared-types/enemy';
-import { CURRENT_ENEMY_SCHEMA_VERSION } from '@shared-types/enemy';
+import { CURRENT_ENEMY_SCHEMA_VERSION, ZONE_WARDEN_IDS } from '@shared-types/enemy';
 import type { DamageType, EntityStats } from '@shared-types/run-state';
 import type { Zone } from '@shared-types/floor-template';
 import type { ContentError } from './validation';
@@ -31,7 +31,7 @@ export type EnemyLoaderResult =
   | { readonly ok: true; readonly enemy: EnemyDef }
   | { readonly ok: false; readonly error: ContentError };
 
-const VALID_TIERS = new Set<EnemyTier>(['grunt', 'elite', 'boss']);
+const VALID_TIERS = new Set<EnemyTier>(['grunt', 'elite', 'floor_boss', 'zone_warden']);
 const VALID_ZONES = new Set<Zone>(['shallows', 'mycosphere', 'lithic', 'convergence']);
 const VALID_DAMAGE_TYPES = new Set<DamageType>([
   'physical',
@@ -72,9 +72,26 @@ function readAestheticTags(raw: unknown): readonly string[] | ContentError {
   return raw as readonly string[];
 }
 
+/**
+ * v1 → v2 migration (T-501, DR-008): v1 had a single `boss` tier; v2 splits it
+ * into `floor_boss` / `zone_warden`. The four authored Wardens are identified
+ * by id ({@link ZONE_WARDEN_IDS}); every other v1 boss becomes a `floor_boss`.
+ */
+function migrateV1(payload: Record<string, unknown>): Record<string, unknown> {
+  if (payload['schemaVersion'] !== 1) return payload;
+  const migrated: Record<string, unknown> = { ...payload, schemaVersion: 2 };
+  if (payload['tier'] === 'boss') {
+    migrated['tier'] = ZONE_WARDEN_IDS.includes(payload['id'] as string)
+      ? 'zone_warden'
+      : 'floor_boss';
+  }
+  return migrated;
+}
+
 export function parseEnemyDef(input: unknown): EnemyLoaderResult {
-  const payload = asObject(input);
-  if (isContentError(payload)) return { ok: false, error: payload };
+  const raw = asObject(input);
+  if (isContentError(raw)) return { ok: false, error: raw };
+  const payload = migrateV1(raw);
 
   const schemaVersion = readSchemaVersion(payload, CURRENT_ENEMY_SCHEMA_VERSION);
   if (isContentError(schemaVersion)) return { ok: false, error: schemaVersion };

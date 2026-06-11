@@ -73,7 +73,10 @@ export const ALLOCATABLE_STATS: readonly (keyof EntityStats)[] = ['str', 'res', 
 export const XP_PER_KILL: Readonly<Record<EnemyTier, number>> = {
   grunt: 12,
   elite: 40,
-  boss: 200,
+  // Both DR-008 boss tiers grant the historical boss XP — the tier split
+  // (T-501) changes income (T-502), not leveling pace.
+  floor_boss: 200,
+  zone_warden: 200,
 };
 
 /** XP awarded for a single kill of `tier`. */

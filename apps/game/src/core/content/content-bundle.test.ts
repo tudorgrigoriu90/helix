@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { EnemyDef } from '@shared-types/enemy';
+import { ZONE_WARDEN_FLOORS, ZONE_WARDEN_IDS } from '@shared-types/enemy';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { ItemDef } from '@shared-types/item';
 import type { MutationDef } from '@shared-types/mutation';
@@ -117,6 +118,18 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
         lines.filter((l) => l.context === context).length,
         `context "${context}" must have ≥1 line`,
       ).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('ships exactly 4 Zone Wardens, on exactly floors 5/10/15/20 (T-501, DR-008)', () => {
+    const wardens = enemies.filter((e) => e.tier === 'zone_warden');
+    expect(wardens.map((e) => e.id).sort()).toEqual([...ZONE_WARDEN_IDS].sort());
+
+    const enemyById = new Map(enemies.map((e) => [e.id, e]));
+    for (const floor of floors) {
+      const boss = enemyById.get(floor.bossId);
+      const expected = ZONE_WARDEN_FLOORS.includes(floor.floor) ? 'zone_warden' : 'floor_boss';
+      expect(boss?.tier, `floor ${floor.floor} boss ${floor.bossId}`).toBe(expected);
     }
   });
 

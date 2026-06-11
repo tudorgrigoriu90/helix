@@ -3,7 +3,7 @@ import { parseEnemyDef } from './enemy-loader';
 
 function validRaw(): Record<string, unknown> {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'filterer',
     name: 'Filterer',
     tier: 'grunt',
@@ -46,9 +46,36 @@ describe('parseEnemyDef — T-283', () => {
   });
 
   it('rejects an unsupported schema version', () => {
-    const res = parseEnemyDef({ ...validRaw(), schemaVersion: 2 });
+    const res = parseEnemyDef({ ...validRaw(), schemaVersion: 3 });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.code).toBe('UNSUPPORTED_SCHEMA_VERSION');
+  });
+
+  it("v1 migration: a plain v1 'boss' becomes a floor_boss (T-501, DR-008)", () => {
+    const res = parseEnemyDef({ ...validRaw(), schemaVersion: 1, tier: 'boss' });
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.enemy.tier).toBe('floor_boss');
+      expect(res.enemy.schemaVersion).toBe(2);
+    }
+  });
+
+  it("v1 migration: a v1 'boss' with a Warden id becomes a zone_warden (T-501, DR-008)", () => {
+    const res = parseEnemyDef({
+      ...validRaw(), schemaVersion: 1, id: 'leviathan_hatchling', tier: 'boss',
+    });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.enemy.tier).toBe('zone_warden');
+  });
+
+  it("v1 migration: non-boss tiers pass through unchanged", () => {
+    const res = parseEnemyDef({ ...validRaw(), schemaVersion: 1 });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.enemy.tier).toBe('grunt');
+  });
+
+  it("v2 rejects the retired single 'boss' tier (T-501)", () => {
+    expect(parseEnemyDef({ ...validRaw(), tier: 'boss' }).ok).toBe(false);
   });
 
   it('requires id, name, maxHp', () => {

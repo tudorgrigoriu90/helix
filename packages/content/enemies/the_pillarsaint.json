@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "the_pillarsaint",
   "name": "The Pillarsaint",
-  "tier": "boss",
+  "tier": "floor_boss",
   "zone": "lithic",
   "maxHp": 128,
   "stats": { "str": 16, "res": 11, "agi": 6, "int": 11 },

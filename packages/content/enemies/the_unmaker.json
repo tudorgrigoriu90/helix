@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "the_unmaker",
   "name": "The Unmaker",
-  "tier": "boss",
+  "tier": "floor_boss",
   "zone": "convergence",
   "maxHp": 137,
   "stats": { "str": 18, "res": 11, "agi": 7, "int": 10 },

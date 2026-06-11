@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "leviathan_hatchling",
   "name": "Leviathan Hatchling",
-  "tier": "boss",
+  "tier": "zone_warden",
   "zone": "shallows",
   "maxHp": 95,
   "stats": { "str": 14, "res": 8, "agi": 4, "int": 6 },

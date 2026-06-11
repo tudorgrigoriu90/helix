@@ -55,7 +55,7 @@ function mutation(id: string): MutationDef {
 
 function bundle(over: Partial<ContentBundle> = {}): ContentBundle {
   return {
-    enemies: [enemy('grunt_a'), enemy('big_boss', 'boss')],
+    enemies: [enemy('grunt_a'), enemy('big_boss', 'floor_boss')],
     items: [item('x')],
     floors: [floor()],
     mutations: [mutation('m1')],
@@ -70,7 +70,7 @@ describe('crossReferenceContent — T-288', () => {
 
   it('flags an enemyPool id with no matching enemy', () => {
     const errs = crossReferenceContent(bundle({
-      enemies: [enemy('big_boss', 'boss')], // grunt_a missing
+      enemies: [enemy('big_boss', 'floor_boss')], // grunt_a missing
     }));
     expect(errs.some((e) => e.field === 'enemyPool' && e.message.includes('grunt_a'))).toBe(true);
   });
@@ -89,9 +89,31 @@ describe('crossReferenceContent — T-288', () => {
     expect(errs.some((e) => e.field === 'bossId' && e.message.includes('expected a boss'))).toBe(true);
   });
 
+  it('flags a floor_boss on a zone-end floor — wardens only (DR-008, T-501)', () => {
+    const errs = crossReferenceContent(bundle({
+      floors: [floor({ floor: 5 })], // floor 5 demands a zone_warden
+    }));
+    expect(errs.some((e) => e.field === 'bossId' && e.message.includes('expected "zone_warden"'))).toBe(true);
+  });
+
+  it('flags a zone_warden on a non-zone-end floor (DR-008, T-501)', () => {
+    const errs = crossReferenceContent(bundle({
+      enemies: [enemy('grunt_a'), enemy('big_boss', 'zone_warden')],
+    }));
+    expect(errs.some((e) => e.field === 'bossId' && e.message.includes('expected "floor_boss"'))).toBe(true);
+  });
+
+  it('accepts a zone_warden on a zone-end floor (DR-008, T-501)', () => {
+    const errs = crossReferenceContent(bundle({
+      enemies: [enemy('grunt_a'), enemy('big_boss', 'zone_warden')],
+      floors: [floor({ floor: 10 })],
+    }));
+    expect(errs).toEqual([]);
+  });
+
   it('flags duplicate enemy and item ids', () => {
     const errs = crossReferenceContent(bundle({
-      enemies: [enemy('grunt_a'), enemy('grunt_a'), enemy('big_boss', 'boss')],
+      enemies: [enemy('grunt_a'), enemy('grunt_a'), enemy('big_boss', 'floor_boss')],
       items: [item('x'), item('x')],
     }));
     expect(errs.filter((e) => e.message.includes('duplicate enemy id'))).toHaveLength(1);

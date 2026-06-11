@@ -11,34 +11,36 @@ import {
 
 describe('VEIN drops — T-106 (GDD §9.4, Economy.xlsx)', () => {
   it('per-kill VEIN matches the workbook drivers', () => {
-    expect(VEIN_PER_KILL).toEqual({ grunt: 8, elite: 25, boss: 120 });
+    expect(VEIN_PER_KILL).toEqual({ grunt: 8, elite: 25, floor_boss: 120, zone_warden: 120 });
     expect(veinForKill('grunt')).toBe(8);
-    expect(veinForKill('boss')).toBe(120);
+    expect(veinForKill('floor_boss')).toBe(120);
+    expect(veinForKill('zone_warden')).toBe(120);
     expect(FLOOR_VEIN_CONSTANT).toBe(50);
   });
 
-  it('reproduces the workbook PER-FLOOR INCOME (floor 1 = 151.5)', () => {
-    expect(expectedFloorVein(8, 1.5, false)).toBe(151.5); // 64 + 37.5 + 50
+  it('reproduces the workbook PER-FLOOR INCOME with the boss unkilled (floor 1 = 151.5)', () => {
+    expect(expectedFloorVein(8, 1.5, null)).toBe(151.5); // 64 + 37.5 + 50
   });
 
-  it('reproduces a boss floor income (= 202)', () => {
-    expect(expectedFloorVein(4, 0, true)).toBe(202); // 32 + 120 + 50
+  it('reproduces a warden floor income (= 202)', () => {
+    expect(expectedFloorVein(4, 0, 'zone_warden')).toBe(202); // 32 + 120 + 50
   });
 
   it('drop-rate table matches the Drop Rates tab', () => {
     expect(DROP_RATES.grunt).toEqual({ vein: 1, mod: 0.05, rareCore: 0, epicCore: 0 });
     expect(DROP_RATES.elite.mod).toBe(0.3);
-    expect(DROP_RATES.boss.rareCore).toBe(0.6);
-    expect(DROP_RATES.boss.epicCore).toBe(0.15);
+    expect(DROP_RATES.floor_boss.rareCore).toBe(0.6);
+    expect(DROP_RATES.zone_warden.rareCore).toBe(0.6);
+    expect(DROP_RATES.zone_warden.epicCore).toBe(0.15);
   });
 
   it('rolls no SIG drop — SIG comes only from mutations (T-500, DR-007)', () => {
     expect(Object.keys(DROP_RATES.grunt)).not.toContain('sig');
-    expect(Object.keys(rollKillDrops('boss', makeRng(1, 'loot')))).not.toContain('sig');
+    expect(Object.keys(rollKillDrops('zone_warden', makeRng(1, 'loot')))).not.toContain('sig');
   });
 
   it('always grants VEIN at the tier amount', () => {
-    for (const tier of ['grunt', 'elite', 'boss'] as const) {
+    for (const tier of ['grunt', 'elite', 'floor_boss', 'zone_warden'] as const) {
       const d = rollKillDrops(tier, makeRng(1, 'loot'));
       expect(d.vein).toBe(VEIN_PER_KILL[tier]);
     }
@@ -46,7 +48,8 @@ describe('VEIN drops — T-106 (GDD §9.4, Economy.xlsx)', () => {
 
   it('a boss never drops item mods (probability 0)', () => {
     for (let seed = 0; seed < 50; seed++) {
-      expect(rollKillDrops('boss', makeRng(seed, 'loot')).mod).toBe(false);
+      expect(rollKillDrops('floor_boss', makeRng(seed, 'loot')).mod).toBe(false);
+      expect(rollKillDrops('zone_warden', makeRng(seed, 'loot')).mod).toBe(false);
     }
   });
 

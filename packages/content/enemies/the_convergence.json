@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "the_convergence",
   "name": "The Convergence",
-  "tier": "boss",
+  "tier": "zone_warden",
   "zone": "convergence",
   "maxHp": 162,
   "stats": { "str": 20, "res": 14, "agi": 4, "int": 6 },

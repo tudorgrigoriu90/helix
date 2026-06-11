@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "eclipse_warden",
   "name": "Eclipse Warden",
   "tier": "elite",

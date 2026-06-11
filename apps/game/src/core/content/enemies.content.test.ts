@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { EnemyDef } from '@shared-types/enemy';
+import { isBossTier, ZONE_WARDEN_IDS } from '@shared-types/enemy';
 import type { Zone } from '@shared-types/floor-template';
 import { parseEnemyDef } from './enemy-loader';
 
@@ -74,13 +75,18 @@ describe('enemy content — T-290 / T-296 / T-303', () => {
     const enemies = allEnemies();
     const zonesPresent = new Set(enemies.map((e) => e.zone));
     for (const zone of zonesPresent) {
-      const bosses = enemies.filter((e) => e.zone === zone && e.tier === 'boss');
+      const bosses = enemies.filter((e) => e.zone === zone && isBossTier(e.tier));
       expect(bosses.length, `zone ${zone} has no boss`).toBeGreaterThanOrEqual(1);
     }
   });
 
+  it('ships exactly the four DR-008 Zone Wardens (T-501)', () => {
+    const wardens = allEnemies().filter((e) => e.tier === 'zone_warden');
+    expect(wardens.map((e) => e.id).sort()).toEqual([...ZONE_WARDEN_IDS].sort());
+  });
+
   it('no boss id is shared — every boss is unique', () => {
-    const bossIds = allEnemies().filter((e) => e.tier === 'boss').map((e) => e.id);
+    const bossIds = allEnemies().filter((e) => isBossTier(e.tier)).map((e) => e.id);
     expect(new Set(bossIds).size).toBe(bossIds.length);
   });
 });
