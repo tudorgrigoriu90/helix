@@ -13,8 +13,16 @@ import type { EntityStats } from '@shared-types/run-state';
  *   → Floor 1 = ×1.0 (authored), Floor 2 = +one step, …
  */
 
-export const HP_SCALE_PER_FLOOR = 0.15;
-export const STAT_SCALE_PER_FLOOR = 0.10;
+/*
+ * Retuned 2026-06-11 (T-524): at the original 0.15/0.10 the competent-policy
+ * harness cleared Floor 15+ at exactly 0% — the five endings behind Floor 20
+ * were unreachable. 0.08/0.06 (with a light Zone-4 STR pass on the
+ * true-damage hitters) lands the curve at F1 98% / F5 98% / F10 57% /
+ * F15 20% / F20 8%: still steeply punishing, but the Convergence is reachable
+ * (balance.test.ts enforces the [2%, 30%] Floor-20 band).
+ */
+export const HP_SCALE_PER_FLOOR = 0.08;
+export const STAT_SCALE_PER_FLOOR = 0.06;
 
 function factor(floor: number, perFloor: number): number {
   return 1 + Math.max(0, floor - 1) * perFloor;

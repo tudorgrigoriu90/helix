@@ -5,7 +5,7 @@
   "tier": "floor_boss",
   "zone": "convergence",
   "maxHp": 142,
-  "stats": { "str": 17, "res": 12, "agi": 6, "int": 12 },
+  "stats": { "str": 15, "res": 12, "agi": 6, "int": 12 },
   "damageType": "true",
   "aestheticTags": ["devourer", "abyssal", "boss"]
 }

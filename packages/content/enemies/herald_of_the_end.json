@@ -5,7 +5,7 @@
   "tier": "elite",
   "zone": "convergence",
   "maxHp": 51,
-  "stats": { "str": 12, "res": 9, "agi": 5, "int": 11 },
+  "stats": { "str": 11, "res": 9, "agi": 5, "int": 11 },
   "damageType": "true",
   "aestheticTags": ["herald", "apocalyptic"]
 }

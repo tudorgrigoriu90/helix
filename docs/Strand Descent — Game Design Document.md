@@ -619,11 +619,24 @@ Minimap shows room outlines but not room type until visited. Safe-room locations
 
 ### 7.5 Floor Difficulty Scaling
 
-Enemy stats scale with floor:
-- HP: Base × (1 + floor × 0.15)
-- Damage: Base × (1 + floor × 0.12)
+Enemy stats scale with floor (Floor 1 is the authored baseline):
+- HP: Base × (1 + (floor − 1) × 0.08)
+- Damage (STR): Base × (1 + (floor − 1) × 0.06)
+- RES / AGI / INT: No scaling (enemies stay killable; stable crit + AI)
 - Speed: No scaling (keeps combat readable)
 - New abilities unlock for enemy types at floors 5, 10, 15
+
+> **Tuning note — 2026-06-11 (T-524).** Coefficients retuned from the original
+> 0.15 / 0.12 (and a light STR pass on the Zone-4 true-damage stat blocks —
+> true damage ignores RES, so Zone 4 was an unsurvivable wall): the CI balance
+> harness proved that at the original values a competent player cleared
+> Floor 15+ at exactly **0%** — the five §2.8 endings behind the Floor 20
+> Convergence were unreachable, violating the DR-008/T-524 intent that the
+> Apex be *punishing but reachable*. The retuned curve measures F1 98% /
+> F5 98% / F10 57% / F15 20% / F20 8%, and the harness now enforces a Floor-20
+> clear-rate band of **[2%, 30%]** (`balance.test.ts`), so any future change
+> that walls off the endings fails CI. Code source of truth:
+> `core/run/scaling.ts` + `packages/content/enemies/`.
 
 Item tier scales with floor:
 - Floors 1–5: Common only

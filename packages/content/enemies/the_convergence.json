@@ -5,7 +5,7 @@
   "tier": "zone_warden",
   "zone": "convergence",
   "maxHp": 162,
-  "stats": { "str": 20, "res": 14, "agi": 4, "int": 6 },
+  "stats": { "str": 17, "res": 14, "agi": 4, "int": 6 },
   "damageType": "true",
   "aestheticTags": ["leviathan", "apex", "boss"]
 }

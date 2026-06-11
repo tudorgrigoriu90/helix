@@ -5,7 +5,7 @@
   "tier": "floor_boss",
   "zone": "convergence",
   "maxHp": 137,
-  "stats": { "str": 18, "res": 11, "agi": 7, "int": 10 },
+  "stats": { "str": 16, "res": 11, "agi": 7, "int": 10 },
   "damageType": "void",
   "aestheticTags": ["gate", "threshold", "boss"]
 }

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { Action, Position } from '@shared-types/action';
 import type { EnemyState, RunState } from '@shared-types/run-state';
+import type { ItemDef } from '@shared-types/item';
 import { makeRng } from '../rng/mulberry32';
 import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances } from '../floor-gen';
@@ -18,15 +19,22 @@ import { parseMutationDef } from '../content/mutation-loader';
  * T-78 balance guard — extended to all 20 milestone floors.
  *
  * Auto-plays full runs with the real shipped content (enemies, items,
- * floor templates, mutations), a competent policy (heal when low, AoE on
- * clusters, lance/nuke on singles, melee fallback), and stat-point allocation.
+ * floor templates, mutations) and a competent policy: heal when low, AoE on
+ * clusters, lance/nuke on singles, melee fallback, STR/RES stat allocation,
+ * Dispenser shopping (heals first, then damage consumables), best-card Strand
+ * picks, and rest detours only to safe rooms whose one-shot heal is unspent.
  * Checks that the difficulty curve is shaped correctly: Floor 1 is reliably
- * winnable, and the mid-game + late game become progressively harder.
+ * winnable, the mid/late game gets progressively harder, and the Floor-20
+ * Convergence stays *reachable* (T-524 band — five endings live behind it).
  */
 
 const FLOOR1_CLEAR_MIN = 0.9; // F1 is the tutorial slice — must be reliable
 const ZONE1_END_MIN = 0.2; // F5 (Zone 1 finale) still beatable for a competent player
-const APEX_CLEAR_MAX = 0.3; // F20 is punishing — clear rate must stay below 30%
+// F20 band (T-524, review F5): punishing — but the five endings live behind
+// Floor 20, so "unreachable" (≈0%) is a shipped-content defect, not difficulty.
+// Tune the floor of the band upward as the policy improves.
+const APEX_CLEAR_MIN = 0.02; // endings must be *reachable*
+const APEX_CLEAR_MAX = 0.3; // …but never trivial
 
 const CONTENT = fileURLToPath(new URL('../../../../../packages/content/', import.meta.url));
 
@@ -98,8 +106,9 @@ function chooseCombat(state: RunState): Action {
   const living = state.enemies.filter((e) => e.hp > 0).slice().sort(byId);
   if (living.length === 0 || p.ap <= 0) return { type: 'endTurn' };
 
-  // Heal when below 35% HP or below 25 absolute HP — prefer highest heal
-  if (p.hp / p.maxHp < 0.35 || p.hp < 25) {
+  // Heal when below 50% HP or below 40 absolute HP — prefer highest heal
+  // (deep floors burst for 50+ HP per enemy phase, so 35% was already dead).
+  if (p.hp / p.maxHp < 0.5 || p.hp < 40) {
     const healAmount = (e: typeof p.items[number]['effect']): number =>
       e?.kind === 'heal' ? e.amount : 0;
     const heals = p.items.filter((i) => i.effect?.kind === 'heal');
@@ -130,9 +139,9 @@ function chooseCombat(state: RunState): Action {
     if (aoe && aoe.count >= 2) return { type: 'useItem', itemId: aoeItem.id, targetPos: aoe.pos };
   }
 
-  // Single-target damage consumable on lone enemy
+  // Single-target damage consumable when the pack is thin
   const stItem = p.items.find((i) => i.effect?.kind === 'damage' && i.effect.aoeRadius === 0);
-  if (stItem && living.length <= 2) {
+  if (stItem && living.length <= 3) {
     const t = living.find((e) => chebyshev(p.pos, e.pos) <= 99);
     if (t) return { type: 'useItem', itemId: stItem.id, targetPos: t.pos };
   }
@@ -143,6 +152,25 @@ function chooseCombat(state: RunState): Action {
 
   // Step toward nearest enemy
   return { type: 'move', targetPos: step(p.pos, living[0]!.pos) };
+}
+
+// ── Merchant shopping ──────────────────────────────────────────────────────
+
+/** Buys heal consumables (biggest first) whenever the policy passes a
+ *  Dispenser with VEIN to spare — the sustain a real competent player relies
+ *  on for the deep floors (T-524 policy upgrade). */
+function shopAtMerchant(s: RunSession): void {
+  if (!s.isAtDispenser()) return;
+  const healAmount = (i: { effect: ItemDef['effect'] }): number =>
+    i.effect?.kind === 'heal' ? i.effect.amount : 0;
+  const stock = [...s.dispenserStock()];
+  const heals = stock
+    .filter((i) => i.effect?.kind === 'heal')
+    .sort((a, b) => healAmount(b) - healAmount(a));
+  const nukes = stock.filter((i) => i.effect?.kind === 'damage');
+  for (const item of [...heals, ...nukes]) {
+    if (s.canAfford(item) && s.canCarry(item)) s.purchaseItem(item);
+  }
 }
 
 // ── Loot claiming ──────────────────────────────────────────────────────────
@@ -163,14 +191,18 @@ function claimPendingLoot(s: RunSession): void {
 
 // ── Navigation ────────────────────────────────────────────────────────────
 
-function nextRoom(s: RunSession): string | undefined {
+function nextRoom(s: RunSession, visited: ReadonlySet<string>): string | undefined {
   const snap = s.snapshot;
   const adj = s.adjacentRooms();
   const dist = bfsDistances(s.floor.bossRoomId, s.floor.rooms, s.floor.edges);
 
-  // Prefer safe rooms when hurt
+  // Prefer safe rooms when hurt — but only unvisited ones: the 25% rest heal
+  // fires on first entry only, so revisiting a spent safe room livelocks the
+  // policy ping-ponging between it and the boss path (T-524 fix).
   if (snap.player.hp / snap.player.maxHp < 0.6) {
-    const safeAdj = adj.find((id) => s.floor.rooms.find((r) => r.id === id)?.type === 'safe');
+    const safeAdj = adj.find(
+      (id) => !visited.has(id) && s.floor.rooms.find((r) => r.id === id)?.type === 'safe',
+    );
     if (safeAdj) return safeAdj;
   }
 
@@ -197,27 +229,40 @@ function playRun(seed: number, finalFloor: number): string {
     mutations,
   });
 
+  const visited = new Set<string>([s.snapshot.currentRoomId]);
   for (let i = 0; i < 4000; i++) {
     const status = s.snapshot.status;
     if (status === 'victory' || status === 'defeat') return status;
 
     if (status === 'floor_complete') {
       s.descend();
+      visited.clear();
+      visited.add(s.snapshot.currentRoomId);
       continue;
     }
 
     if (status === 'strand_event') {
       const outcome = s.beginStrandEvent();
       if (outcome.kind === 'draw' && s.strandOffer.length > 0) {
-        s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+        const score = (m: (typeof s.strandOffer)[number]['mutation']): number =>
+          (m.grantsAbility !== null ? 100 : 0) +
+          m.modifiers.reduce((acc, mod) => acc + Math.max(0, mod.delta), 0);
+        const best = [...s.strandOffer].sort(
+          (a, b) => score(b.mutation) - score(a.mutation),
+        )[0]!;
+        s.chooseStrandMutation(best.mutation.id);
       } else {
         s.acceptIntermission();
       }
       continue;
     }
 
-    // Allocate any pending stat points to STR
-    while (s.snapshot.pendingStatPoints > 0) s.allocateStatPoint('str');
+    // Alternate stat points STR/RES — damage to finish fights, RES to survive
+    // the deep-floor burst (T-524 policy upgrade over all-STR).
+    while (s.snapshot.pendingStatPoints > 0) {
+      const { str, res } = s.snapshot.player.stats;
+      s.allocateStatPoint(str <= res + 2 ? 'str' : 'res');
+    }
 
     if (s.needsCombat()) {
       const rs = s.beginEncounter();
@@ -232,9 +277,11 @@ function playRun(seed: number, finalFloor: number): string {
       s.endEncounter(state);
       claimPendingLoot(s);
     } else {
-      const next = nextRoom(s);
+      shopAtMerchant(s);
+      const next = nextRoom(s, visited);
       if (next === undefined) break;
       s.moveTo(next);
+      visited.add(next);
       claimPendingLoot(s);
     }
   }
@@ -278,7 +325,8 @@ describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
       expect(rates[i]).toBeLessThanOrEqual(rates[i - 1]!);
     }
 
-    // Apex (F20) is punishing — low clear rate confirms intended difficulty
+    // Apex (F20) band: punishing, yet the endings stay reachable (T-524)
+    expect(rates[rates.length - 1]).toBeGreaterThanOrEqual(APEX_CLEAR_MIN);
     expect(rates[rates.length - 1]).toBeLessThan(APEX_CLEAR_MAX);
   });
 });

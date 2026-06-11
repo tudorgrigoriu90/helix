@@ -24,7 +24,7 @@ describe('difficulty scaling — T-78', () => {
 
   it('grows monotonically with depth, and HP outpaces offense', () => {
     expect(scaledMaxHp(20, 10)).toBeGreaterThan(scaledMaxHp(20, 5));
-    // 0.15/floor HP vs 0.10/floor STR — HP ratio should exceed STR ratio at depth.
+    // HP/floor scale vs STR/floor scale — HP ratio should exceed STR ratio at depth.
     const hpRatio = scaledMaxHp(100, 11) / 100;
     const strRatio = scaledStats({ str: 100, res: 10, agi: 1, int: 1 }, 11).str / 100;
     expect(hpRatio).toBeGreaterThan(strRatio);
