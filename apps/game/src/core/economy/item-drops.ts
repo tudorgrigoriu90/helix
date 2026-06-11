@@ -1,15 +1,16 @@
 import type { EnemyTier } from '@shared-types/enemy';
-import { isBossTier } from '@shared-types/enemy';
 import type { ItemDef, ItemRarity } from '@shared-types/item';
 import type { Mulberry32 } from '../rng/mulberry32';
 
 /**
  * Enemy item-drop rolls — T-445 (GDD §9.4).
  *
- * On a kill, roll the *items* an enemy drops from the floor's item pool, by tier:
- *   - grunt: 50% chance → 1 Common
- *   - elite: 100% → 1 Uncommon/Rare
- *   - boss:  100% → 2 items (1 guaranteed Rare+, 1 of any rarity)
+ * On a kill, roll the *items* an enemy drops from the floor's item pool, by tier
+ * (boss tiers split per DR-008/T-502):
+ *   - grunt:       50% chance → 1 Common
+ *   - elite:       100% → 1 Uncommon/Rare
+ *   - floor_boss:  100% → 1 item, guaranteed Uncommon+
+ *   - zone_warden: 100% → 2 items (1 guaranteed Rare+, 1 of any rarity)
  *
  * Pure: the only entropy is the supplied RNG (the `loot` sub-generator), so the
  * same kill on the same seed always drops the same items. Distinct from the VEIN
@@ -30,10 +31,8 @@ interface TierDrop {
 const TIER_DROP: Readonly<Record<EnemyTier, TierDrop>> = {
   grunt: { chance: 0.5, count: 1, bands: ['common'] },
   elite: { chance: 1, count: 1, bands: ['uncommon', 'rare'] },
-  // Both boss tiers keep the historical boss drop until the T-502 economy
-  // split differentiates them (DR-008). Overridden below (1 Rare+, 1 any).
-  floor_boss: { chance: 1, count: 2, bands: ['rare', 'legendary'] },
-  zone_warden: { chance: 1, count: 2, bands: ['rare', 'legendary'] },
+  floor_boss: { chance: 1, count: 1, bands: ['uncommon', 'rare', 'legendary'] }, // 1× Uncommon+
+  zone_warden: { chance: 1, count: 2, bands: ['rare', 'legendary'] }, // overridden below (1 Rare+, 1 any)
 };
 
 const ALL_RARITIES: readonly ItemRarity[] = ['common', 'uncommon', 'rare', 'legendary'];
@@ -85,7 +84,7 @@ export function rollItemDrops(tier: EnemyTier, pool: readonly ItemDef[], rng: Mu
   if (rng.next() >= cfg.chance) return [];
 
   const out: (ItemDef | undefined)[] = [];
-  if (isBossTier(tier)) {
+  if (tier === 'zone_warden') {
     out.push(pickFromBands(pool, ['rare', 'legendary'], rng)); // guaranteed Rare+
     out.push(pickFromBands(pool, ALL_RARITIES, rng)); // plus one of any rarity
   } else {

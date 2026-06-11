@@ -202,8 +202,8 @@ README explicitly forbids editing a formula to make the answer prettier). 8.10 v
 | Domain        | Sheet driver(s)                                   | Code (`core/economy/…`)                | Status |
 | ------------- | ------------------------------------------------- | -------------------------------------- | ------ |
 | Campaign      | max_floor 20, zones 4, floors_per_zone 5, boss/5  | `pricing.ts` FLOORS_PER_ZONE = 5; floor content; `xp.ts` cap 20 | ✔ aligned (was the defect) |
-| VEIN drops    | grunt 8 / elite 25 / boss 120; floor const 50     | `drops.ts` VEIN_PER_KILL, FLOOR_VEIN_CONSTANT | ✔ |
-| Drop rates    | grunt/elite/boss mod/rare/epic probabilities (**SIG drop columns removed per DR-007**) | `drops.ts` DROP_RATES (SIG entries to be deleted) | ⚠ code change required (DR-007) |
+| VEIN drops    | grunt 8 / elite 25 / floor_boss 45 / zone_warden 120; floor const 50 | `drops.ts` VEIN_PER_KILL, FLOOR_VEIN_CONSTANT | ✔ aligned in code (T-502, 2026-06-11); sheet row pending v1.2 (T-521) |
+| Drop rates    | grunt/elite/boss mod/rare/epic probabilities (**SIG drop columns removed per DR-007**) | `drops.ts` DROP_RATES | ✔ SIG entries deleted in code (T-500, 2026-06-11); sheet columns pending v1.2 (T-521) |
 | Shards        | shard_per_vein_conversion 0.005                   | `shards.ts` SHARD_PER_VEIN             | ✔ |
 | Dispenser     | rarity scale 1 / 2.5 / 6 / 15; zone growth        | `pricing.ts` RARITY_VEIN_MULT, ZONE_PRICE_GROWTH | ✔ |
 | ~~Mutation cost~~ | ~~base 10, ×1.8/level, rarity 1/2.5/6/15~~    | ~~mutation cost system (S-3.4)~~       | **SUPERSEDED by DR-007 — system removed; mutations grant +10 SIG flat in-run (GDD §4.2)** |
@@ -223,17 +223,19 @@ forward into the lock.
   retention proxy with a Sigma-Strain / Origin / Codex unlock-pacing model.
 - **DR-007 follow-up (code), scoped after repo review 2026-06-09:** the grant
   model is already shipped (`core/mutation/sig.ts`, `sigBonus` in content,
-  SIG_CAP=40 at run scope) — **no rename needed**. Remaining change: delete the
-  SIG bonus-drop from `drops.ts` DROP_RATES (rolled but never consumed anywhere —
-  dead code) and its workbook columns. No S-3.4 purchase system exists in code.
+  SIG_CAP=40 at run scope) — **no rename needed**. ~~Remaining change: delete the
+  SIG bonus-drop from `drops.ts` DROP_RATES~~ **done 2026-06-11 (T-500)**; the
+  workbook columns still go with v1.2 (T-521). No S-3.4 purchase system exists in code.
 - **DR-008 follow-up (workbook v1.2):** add Floor Boss row to Enemy Stats / drop
   model (provisional 45 VEIN); update Currencies kill-mix (Floor Boss replaces
   one elite-equivalent on non-Warden floors; "halve commons" applies to Warden
   floors only); recompute §3 headline totals.
-- **DR-008 follow-up (code):** add `FLOOR_BOSS` tier to `drops.ts` VEIN_PER_KILL
-  and loot guarantees; implement the Floor Boss descriptor schema + the one-time
-  2-phase template behavior in the turn engine; re-run the balance harness with
-  per-floor bosses and re-publish the clear-rate curve.
+- **DR-008 follow-up (code):** ~~add `FLOOR_BOSS` tier to `drops.ts` VEIN_PER_KILL
+  and loot guarantees~~ **done 2026-06-11 (T-501/T-502: `floor_boss: 45` /
+  `zone_warden: 120`; loot floor_boss 1× Uncommon+, zone_warden 2× incl. 1
+  Rare+)**; still open: the Floor Boss descriptor schema + the one-time 2-phase
+  template behavior in the turn engine (T-503); re-run the balance harness with
+  per-floor bosses and re-publish the clear-rate curve (T-504).
 - **DR-010 follow-up (workbook v1.2):** delete the VEIN pack SKU row; re-price
   Pass tabs at $4.99/$39.99; replace minutes-saved SKU ratings with the
   cosmetic-attach model; re-run revenue scenarios.

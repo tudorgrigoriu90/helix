@@ -22,13 +22,13 @@ import type { Mulberry32 } from '../rng/mulberry32';
  * of the abandoned SIG-as-currency model and its result was never consumed.
  */
 
-/** Flat VEIN granted per kill, by enemy tier (Economy.xlsx drivers). Both boss
- *  tiers (DR-008 split, T-501) pay the historical boss amount until the T-502
- *  economy split lands the per-tier values. */
+/** Flat VEIN granted per kill, by enemy tier (Economy.xlsx drivers; boss tiers
+ *  split per DR-008/T-502 — Floor Bosses pay 45, Zone Wardens keep the
+ *  historical zone-end 120; workbook v1.2 (T-521) models the same kill mix). */
 export const VEIN_PER_KILL: Readonly<Record<EnemyTier, number>> = {
   grunt: 8,
   elite: 25,
-  floor_boss: 120,
+  floor_boss: 45,
   zone_warden: 120,
 };
 

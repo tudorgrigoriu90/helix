@@ -17,8 +17,9 @@ function template(): FloorTemplate {
   };
 }
 const registry: EnemyRegistry = buildEnemyRegistry([
-  { schemaVersion: 1, id: 'filterer', name: 'F', tier: 'grunt', zone: 'shallows', maxHp: 16, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
-  { schemaVersion: 1, id: 'pressure_warden', name: 'B', tier: 'floor_boss', zone: 'shallows', maxHp: 60, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
+  { schemaVersion: 2, id: 'filterer', name: 'F', tier: 'grunt', zone: 'shallows', maxHp: 16, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
+  { schemaVersion: 2, id: 'pressure_warden', name: 'B', tier: 'floor_boss', zone: 'shallows', maxHp: 60, stats: { str: 6, res: 2, agi: 5, int: 2 }, damageType: 'physical', aestheticTags: [] } as EnemyDef,
+  { schemaVersion: 2, id: 'deep_warden', name: 'W', tier: 'zone_warden', zone: 'shallows', maxHp: 95, stats: { str: 8, res: 4, agi: 4, int: 4 }, damageType: 'pressure', aestheticTags: [] } as EnemyDef,
 ]);
 const item = (id: string, rarity: ItemRarity): ItemDef => ({ id, name: id, rarity, category: 'consumable', effect: null });
 const POOL: readonly ItemDef[] = [item('c', 'common'), item('r', 'rare')];
@@ -41,11 +42,18 @@ function wonAgainst(combat: RunState, enemyDefId: string): RunState {
 }
 
 describe('RunSession — enemy drops + loot pickup (T-445)', () => {
-  it('rolls drops onto the pending pile on a kill (boss → 2 items)', () => {
+  it('rolls drops onto the pending pile on a kill (floor_boss → 1 item, T-502)', () => {
     const s = new RunSession({ seed: 5, template: template(), registry, itemPool: POOL });
     const combat = intoCombat(s);
     s.endEncounter(wonAgainst(combat, 'pressure_warden'));
-    expect(s.lootPending()).toHaveLength(2); // boss = 2 guaranteed
+    expect(s.lootPending()).toHaveLength(1); // floor_boss = 1 guaranteed (DR-008)
+  });
+
+  it('a zone_warden kill drops 2 items (T-502, DR-008)', () => {
+    const s = new RunSession({ seed: 5, template: template(), registry, itemPool: POOL });
+    const combat = intoCombat(s);
+    s.endEncounter(wonAgainst(combat, 'deep_warden'));
+    expect(s.lootPending()).toHaveLength(2); // zone_warden = 2 guaranteed (1 Rare+)
   });
 
   it('drops nothing when no item pool is supplied', () => {

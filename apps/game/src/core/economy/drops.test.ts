@@ -11,9 +11,9 @@ import {
 
 describe('VEIN drops — T-106 (GDD §9.4, Economy.xlsx)', () => {
   it('per-kill VEIN matches the workbook drivers', () => {
-    expect(VEIN_PER_KILL).toEqual({ grunt: 8, elite: 25, floor_boss: 120, zone_warden: 120 });
+    expect(VEIN_PER_KILL).toEqual({ grunt: 8, elite: 25, floor_boss: 45, zone_warden: 120 });
     expect(veinForKill('grunt')).toBe(8);
-    expect(veinForKill('floor_boss')).toBe(120);
+    expect(veinForKill('floor_boss')).toBe(45);
     expect(veinForKill('zone_warden')).toBe(120);
     expect(FLOOR_VEIN_CONSTANT).toBe(50);
   });
@@ -24,6 +24,10 @@ describe('VEIN drops — T-106 (GDD §9.4, Economy.xlsx)', () => {
 
   it('reproduces a warden floor income (= 202)', () => {
     expect(expectedFloorVein(4, 0, 'zone_warden')).toBe(202); // 32 + 120 + 50
+  });
+
+  it('reflects a Floor Boss kill on a non-warden floor (T-502, DR-008)', () => {
+    expect(expectedFloorVein(4, 0, 'floor_boss')).toBe(127); // 32 + 45 + 50
   });
 
   it('drop-rate table matches the Drop Rates tab', () => {

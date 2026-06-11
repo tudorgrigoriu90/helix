@@ -30,7 +30,15 @@ describe('rollItemDrops — T-445 (GDD §9.4)', () => {
     }
   });
 
-  it('a boss always drops 2 items, the first guaranteed Rare+', () => {
+  it('a floor_boss always drops exactly 1 item, guaranteed Uncommon+ (T-502, DR-008)', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const out = rollItemDrops('floor_boss', POOL, new Mulberry32(seed));
+      expect(out).toHaveLength(1);
+      expect(['uncommon', 'rare', 'legendary']).toContain(out[0]!.rarity);
+    }
+  });
+
+  it('a zone_warden always drops 2 items, the first guaranteed Rare+', () => {
     for (let seed = 0; seed < 50; seed++) {
       const out = rollItemDrops('zone_warden', POOL, new Mulberry32(seed));
       expect(out).toHaveLength(2);
@@ -43,6 +51,9 @@ describe('rollItemDrops — T-445 (GDD §9.4)', () => {
     const out = rollItemDrops('zone_warden', onlyCommon, new Mulberry32(1)); // wants Rare+, none exist
     expect(out).toHaveLength(2);
     expect(out.every((i) => i.id === 'c')).toBe(true);
+    const fb = rollItemDrops('floor_boss', onlyCommon, new Mulberry32(1)); // wants Uncommon+, none exist
+    expect(fb).toHaveLength(1);
+    expect(fb[0]!.id).toBe('c');
   });
 
   it('an empty pool drops nothing; rolls are deterministic per RNG state', () => {
