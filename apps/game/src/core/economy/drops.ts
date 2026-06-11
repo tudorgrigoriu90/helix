@@ -11,10 +11,15 @@ import type { Mulberry32 } from '../rng/mulberry32';
  * (`vein_per_floor_constant = 50`), reproducing the workbook's PER-FLOOR INCOME
  * column (e.g. floor 1: 8·8 + 1.5·25 + 50 = 151.5 expected VEIN).
  *
- * Beyond VEIN, each kill rolls independent bonus drops (SIG / item mod / rare
- * core / epic core) at the per-tier probabilities from the Drop Rates tab. The
- * roll is deterministic given the `loot` sub-generator (TDD §6.1); its empirical
+ * Beyond VEIN, each kill rolls independent bonus drops (item mod / rare core /
+ * epic core) at the per-tier probabilities from the Drop Rates tab. The roll is
+ * deterministic given the `loot` sub-generator (TDD §6.1); its empirical
  * distribution is the chi-squared gate in T-109.
+ *
+ * The SIG bonus drop that previously rode along here was removed (T-500,
+ * DR-007): SIG is run-scoped and granted solely by acquired mutations
+ * (`core/mutation/sig.ts` `sigBonus`), never by kills — the drop was a vestige
+ * of the abandoned SIG-as-currency model and its result was never consumed.
  */
 
 /** Flat VEIN granted per kill, by enemy tier (Economy.xlsx drivers). */
@@ -31,8 +36,6 @@ export const FLOOR_VEIN_CONSTANT = 50;
 export interface DropRates {
   /** VEIN currency — always drops (probability 1). */
   readonly vein: number;
-  /** A SIG shard. */
-  readonly sig: number;
   /** An item modifier. */
   readonly mod: number;
   /** A rare item core. */
@@ -42,9 +45,9 @@ export interface DropRates {
 }
 
 export const DROP_RATES: Readonly<Record<EnemyTier, DropRates>> = {
-  grunt: { vein: 1, sig: 0.2, mod: 0.05, rareCore: 0, epicCore: 0 },
-  elite: { vein: 1, sig: 0.65, mod: 0.3, rareCore: 0.1, epicCore: 0 },
-  boss: { vein: 1, sig: 1, mod: 0, rareCore: 0.6, epicCore: 0.15 },
+  grunt: { vein: 1, mod: 0.05, rareCore: 0, epicCore: 0 },
+  elite: { vein: 1, mod: 0.3, rareCore: 0.1, epicCore: 0 },
+  boss: { vein: 1, mod: 0, rareCore: 0.6, epicCore: 0.15 },
 };
 
 /** VEIN granted for a single kill of `tier`. */
@@ -69,7 +72,6 @@ export function expectedFloorVein(commons: number, elites: number, hasBoss: bool
 /** The drops yielded by one kill: guaranteed VEIN plus any rolled bonuses. */
 export interface KillDrops {
   readonly vein: number;
-  readonly sig: boolean;
   readonly mod: boolean;
   readonly rareCore: boolean;
   readonly epicCore: boolean;
@@ -84,7 +86,6 @@ export function rollKillDrops(tier: EnemyTier, rng: Mulberry32): KillDrops {
   const rates = DROP_RATES[tier];
   return {
     vein: VEIN_PER_KILL[tier],
-    sig: rng.next() < rates.sig,
     mod: rng.next() < rates.mod,
     rareCore: rng.next() < rates.rareCore,
     epicCore: rng.next() < rates.epicCore,

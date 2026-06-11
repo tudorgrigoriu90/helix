@@ -26,10 +26,15 @@ describe('VEIN drops — T-106 (GDD §9.4, Economy.xlsx)', () => {
   });
 
   it('drop-rate table matches the Drop Rates tab', () => {
-    expect(DROP_RATES.grunt).toEqual({ vein: 1, sig: 0.2, mod: 0.05, rareCore: 0, epicCore: 0 });
-    expect(DROP_RATES.elite.sig).toBe(0.65);
-    expect(DROP_RATES.boss.sig).toBe(1); // boss SIG guaranteed
+    expect(DROP_RATES.grunt).toEqual({ vein: 1, mod: 0.05, rareCore: 0, epicCore: 0 });
+    expect(DROP_RATES.elite.mod).toBe(0.3);
+    expect(DROP_RATES.boss.rareCore).toBe(0.6);
     expect(DROP_RATES.boss.epicCore).toBe(0.15);
+  });
+
+  it('rolls no SIG drop — SIG comes only from mutations (T-500, DR-007)', () => {
+    expect(Object.keys(DROP_RATES.grunt)).not.toContain('sig');
+    expect(Object.keys(rollKillDrops('boss', makeRng(1, 'loot')))).not.toContain('sig');
   });
 
   it('always grants VEIN at the tier amount', () => {
@@ -39,9 +44,9 @@ describe('VEIN drops — T-106 (GDD §9.4, Economy.xlsx)', () => {
     }
   });
 
-  it('a boss always drops SIG (probability 1)', () => {
+  it('a boss never drops item mods (probability 0)', () => {
     for (let seed = 0; seed < 50; seed++) {
-      expect(rollKillDrops('boss', makeRng(seed, 'loot')).sig).toBe(true);
+      expect(rollKillDrops('boss', makeRng(seed, 'loot')).mod).toBe(false);
     }
   });
 
