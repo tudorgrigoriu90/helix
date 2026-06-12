@@ -45,12 +45,31 @@ describe('parseOriginDef — T-301', () => {
     }
   });
 
+  it('parses the five unlockable-Origin perk kinds (T-307)', () => {
+    const perks = [
+      { kind: 'zoneDamageImmunity', damageType: 'thermal', throughFloor: 5 },
+      { kind: 'enemyHpReveal' },
+      { kind: 'extraWildCard' },
+      { kind: 'codexHeadStart', count: 2 },
+      { kind: 'inventorySlotBonus', category: 'consumable', slots: 1 },
+    ];
+    for (const perk of perks) {
+      const res = parseOriginDef({ ...valid(), perk });
+      expect(res.ok, JSON.stringify(perk)).toBe(true);
+    }
+  });
+
   it('rejects malformed perks', () => {
     expect(parseOriginDef({ ...valid(), perk: { kind: 'freeVein', amount: 999 } }).ok).toBe(false);
     expect(parseOriginDef({ ...valid(), perk: { kind: 'familyAffinity', family: 'cosmic' } }).ok).toBe(false);
     expect(parseOriginDef({ ...valid(), perk: { kind: 'damageResistPercent', damageType: 'pressure', percent: 250 } }).ok).toBe(false);
     expect(parseOriginDef({ ...valid(), perk: { kind: 'startingAbility', ability: null } }).ok).toBe(false);
     expect(parseOriginDef({ ...valid(), perk: 7 }).ok).toBe(false);
+    // T-307 kinds: 'true' immunity, zero counts, and bad categories all fail.
+    expect(parseOriginDef({ ...valid(), perk: { kind: 'zoneDamageImmunity', damageType: 'true', throughFloor: 5 } }).ok).toBe(false);
+    expect(parseOriginDef({ ...valid(), perk: { kind: 'zoneDamageImmunity', damageType: 'thermal', throughFloor: 0 } }).ok).toBe(false);
+    expect(parseOriginDef({ ...valid(), perk: { kind: 'codexHeadStart', count: 0 } }).ok).toBe(false);
+    expect(parseOriginDef({ ...valid(), perk: { kind: 'inventorySlotBonus', category: 'weapon', slots: 1 } }).ok).toBe(false);
   });
 
   it('rejects missing fields and bad versions', () => {

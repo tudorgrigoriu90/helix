@@ -1,5 +1,6 @@
 import type { OriginDef, OriginPerk } from '@shared-types/origin';
 import { CURRENT_ORIGIN_SCHEMA_VERSION } from '@shared-types/origin';
+import type { ItemCategory } from '@shared-types/item';
 import type { MutationFamily } from '@shared-types/mutation';
 import { FAMILY_RING } from '@shared-types/mutation';
 import type { DamageType } from '@shared-types/run-state';
@@ -13,6 +14,7 @@ import {
   readEnum,
   readNonEmptyString,
   readNonNegativeInt,
+  readPositiveInt,
   readSchemaVersion,
 } from './validation';
 import { readGrantsAbility } from './mutation-loader';
@@ -36,6 +38,7 @@ const VALID_ZONES = new Set<Zone>(['shallows', 'mycosphere', 'lithic', 'converge
 const VALID_DAMAGE_TYPES = new Set<DamageType>([
   'physical', 'thermal', 'void', 'spore', 'seismic', 'pressure', 'true',
 ]);
+const VALID_ITEM_CATEGORIES = new Set<ItemCategory>(['consumable', 'passive', 'equipment']);
 
 function readPerk(raw: unknown): OriginPerk | ContentError {
   if (!isPlainObject(raw)) {
@@ -76,6 +79,33 @@ function readPerk(raw: unknown): OriginPerk | ContentError {
       const percent = readNonNegativeInt(raw, 'percent');
       if (isContentError(percent)) return percent;
       return { kind: 'zoneVeinBonus', zone, percent };
+    }
+    // ── The five unlockable Origins' perks (T-307) ────────────────────────
+    case 'zoneDamageImmunity': {
+      const damageType = readEnum<DamageType>(raw, 'damageType', VALID_DAMAGE_TYPES);
+      if (isContentError(damageType)) return damageType;
+      if (damageType === 'true') {
+        return contentError('INVALID_VALUE', "'true' damage cannot be resisted (T-301 contract)", 'perk.damageType');
+      }
+      const throughFloor = readPositiveInt(raw, 'throughFloor');
+      if (isContentError(throughFloor)) return throughFloor;
+      return { kind: 'zoneDamageImmunity', damageType, throughFloor };
+    }
+    case 'enemyHpReveal':
+      return { kind: 'enemyHpReveal' };
+    case 'extraWildCard':
+      return { kind: 'extraWildCard' };
+    case 'codexHeadStart': {
+      const count = readPositiveInt(raw, 'count');
+      if (isContentError(count)) return count;
+      return { kind: 'codexHeadStart', count };
+    }
+    case 'inventorySlotBonus': {
+      const category = readEnum<ItemCategory>(raw, 'category', VALID_ITEM_CATEGORIES);
+      if (isContentError(category)) return category;
+      const slots = readPositiveInt(raw, 'slots');
+      if (isContentError(slots)) return slots;
+      return { kind: 'inventorySlotBonus', category, slots };
     }
     default:
       return contentError('INVALID_VALUE', `perk.kind "${String(raw['kind'])}" is not recognised`, 'perk.kind');

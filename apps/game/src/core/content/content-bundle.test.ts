@@ -169,14 +169,20 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
     }
   });
 
-  it('ships the five default Origins, perks resolving against shipped content (T-301)', () => {
+  it('ships all 10 Origins — 5 defaults + the 5 unlockables at their GDD §4.1 thresholds (T-301/T-307)', () => {
     const results = readDir('origins').map((o) => ({ file: o.file, res: parseOriginDef(o.raw) }));
     for (const { file, res } of results) {
       expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
     }
     const origins = results.flatMap((o) => (o.res.ok ? [o.res.origin] : []));
+    expect(origins).toHaveLength(10);
     const defaults = origins.filter((o) => o.unlockRuns === 0).map((o) => o.id).sort();
     expect(defaults).toEqual(['blacksite_agent', 'combat_medic', 'deep_sea_diver', 'field_biologist', 'geologist']);
+    // The unlockable five gate on the exact GDD §4.1 run-count milestones.
+    const unlockable = new Map(origins.filter((o) => o.unlockRuns > 0).map((o) => [o.id, o.unlockRuns]));
+    expect(Object.fromEntries(unlockable)).toEqual({
+      volcanologist: 10, xenobiologist: 25, sigma_prime: 50, the_archivist: 100, sigma_echo: 200,
+    });
     // A startingItem perk must reference shipped item content.
     const itemIds = new Set(items.map((i) => i.id));
     for (const o of origins) {

@@ -67,6 +67,9 @@ export interface PlayerState {
   /** Typed damage resists granted by the run's Origin (T-301). Optional:
    *  absent (pre-Origin saves) means none. */
   readonly resists?: readonly DamageResist[];
+  /** Extra inventory capacity per category (Sigma Echo Origin, T-307).
+   *  Optional: absent means the baseline SLOT_LIMITS apply unmodified. */
+  readonly slotBonus?: Readonly<Partial<Record<ItemDef['category'], number>>>;
 }
 
 /**
@@ -101,10 +104,16 @@ export interface EnemyState {
   readonly aware?: boolean;
 }
 
-/** A percent reduction against one incoming damage type (Origin perks, T-301). */
+/** A percent reduction against one incoming damage type (Origin perks T-301,
+ *  Sigma Strains T-306). Multiple entries of the same type stack additively,
+ *  capped at 100; a summed 100 is full immunity and bypasses the chip floor
+ *  (T-307). */
 export interface DamageResist {
   readonly damageType: DamageType;
   readonly percent: number;
+  /** When set, the resist holds only through this floor — the session prunes
+   *  it on loading a deeper one (Volcanologist's floors 1–5 immunity, T-307). */
+  readonly throughFloor?: number;
 }
 
 export type TurnPhase =

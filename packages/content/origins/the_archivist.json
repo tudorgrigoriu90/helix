@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "the_archivist",
+  "name": "The Archivist",
+  "tagline": "Begin each run with 2 Codex entries found",
+  "unlockRuns": 100,
+  "perk": {
+    "kind": "codexHeadStart",
+    "count": 2
+  },
+  "blurb": "One hundred descents, all of them documented. The Codex recognises a colleague now — a few of its pages simply open for you in advance."
+}

@@ -105,8 +105,31 @@ export function applyOriginPerk(
           { damageType: perk.damageType, percent: perk.percent },
         ],
       };
+    // T-307 (Volcanologist): full immunity through the early floors — a 100%
+    // resist carrying its expiry; the session prunes it past `throughFloor`.
+    case 'zoneDamageImmunity':
+      return {
+        ...player,
+        resists: [
+          ...(player.resists ?? []),
+          { damageType: perk.damageType, percent: 100, throughFloor: perk.throughFloor },
+        ],
+      };
+    // T-307 (Sigma Echo): extra carrying capacity in one category.
+    case 'inventorySlotBonus':
+      return {
+        ...player,
+        slotBonus: {
+          ...(player.slotBonus ?? {}),
+          [perk.category]: (player.slotBonus?.[perk.category] ?? 0) + perk.slots,
+        },
+      };
     case 'familyAffinity':
     case 'zoneVeinBonus':
+    case 'extraWildCard':
       return player; // session-level — applied via RunSessionOptions.origin
+    case 'enemyHpReveal':
+    case 'codexHeadStart':
+      return player; // scene-level — read off the OriginDef by GameScene (T-307)
   }
 }

@@ -20,6 +20,17 @@ function floorRng(cfg: SessionConfig, n: number): Mulberry32 {
   return new Mulberry32((cfg.masterSeed ^ Math.imul(n, 0x9e3779b1)) >>> 0);
 }
 
+/** Drops floor-scoped resists the current depth has outlived (T-307 — the
+ *  Volcanologist's floors 1–5 immunity expires on loading floor 6). Runs on
+ *  every floor load *and* after a save overlay, so a resumed deep run can
+ *  never resurrect an expired immunity. */
+export function pruneExpiredResists(st: SessionState): void {
+  const resists = st.player.resists;
+  if (resists === undefined || resists.length === 0) return;
+  const kept = resists.filter((r) => r.throughFloor === undefined || st.floorNumber <= r.throughFloor);
+  if (kept.length !== resists.length) st.player = { ...st.player, resists: kept };
+}
+
 /** (Re)generates floor `n` and resets the per-floor state onto it. */
 export function loadFloor(cfg: SessionConfig, st: SessionState, n: number): void {
   st.floorNumber = n;
@@ -39,6 +50,7 @@ export function loadFloor(cfg: SessionConfig, st: SessionState, n: number): void
   st.combatRngState = 0;
   st.pendingLoot = []; // uncollected loot doesn't follow you down a floor
   st.checkpoint = null; // descending consumes the act-end checkpoint (DR-009)
+  pruneExpiredResists(st); // floor-scoped immunities expire with depth (T-307)
   restIfSafe(st, st.current); // before auto-clear (once-per-room guard applies)
   autoClearIfTrivial(st, st.current);
   st.status = 'exploring';
@@ -105,4 +117,7 @@ export function applySave(cfg: SessionConfig, st: SessionState, save: RunSession
     st.combatState = null;
     st.combatRngState = 0;
   }
+  // The save's player overlay above replaced the one loadFloor pruned — prune
+  // again so a resumed run past the scope never resurrects an immunity (T-307).
+  pruneExpiredResists(st);
 }

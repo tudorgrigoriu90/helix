@@ -171,20 +171,21 @@ export function purchaseItem(st: SessionState, item: ItemDef): void {
 
 // ── Inventory (GDD §9.5 — capacity slots, drop-to-swap) ──────────────────────
 
-/** Per-category `{ count, limit }` for the inventory / swap UI (T-448). */
+/** Per-category `{ count, limit }` for the inventory / swap UI (T-448).
+ *  Honours the player's slot bonus (Sigma Echo Origin, T-307). */
 export function inventory(st: SessionState): Record<ItemCategory, { count: number; limit: number }> {
-  return inventoryCounts(st.player.items);
+  return inventoryCounts(st.player.items, st.player.slotBonus);
 }
 
 /** True when `item`'s category has a free slot. Callers offer a swap when false. */
 export function canCarry(st: SessionState, item: ItemDef): boolean {
-  return hasRoomFor(st.player.items, item.category);
+  return hasRoomFor(st.player.items, item.category, st.player.slotBonus);
 }
 
 /** Adds `item` if its category has room, folding in its passive modifiers
  *  (T-444). Returns false when full (→ caller offers a swap). */
 export function addItem(st: SessionState, item: ItemDef): boolean {
-  const res = addToInventory(st.player.items, item);
+  const res = addToInventory(st.player.items, item, st.player.slotBonus);
   if (res.added) st.player = { ...equipItem(st.player, item), items: res.items };
   return res.added;
 }

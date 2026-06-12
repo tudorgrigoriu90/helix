@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "sigma_prime",
+  "name": "Sigma Prime",
+  "tagline": "Strand Events carry one extra wild card",
+  "unlockRuns": 50,
+  "perk": {
+    "kind": "extraWildCard"
+  },
+  "blurb": "The strand has stopped predicting you. Every offer it makes now carries one card from outside your pattern, because your pattern stopped being the interesting part."
+}

@@ -60,4 +60,18 @@ describe('inventory — T-443 slot model (GDD §9.5)', () => {
     expect(counts.passive).toEqual({ count: 0, limit: 3 });
     expect(counts.equipment).toEqual({ count: 1, limit: 2 });
   });
+
+  it('a slot bonus raises one category cap without touching the others (Sigma Echo, T-307)', () => {
+    const bonus = { consumable: 1 } as const;
+    const fullConsumables = fill('consumable'); // 6 — at the baseline cap
+    expect(hasRoomFor(fullConsumables, 'consumable')).toBe(false);
+    expect(hasRoomFor(fullConsumables, 'consumable', bonus)).toBe(true);
+    const res = addItem(fullConsumables, item('consumable'), bonus);
+    expect(res.added).toBe(true);
+    expect(res.items).toHaveLength(7);
+    expect(addItem(res.items, item('consumable'), bonus).added).toBe(false); // 7 is the new cap
+    const counts = inventoryCounts(res.items, bonus);
+    expect(counts.consumable).toEqual({ count: 7, limit: 7 });
+    expect(counts.passive).toEqual({ count: 0, limit: 3 }); // other categories untouched
+  });
 });

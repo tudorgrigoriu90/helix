@@ -18,27 +18,36 @@ export const SLOT_LIMITS: Readonly<Record<ItemCategory, number>> = {
   equipment: 2,
 };
 
+/** Extra capacity per category — the Sigma Echo Origin's +1 slot (T-307).
+ *  Omitted / absent categories fall back to the baseline limit. */
+export type SlotBonus = Readonly<Partial<Record<ItemCategory, number>>>;
+
+/** The effective capacity of `category` for this run. */
+export function slotLimit(category: ItemCategory, bonus?: SlotBonus): number {
+  return SLOT_LIMITS[category] + (bonus?.[category] ?? 0);
+}
+
 /** How many items of `category` are currently carried. */
 export function countInCategory(items: readonly ItemDef[], category: ItemCategory): number {
   return items.reduce((n, i) => (i.category === category ? n + 1 : n), 0);
 }
 
 /** True when `category` has a free slot. */
-export function hasRoomFor(items: readonly ItemDef[], category: ItemCategory): boolean {
-  return countInCategory(items, category) < SLOT_LIMITS[category];
+export function hasRoomFor(items: readonly ItemDef[], category: ItemCategory, bonus?: SlotBonus): boolean {
+  return countInCategory(items, category) < slotLimit(category, bonus);
 }
 
 /** Per-category `{ count, limit }` — what the inventory/swap UI renders. */
-export function inventoryCounts(items: readonly ItemDef[]): Record<ItemCategory, { count: number; limit: number }> {
+export function inventoryCounts(items: readonly ItemDef[], bonus?: SlotBonus): Record<ItemCategory, { count: number; limit: number }> {
   const cats: ItemCategory[] = ['consumable', 'passive', 'equipment'];
   const out = {} as Record<ItemCategory, { count: number; limit: number }>;
-  for (const c of cats) out[c] = { count: countInCategory(items, c), limit: SLOT_LIMITS[c] };
+  for (const c of cats) out[c] = { count: countInCategory(items, c), limit: slotLimit(c, bonus) };
   return out;
 }
 
 /** Adds `item` if its category has room; returns the new list + whether it landed. */
-export function addItem(items: readonly ItemDef[], item: ItemDef): { items: readonly ItemDef[]; added: boolean } {
-  if (!hasRoomFor(items, item.category)) return { items, added: false };
+export function addItem(items: readonly ItemDef[], item: ItemDef, bonus?: SlotBonus): { items: readonly ItemDef[]; added: boolean } {
+  if (!hasRoomFor(items, item.category, bonus)) return { items, added: false };
   return { items: [...items, item], added: true };
 }
 

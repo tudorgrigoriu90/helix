@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "xenobiologist",
+  "name": "Xenobiologist",
+  "tagline": "Every organism and its integrity always visible",
+  "unlockRuns": 25,
+  "perk": {
+    "kind": "enemyHpReveal"
+  },
+  "blurb": "Twenty-five descents of field notes. You no longer see monsters; you see specimens, each annotated with exactly how much life it has left to lose."
+}

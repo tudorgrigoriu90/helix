@@ -67,4 +67,33 @@ describe('applyOriginPerk — T-301 (GDD §4.1)', () => {
     expect(applyOriginPerk(newRunPlayer(), { kind: 'zoneVeinBonus', zone: 'lithic', percent: 10 }, pool))
       .toEqual(newRunPlayer());
   });
+
+  it('zoneDamageImmunity records a 100% resist carrying its floor scope (T-307)', () => {
+    const p = applyOriginPerk(
+      newRunPlayer(),
+      { kind: 'zoneDamageImmunity', damageType: 'thermal', throughFloor: 5 },
+      pool,
+    );
+    expect(p.resists).toEqual([{ damageType: 'thermal', percent: 100, throughFloor: 5 }]);
+    expect(p.stats).toEqual(newRunPlayer().stats); // §4.2 — never raw stats
+  });
+
+  it('inventorySlotBonus records extra capacity for its category (T-307)', () => {
+    const p = applyOriginPerk(
+      newRunPlayer(),
+      { kind: 'inventorySlotBonus', category: 'consumable', slots: 1 },
+      pool,
+    );
+    expect(p.slotBonus).toEqual({ consumable: 1 });
+  });
+
+  it('the scene/session-level T-307 perks are a no-op on the player', () => {
+    for (const perk of [
+      { kind: 'enemyHpReveal' } as const,
+      { kind: 'extraWildCard' } as const,
+      { kind: 'codexHeadStart', count: 2 } as const,
+    ]) {
+      expect(applyOriginPerk(newRunPlayer(), perk, pool)).toEqual(newRunPlayer());
+    }
+  });
 });

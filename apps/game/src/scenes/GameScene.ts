@@ -59,6 +59,7 @@ import { parseSigmaStrainDef } from '../core/content/sigma-strain-loader';
 import { aggregateStrainFx, applyStrainFxToPlayer, ZERO_STRAIN_FX, type StrainFx } from '../core/strains';
 import { applyMutation } from '../core/mutation';
 import type { SessionStrainFx } from '../core/run/run-session-types';
+import { parseCodexEntries } from '../core/content/codex-loader';
 import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
 import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
@@ -83,6 +84,9 @@ const originFiles = originModules as Record<string, { readonly default: unknown 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const strainModules = import.meta.glob('../../../../packages/content/sigma-strains/*.json', { eager: true });
 const strainFiles = strainModules as Record<string, { readonly default: unknown }>;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const codexModules = import.meta.glob('../../../../packages/content/codex/*.json', { eager: true });
+const codexFiles = codexModules as Record<string, { readonly default: unknown }>;
 const itemFiles = itemModules as Record<string, { readonly default: unknown }>;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -144,6 +148,8 @@ export class GameScene extends Phaser.Scene {
   private killsByType: Partial<Record<DamageType, number>> = {};
   /** Damage type of the most recent hit on the player — attributes deaths. */
   private lastPlayerHitType: DamageType | null = null;
+  /** Xenobiologist Origin (T-307): out-of-vision enemies render with readouts. */
+  private hpRevealActive = false;
 
   private strandSelected: number | null = null;
   private strandRerollUsed = false;
@@ -363,6 +369,26 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  /** The Archivist Origin (T-307): a fresh run begins with `count` undiscovered
+   *  Codex entries revealed. Seeded-random over the locked set, folded straight
+   *  into the profile (the Codex is meta-progression, GDD §2.7). */
+  private grantCodexHeadStart(origin: OriginDef | undefined): void {
+    if (origin?.perk.kind !== 'codexHeadStart') return;
+    const discovered = new Set(this.meta.codexEntryIds);
+    const locked = Object.values(codexFiles).flatMap((mod) => {
+      const res = parseCodexEntries(mod.default);
+      return res.ok ? res.entries.filter((e) => !discovered.has(e.id)).map((e) => e.id) : [];
+    });
+    if (locked.length === 0) return; // everything already found
+    const rng = makeRng(this.seed, 'codexgrant');
+    const granted: string[] = [];
+    for (let i = 0; i < origin.perk.count && locked.length > 0; i++) {
+      granted.push(...locked.splice(rng.nextInt(locked.length), 1));
+    }
+    this.meta = { ...this.meta, codexEntryIds: [...this.meta.codexEntryIds, ...granted] };
+    void this.metaSaves.save(this.meta);
+  }
+
   /** Convergence Echo (T-306): carry one seeded-random mutation from the last
    *  run into this one. No SIG accrual — the strain is a memory, not a pick. */
   private applyCarriedMutation(player: PlayerState): PlayerState {
@@ -384,6 +410,8 @@ export class GameScene extends Phaser.Scene {
 
   private startRun(): void {
     const origin = this.origins.find((o) => o.id === this.originId);
+    this.hpRevealActive = origin?.perk.kind === 'enemyHpReveal'; // T-307 Xenobiologist
+    this.grantCodexHeadStart(origin); // T-307 The Archivist
     // Sigma Strains (T-306): aggregate the profile's unlocked effects, apply
     // the player-level ones (max-HP nudge, typed resists), then — for
     // Convergence Echo — carry one seeded-random mutation from the last run.
@@ -446,6 +474,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const origin = this.origins.find((o) => o.id === result.value.originId);
+    this.hpRevealActive = origin?.perk.kind === 'enemyHpReveal'; // T-307
     // T-306: session-level strain effects re-derive from the profile; the
     // player-level results already live on the saved player.
     this.strainFx = aggregateStrainFx(this.strainPool, this.meta.sigmaStrainIds);
@@ -497,6 +526,7 @@ export class GameScene extends Phaser.Scene {
     // resolve from the saved originId; player-level perk results already
     // live on the saved player.
     const origin = this.origins.find((o) => o.id === save.originId);
+    this.hpRevealActive = origin?.perk.kind === 'enemyHpReveal'; // T-307
     // T-306: session-level strain effects re-derive from the profile; the
     // player-level results already live on the saved player.
     this.strainFx = aggregateStrainFx(this.strainPool, this.meta.sigmaStrainIds);
@@ -2521,9 +2551,11 @@ export class GameScene extends Phaser.Scene {
       for (const e of state.enemies) {
         const cx = gx + e.pos.x * tile + tile / 2;
         const cy = gy + e.pos.y * tile + tile / 2;
-        // T-441b: living enemies outside vision radius are hidden (not revealed until seen).
-        // Dead enemies always show as environmental markers.
-        if (e.hp > 0 && !isInVision(playerPos, e.pos)) continue;
+        // T-441b: living enemies outside vision radius are hidden (not revealed
+        // until seen) — unless the Xenobiologist Origin is active (T-307: every
+        // organism and its integrity readout is always visible; the fog overlay
+        // still darkens its tile). Dead enemies always show as markers.
+        if (e.hp > 0 && !isInVision(playerPos, e.pos) && !this.hpRevealActive) continue;
         if (e.hp <= 0) { this.sprite(e.enemyDefId, cx, cy, tile * 0.9, GC.dead); continue; }
         this.sprite(e.enemyDefId, cx, cy, tile * 0.92);
         drawHp(cx, cy, e.hp / e.maxHp, GC.hpRed);

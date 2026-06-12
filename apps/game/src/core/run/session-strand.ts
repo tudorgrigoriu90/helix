@@ -91,8 +91,10 @@ export function beginStrandEvent(cfg: SessionConfig, st: SessionState): StrandOu
       // Origin familyAffinity nudges cadence draws (T-301); the Proto-Strand
       // above stays uniform by design (DR-009b).
       affinity: cfg.origin?.perk.kind === 'familyAffinity' ? cfg.origin.perk.family : undefined,
-      // True Convergence (T-306): one extra wild card on cadence draws only.
-      extraWildCards: cfg.strainFx.extraWildCard ? 1 : 0,
+      // True Convergence strain (T-306) / Sigma Prime Origin (T-307): one
+      // extra wild card on cadence draws. Same guarantee — they never stack.
+      extraWildCards:
+        cfg.strainFx.extraWildCard || cfg.origin?.perk.kind === 'extraWildCard' ? 1 : 0,
       ...(lastFamily !== undefined ? { forceFirstFamily: lastFamily } : {}),
     });
   }

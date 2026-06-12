@@ -585,6 +585,43 @@ describe('RunSession — Origin perks (T-301, GDD §4.1)', () => {
     expect(none.toSave().originId).toBeUndefined();
   });
 
+  it('zoneDamageImmunity expires with depth — pruned on descend and on resume (T-307)', () => {
+    const volcanic: PlayerState = {
+      ...hero(),
+      resists: [
+        { damageType: 'thermal', percent: 100, throughFloor: 1 },
+        { damageType: 'pressure', percent: 15 }, // unscoped — never pruned
+      ],
+    };
+    const s = new RunSession({ seed: 4, template: template(), registry, player: volcanic, finalFloor: 20 });
+    expect(s.snapshot.player.resists).toHaveLength(2); // floor 1 — still in scope
+    autoplayFloor(s);
+    s.descend();
+    expect(s.snapshot.floorNumber).toBe(2);
+    expect(s.snapshot.player.resists).toEqual([{ damageType: 'pressure', percent: 15 }]);
+
+    // A save taken in-scope but resumed past it prunes on applySave too.
+    const inScope = new RunSession({ seed: 4, template: template(), registry, player: volcanic, finalFloor: 20 });
+    const deepSave = { ...inScope.toSave(), floorNumber: 3 };
+    const resumed = new RunSession({ seed: 4, template: template(), registry, finalFloor: 20 });
+    resumed.applySave(deepSave);
+    expect(resumed.snapshot.player.resists).toEqual([{ damageType: 'pressure', percent: 15 }]);
+  });
+
+  it('the Sigma Prime extraWildCard perk widens cadence draws; never stacks with the strain (T-307)', () => {
+    const sigmaPrime: OriginDef = { ...geologist, id: 'sigma_prime', perk: { kind: 'extraWildCard' } };
+    const s = new RunSession({
+      seed: 9, template: template(), registry, player: hero(), finalFloor: 20,
+      mutations: POOL, strandEventEveryNFloors: 1, origin: sigmaPrime,
+      // The True Convergence strain active too — same guarantee, still one extra.
+      strainFx: { veinBonusPercent: 0, startingVein: 0, extraWildCard: true, firstCardMatchesLastFamily: false },
+    });
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    expect(s.strandOffer).toHaveLength(4);
+    expect(s.strandOffer.filter((c) => c.slot === 'wild')).toHaveLength(2);
+  });
+
   it('sigma-strain session effects (T-306): VEIN bonus, starting VEIN, draw nudges', () => {
     // veinBonusPercent applies everywhere and stacks on the Origin zone bonus.
     const boosted = new RunSession({

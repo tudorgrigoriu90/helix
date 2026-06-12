@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "sigma_echo",
+  "name": "Sigma Echo",
+  "tagline": "+1 consumable inventory slot",
+  "unlockRuns": 200,
+  "perk": {
+    "kind": "inventorySlotBonus",
+    "category": "consumable",
+    "slots": 1
+  },
+  "blurb": "Two hundred descents leave an echo in the flesh. Yours carries one more pocket than anatomy strictly allows. I have chosen not to examine why."
+}

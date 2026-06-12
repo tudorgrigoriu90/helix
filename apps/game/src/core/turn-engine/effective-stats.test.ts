@@ -67,6 +67,30 @@ describe('effective-stats — modifier layer (T-65 deferred half)', () => {
     expect(damageTo(plain, 4, 'physical')).toBe(1); // RES (6) > 4, but the chip floor lands 1
     expect(damageTo(plain, 0, 'physical')).toBe(0); // a non-damaging call stays a no-op (no phantom chip)
   });
+
+  it('typed resists stack additively across sources, capped at 100 (T-306/T-307)', () => {
+    const stacked = {
+      stats, statuses: [],
+      resists: [
+        { damageType: 'pressure' as const, percent: 15 }, // Origin
+        { damageType: 'pressure' as const, percent: 10 }, // strain
+      ],
+    };
+    // 26 raw − 6 RES = 20, then −25% = 15.
+    expect(damageTo(stacked, 26, 'pressure')).toBe(15);
+    // Other types are untouched by the pressure entries.
+    expect(damageTo(stacked, 26, 'thermal')).toBe(20);
+  });
+
+  it('a summed 100% resist is full immunity — the one case the chip floor yields (T-307)', () => {
+    const immune = {
+      stats, statuses: [],
+      resists: [{ damageType: 'thermal' as const, percent: 100, throughFloor: 5 }],
+    };
+    expect(damageTo(immune, 50, 'thermal')).toBe(0); // no chip damage through immunity
+    expect(damageTo(immune, 50, 'physical')).toBe(44); // unrelated types unaffected
+    expect(damageTo(immune, 50, 'true')).toBe(50); // 'true' stays beyond resists
+  });
 });
 
 // ── Integration through the real TurnEngine ──────────────────────────────────
@@ -131,10 +155,15 @@ describe('Origin damage resists — T-301', () => {
     expect(damageTo(diver, 30, 'thermal')).toBe(20);
   });
 
-  it("never touches 'true' damage and respects the chip floor", () => {
+  it("never touches 'true' damage and respects the chip floor below full immunity", () => {
     const diver = { ...base, resists: [{ damageType: 'true' as const, percent: 90 }] };
     expect(damageTo(diver, 30, 'true')).toBe(30); // true ignores RES and resists
+    // Below 100% the chip floor still lands a connecting hit (99% of 20 → 0 → chip 1)…
+    const thickWall = { ...base, resists: [{ damageType: 'physical' as const, percent: 99 }] };
+    expect(damageTo(thickWall, 30, 'physical')).toBe(1);
+    // …at a summed 100% the hit is fully immune and lands nothing (T-307 revision:
+    // pre-T-307 the chip floor pierced even total resist; immunity now wins).
     const wall = { ...base, resists: [{ damageType: 'physical' as const, percent: 100 }] };
-    expect(damageTo(wall, 30, 'physical')).toBe(1); // chip floor holds
+    expect(damageTo(wall, 30, 'physical')).toBe(0);
   });
 });

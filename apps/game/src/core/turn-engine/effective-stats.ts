@@ -100,11 +100,21 @@ export const MIN_CONNECT_DAMAGE = 1;
 export function damageTo(defender: Combatant, rawDamage: number, damageType: DamageType): number {
   if (rawDamage <= 0) return 0;
   const mitigated = mitigate(rawDamage, effectiveRes(defender), damageType);
-  // Origin resists (T-301): percent off the matching damage type, after flat
-  // RES, before Fractured. 'true' damage stays beyond resists by definition.
+  // Typed resists (Origin T-301, Sigma Strains T-306): percent off the matching
+  // damage type, after flat RES, before Fractured. Same-type sources stack
+  // additively, capped at 100. 'true' damage stays beyond resists by definition.
   const resist = damageType === 'true'
     ? 0
-    : (defender.resists?.find((r) => r.damageType === damageType)?.percent ?? 0);
+    : Math.min(
+        100,
+        (defender.resists ?? []).reduce(
+          (sum, r) => (r.damageType === damageType ? sum + r.percent : sum),
+          0,
+        ),
+      );
+  // A summed 100 is full immunity (T-307, Volcanologist) — the only case the
+  // chip floor yields: an immune hit connects for nothing at all.
+  if (resist >= 100) return 0;
   const resisted = resist > 0 ? Math.floor(mitigated * (1 - resist / 100)) : mitigated;
   const final = Math.floor(resisted * damageTakenMultiplier(defender));
   return Math.max(MIN_CONNECT_DAMAGE, final);

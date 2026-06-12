@@ -290,6 +290,8 @@ The player selects an Origin before each run. Origins are not permanent classes 
 
 Origins formerly listed twice (Convergence Echo, Sigma Prime) are de-duplicated here: "Convergence Echo" is exclusively a Sigma Strain (§11.2); the 200-run Origin slot is renamed **Sigma Echo** with a new effect.
 
+> **Amended 2026-06-12 (T-307):** all 10 Origins are shipped as content. The five unlockables' shipped semantics: **Volcanologist** = a 100% thermal resist scoped `throughFloor: 5` — full immunity that bypasses the chip-damage floor (the only case it yields) and is pruned by the session past Floor 5, including across save/resume; **Xenobiologist** = every organism renders with its integrity readout even outside vision range (the fog overlay still darkens its tile); **Sigma Prime** = one extra wild card on every cadence Strand draw — the same guarantee as the True Convergence strain, the two never stack; **The Archivist** = 2 seeded-random undiscovered Codex entries revealed at each run start; **Sigma Echo** = +1 consumable inventory slot (6 → 7). Same-type resists from different sources (Origin + Sigma Strains) now stack additively, capped at 100.
+
 ### 4.2 Base Stats
 
 All characters start with identical base stats regardless of Origin. Origins modify starting items or passive affinities, not raw stats.

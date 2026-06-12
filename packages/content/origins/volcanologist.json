@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "volcanologist",
+  "name": "Volcanologist",
+  "tagline": "Thermal immunity through Floor 5",
+  "unlockRuns": 10,
+  "perk": {
+    "kind": "zoneDamageImmunity",
+    "damageType": "thermal",
+    "throughFloor": 5
+  },
+  "blurb": "You worked the calderas before the descent, and the heat formed an opinion of you: respect. The shallows' burning things cannot touch you. Deeper, the arrangement lapses."
+}
