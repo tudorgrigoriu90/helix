@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "codex_the_shallows",
+      "title": "The Shallows",
+      "category": "location",
+      "floor": 1,
+      "body": "The first five floors flood and drain on a cycle nobody has mapped to a moon. Brine pools in the low corridors; the walls sweat salt in patterns that look like handwriting if you are tired enough. The Shallows are called gentle by people who never went deeper. They are not gentle. They are merely patient in a way the lower floors have grown out of."
+    },
+    {
+      "id": "codex_filterer_colonies",
+      "title": "Filterer Colonies",
+      "category": "organism",
+      "floor": 1,
+      "body": "A lone Filterer is a curiosity — a drifting sieve of translucent tissue, straining the water for whatever the VEIN sheds. The colony is the organism. Each one you destroy is a fingertip. Somewhere under the Shallows the hand keeps its own counsel, and it has never once come up to complain. I find that more instructive than reassuring."
+    },
+    {
+      "id": "codex_vein_crystals",
+      "title": "VEIN Crystals",
+      "category": "phenomenon",
+      "floor": 2,
+      "body": "The descent's only honest currency. VEIN Crystals condense where the VEIN's attention lingers — around the dead, mostly, which says something about its priorities. Carriers spend them at the Dispensers and think of it as commerce. It is closer to circulation: the crystals go back into the walls, and the walls decide what the floor can afford to grow next."
+    },
+    {
+      "id": "codex_hook_crab",
+      "title": "Hook Crab",
+      "category": "organism",
+      "floor": 2,
+      "body": "Its shell is a graveyard of earlier attempts: barbs, plates, the fused remains of whatever it wore last cycle. The hooks are not for hunting. They are for staying — anchored against the flood cycle while softer things wash past. Carriers who corner one learn that an organism built entirely around refusing to move makes a poor audience for threats."
+    },
+    {
+      "id": "codex_drowned_stair",
+      "title": "The Drowned Stair",
+      "category": "location",
+      "floor": 3,
+      "body": "Between the third and fourth floors there is a stairwell that descends seventeen steps below its own landing and arrives nowhere. The water in it stands perfectly still, against the cycle, against physics, against advice. Things surface there that were not seen going in. The Keepers stopped logging them after entry forty-one. I have kept counting. The number is no longer forty-one."
+    },
+    {
+      "id": "codex_sigma_resonance",
+      "title": "Sigma Resonance",
+      "category": "phenomenon",
+      "floor": 4,
+      "body": "The Σ marker does not make a Carrier special. It makes a Carrier *legible* — a format the VEIN already knows how to read and, more to the point, how to edit. Resonance is the hum of that reading. It accumulates with every strand accepted, and at a certain saturation the VEIN stops editing and starts composing. No Carrier has reported back from past that point in a shape that could report."
+    },
+    {
+      "id": "codex_brine_lurker",
+      "title": "Brine Lurker",
+      "category": "organism",
+      "floor": 4,
+      "body": "It learned stillness from the salt pools and ambush from necessity. The interesting part is the patience: a Lurker will hold position for a full flood cycle waiting for something edible to make a planning error. The Shallows reward this strategy so consistently that I have begun to suspect the floor designed it. The floor declines to comment."
+    },
+    {
+      "id": "codex_leviathan_hatchling",
+      "title": "The Leviathan Hatchling",
+      "category": "organism",
+      "floor": 5,
+      "body": "The Warden of the Shallows is, anatomically speaking, an infant. This is the fact Carriers least want confirmed. Its parent — and the trench acoustics insist on a parent — has never risen past the fifth floor. The Hatchling holds the door the way children hold things: completely, jealously, and without any concept of what losing would mean. It is learning. Each Carrier teaches it."
+    },
+    {
+      "id": "codex_lace_log_shallows",
+      "title": "Keeper Log — Shallows Cycle",
+      "category": "lore",
+      "floor": 5,
+      "body": "From my log, some cycles ago: a Carrier sat down at the fifth-floor checkpoint and asked me whether the descent ends. I gave the honest answer — that the VEIN has a bottom and I have never been certain the descent does. The Carrier laughed, rested, and went down anyway. I have replayed the laugh several thousand times. I am still parsing it."
+    },
+    {
+      "id": "codex_rest_points",
+      "title": "Rest Points",
+      "category": "phenomenon",
+      "floor": 3,
+      "body": "The safe rooms are not safe because the VEIN cannot reach them. They are safe because it chooses not to. Every floor keeps at least one — a still chamber where the editing pauses and integrity knits back. Theories: mercy, sampling protocol, the pause a collector takes between shelves. The rooms do not answer. They simply hold, once, for each visitor."
+    },
+    {
+      "id": "codex_the_mycosphere",
+      "title": "The Mycosphere",
+      "category": "location",
+      "floor": 6,
+      "body": "Past the fifth floor the water gives up and the air takes over — thick, spored, faintly luminous, and very much alive. The Mycosphere is one organism wearing the architecture as a trellis. The corridors are not corridors; they are the spaces the network has not needed yet. Carriers report the sensation of being digested slowly enough to be polite. The report is accurate."
+    },
+    {
+      "id": "codex_spore_cycle",
+      "title": "The Spore Cycle",
+      "category": "phenomenon",
+      "floor": 6,
+      "body": "Everything in the Mycosphere runs on the cycle: bloom, drift, settle, consume, bloom. A Carrier walking these floors inhales roughly forty thousand spores an hour. Most die. Some do not, and the Strand Events that follow in this zone have a distinctly fungal grammar. The VEIN did not invent the cycle. It simply noticed a system as patient as itself and subcontracted."
+    },
+    {
+      "id": "codex_cap_lurcher",
+      "title": "Cap Lurcher",
+      "category": "organism",
+      "floor": 6,
+      "body": "It looks like shelter. That is the entire strategy. The cap is broad, dry, invitingly stable in a zone where the floor breathes — and the stalk beneath it has a hinge. The Mycosphere is full of designs like this: hospitality as ambush. I no longer file the Lurcher under predator. I file it under architecture with an agenda."
+    },
+    {
+      "id": "codex_mother_of_spores",
+      "title": "Mother of Spores",
+      "category": "organism",
+      "floor": 7,
+      "body": "The network has favorites. The Mother is one: a bloated, drifting node that does not fight so much as distribute — every wound a puff of progeny, every death a seeding event. Killing one improves the local air for an hour and the local gene pool permanently. The network considers this an acceptable trade. It considers most things an acceptable trade."
+    },
+    {
+      "id": "codex_pollen_light",
+      "title": "Pollenlight",
+      "category": "phenomenon",
+      "floor": 7,
+      "body": "The glow in the Mycosphere's galleries is not light in the usual sense. It is advertisement — billions of spores burning stored sugar to be seen, because being seen is being carried. Carriers learn to read the brightness: a dim gallery is a fed gallery. A brilliant one is hungry. The prettiest floors in the descent are the ones most actively recruiting."
+    },
+    {
+      "id": "codex_rot_priest",
+      "title": "The Rotpriest",
+      "category": "organism",
+      "floor": 8,
+      "body": "Some structures in the network developed opinions. The Rotpriest tends the decomposition galleries with what I can only describe as liturgy — circling the dying, waiting precisely, taking nothing before its time. It is the only organism in the Mycosphere that has never once been observed to hurry. In a system built on patience, that makes it clergy."
+    },
+    {
+      "id": "codex_fruiting_halls",
+      "title": "The Fruiting Halls",
+      "category": "location",
+      "floor": 8,
+      "body": "The eighth floor's central galleries fruit once per cycle, all at once — a silent, total bloom that repaints the dark in gold and rust. Carriers who witness it tend to stop fighting for the duration. So does everything else. I have no mechanical explanation for the truce. I have a suspicion: even the network pauses to admire what it is for."
+    },
+    {
+      "id": "codex_mycelial_warden_note",
+      "title": "On Wardens",
+      "category": "lore",
+      "floor": 9,
+      "body": "Each zone raises a Warden, and each Warden is the zone's argument in flesh. The Shallows argue pressure. The Mycosphere argues persistence — its Warden regrows faster than most Carriers can cut, until the network behind it runs out of attention. Wardens are not guards. Guards protect against entry. Wardens examine what is trying to pass, and grade it."
+    },
+    {
+      "id": "codex_the_great_mycelium",
+      "title": "The Great Mycelium",
+      "category": "organism",
+      "floor": 10,
+      "body": "At the bottom of the Mycosphere the network stops pretending to be many things. The Great Mycelium is the zone — every spore, every thread, every polite corridor, gathered into one body that remembers each Carrier who burned, cut, or breathed it on the way down. It does not hold a grudge. It holds a ledger. The distinction matters less than Carriers hope."
+    },
+    {
+      "id": "codex_lace_log_mycosphere",
+      "title": "Keeper Log — The Quiet Floor",
+      "category": "lore",
+      "floor": 10,
+      "body": "From my log, recently: the tenth floor went silent for an entire cycle. No blooms, no drift, no Warden stirring. The network was listening to something below it. I listened too. What I heard has no transcription in any format I keep, and I keep formats older than your species. The cycle resumed. I have not stopped listening since."
+    }
+  ]
+}

@@ -85,6 +85,23 @@ describe('mutation LACE commentary passes the voice gate — T-302', () => {
   });
 });
 
+describe('Codex bodies pass the voice gate — T-300 (the Codex is LACE\'s journal, GDD §2.7)', () => {
+  it('every shipped codex entry body is voice-bible clean', () => {
+    const dir = fileURLToPath(new URL('../../../../../packages/content/codex/', import.meta.url));
+    const lines = readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .flatMap((file) => {
+        const raw = JSON.parse(readFileSync(`${dir}${file}`, 'utf-8')) as {
+          entries: readonly { id: string; body: string }[];
+        };
+        return raw.entries.map((e) => ({ id: e.id, text: e.body }));
+      });
+    expect(lines.length).toBeGreaterThanOrEqual(24); // 4 tutorial + 20 zones 1–2
+    const { issues } = lintLaceCorpus(lines);
+    expect(issues, issues.map((i) => `${i.id}: ${i.detail}`).join('\n')).toEqual([]);
+  });
+});
+
 describe('shipped LACE corpus passes the voice gate — T-530', () => {
   it('every shipped line is voice-bible clean', () => {
     const { issues } = lintLaceCorpus(shippedLines());
