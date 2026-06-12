@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "geologist",
+  "name": "Geologist",
+  "tagline": "+10% VEIN banked in the Lithic Deep",
+  "unlockRuns": 0,
+  "perk": {
+    "kind": "zoneVeinBonus",
+    "zone": "lithic",
+    "percent": 10
+  },
+  "blurb": "Stone talks if you spent a career listening. In the Lithic Deep you read the seams everyone else walks past, and the crystals come up richer for it."
+}

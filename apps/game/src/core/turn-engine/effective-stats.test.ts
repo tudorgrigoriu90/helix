@@ -119,3 +119,22 @@ describe('effective-stats — TurnEngine integration', () => {
     expect(res.errors[0]?.code).toBe('ROOTED');
   });
 });
+
+describe('Origin damage resists — T-301', () => {
+  const base = { stats: { str: 10, res: 10, agi: 10, int: 10 }, statuses: [] };
+
+  it('cuts the matching damage type by the percent, after flat RES', () => {
+    const diver = { ...base, resists: [{ damageType: 'pressure' as const, percent: 15 }] };
+    // raw 30 − res 10 = 20 mitigated, ×0.85 → 17
+    expect(damageTo(diver, 30, 'pressure')).toBe(17);
+    // other types unaffected
+    expect(damageTo(diver, 30, 'thermal')).toBe(20);
+  });
+
+  it("never touches 'true' damage and respects the chip floor", () => {
+    const diver = { ...base, resists: [{ damageType: 'true' as const, percent: 90 }] };
+    expect(damageTo(diver, 30, 'true')).toBe(30); // true ignores RES and resists
+    const wall = { ...base, resists: [{ damageType: 'physical' as const, percent: 100 }] };
+    expect(damageTo(wall, 30, 'physical')).toBe(1); // chip floor holds
+  });
+});

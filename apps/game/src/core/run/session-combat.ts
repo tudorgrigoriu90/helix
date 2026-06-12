@@ -76,14 +76,14 @@ export function endEncounter(cfg: SessionConfig, st: SessionState, finalState: R
 
   // Kill rewards (Economy.xlsx): every defeated enemy drops VEIN (T-110) and
   // grants XP (T-111) by tier; item drops roll onto the pending pile (T-445).
-  economy.bankVein(st, economy.veinFromKills(finalState.enemies, cfg.registry));
+  economy.bankVein(cfg, st, economy.veinFromKills(finalState.enemies, cfg.registry));
   economy.grantXp(st, economy.xpFromKills(finalState.enemies, cfg.registry));
   economy.rollKillLoot(cfg, st, finalState.enemies);
 
   if (st.current === st.floorData.bossRoomId) {
     // Floor loot: the ambient per-floor VEIN constant (loot rooms, GDD §9) banks
     // once the floor's boss falls.
-    economy.bankVein(st, FLOOR_VEIN_CONSTANT);
+    economy.bankVein(cfg, st, FLOOR_VEIN_CONSTANT);
     if (st.floorNumber >= cfg.finalFloor) st.status = 'victory';
     else if (strand.strandEventDue(cfg, st)) st.status = 'strand_event';
     else if (strand.protoStrandDue(cfg, st)) st.status = 'strand_event'; // DR-009b

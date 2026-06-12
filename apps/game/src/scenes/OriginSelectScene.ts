@@ -1,6 +1,11 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { parseOriginDef } from '../core/content/origin-loader';
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const originModules = import.meta.glob('../../../../packages/content/origins/*.json', { eager: true });
+const originFiles = originModules as Record<string, { readonly default: unknown }>;
 import { addBackButton } from './settings-back-button';
 
 /**
@@ -31,25 +36,35 @@ const C = {
   gold: '#ffdd44',
 };
 
-interface OriginDef {
+interface OriginCard {
   id: string;
   name: string;
   tagline: string;
   statLine: string;
   flavour: string;
-  locked: boolean;
+  unlockRuns: number;
 }
 
-const ORIGINS: OriginDef[] = [
-  {
-    id: 'void_diver',
-    name: 'VOID DIVER',
-    tagline: 'Pressure Lance · Rupture',
-    statLine: 'STR 11  RES 6  AGI 8  INT 10',
-    flavour: 'You plunge where others hesitate. The VEIN does not scare you — yet.',
-    locked: false,
-  },
-];
+/** Base stats are identical for every Origin (GDD §4.2) — the card states it. */
+const BASE_STAT_LINE = 'STR 11  RES 6  AGI 8  INT 10 — identical for every Origin';
+
+/** The shipped Origins (T-301), parsed once from content and ordered by
+ *  unlock threshold so defaults lead the carousel. */
+const ORIGINS: OriginCard[] = Object.values(originFiles)
+  .map((mod) => {
+    const res = parseOriginDef(mod.default);
+    if (!res.ok) throw new Error(`OriginSelectScene: bad origin content — ${res.error.message}`);
+    return res.origin;
+  })
+  .sort((a, b) => a.unlockRuns - b.unlockRuns || a.id.localeCompare(b.id))
+  .map((o) => ({
+    id: o.id,
+    name: o.name.toUpperCase(),
+    tagline: o.tagline,
+    statLine: BASE_STAT_LINE,
+    flavour: o.blurb,
+    unlockRuns: o.unlockRuns,
+  }));
 
 const CARD_W = W - 48;
 const CARD_H = 360;
@@ -66,13 +81,14 @@ export class OriginSelectScene extends Phaser.Scene {
 
   init(data: Record<string, unknown>): void {
     if (data['meta'] !== undefined) this.meta = data['meta'] as MetaState;
-    this.selected = 0;
+    this.selected = typeof data['keepSelected'] === 'number' ? data['keepSelected'] : 0;
   }
 
   create(): void {
     this.add.graphics().fillStyle(C.bg).fillRect(0, 0, W, H);
     this.buildHeader();
     this.buildCarousel();
+    this.buildNav();
     this.buildDots();
     this.buildConfirmButton();
     addBackButton(this, () => this.scene.start('HubScene', { meta: this.meta }), 776);
@@ -103,9 +119,15 @@ export class OriginSelectScene extends Phaser.Scene {
 
   // ── Carousel ─────────────────────────────────────────────────────────────
 
+  /** True when the selected Origin is still locked for this profile. */
+  private isLocked(card: OriginCard): boolean {
+    return this.meta.lifetime.runs < card.unlockRuns;
+  }
+
   private buildCarousel(): void {
     const origin = ORIGINS[this.selected];
     if (origin === undefined) return;
+    const locked = this.isLocked(origin);
 
     // Card background
     const g = this.add.graphics();
@@ -145,6 +167,15 @@ export class OriginSelectScene extends Phaser.Scene {
       color: C.text,
     }).setOrigin(0.5);
 
+    // Locked overlay note (unlock threshold) replaces flavour when gated.
+    if (locked) {
+      this.add.text(CX, CARD_Y + 254, `Locked — unlocks after ${origin.unlockRuns} runs.`, {
+        fontFamily: 'monospace', fontSize: '11px', color: C.gold,
+        wordWrap: { width: CARD_W - 48 }, align: 'center',
+      }).setOrigin(0.5, 0);
+      return;
+    }
+
     // Flavour text
     this.add.text(CX, CARD_Y + 254, origin.flavour, {
       fontFamily: 'monospace',
@@ -156,19 +187,24 @@ export class OriginSelectScene extends Phaser.Scene {
       lineSpacing: 4,
     }).setOrigin(0.5, 0);
 
-    // Swipe hint — only relevant when multiple origins exist
-    if (ORIGINS.length > 1) {
-      if (this.selected > 0) {
-        this.add.text(CARD_X + 12, CARD_Y + CARD_H / 2, '‹', {
-          fontFamily: 'monospace', fontSize: '24px', color: C.dim,
-        }).setOrigin(0, 0.5);
-      }
-      if (this.selected < ORIGINS.length - 1) {
-        this.add.text(CARD_X + CARD_W - 12, CARD_Y + CARD_H / 2, '›', {
-          fontFamily: 'monospace', fontSize: '24px', color: C.dim,
-        }).setOrigin(1, 0.5);
-      }
-    }
+  }
+
+  /** Carousel navigation — tappable arrows flanking the card (T-301). */
+  private buildNav(): void {
+    if (ORIGINS.length <= 1) return;
+    const mk = (x: number, glyph: string, delta: number, originX: number): void => {
+      this.add.text(x, CARD_Y + CARD_H / 2, glyph, {
+        fontFamily: 'monospace', fontSize: '24px', color: C.dim,
+      }).setOrigin(originX, 0.5);
+      this.add.zone(x - 24, CARD_Y, 48, CARD_H).setOrigin(originX, 0)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => {
+          this.selected = (this.selected + delta + ORIGINS.length) % ORIGINS.length;
+          this.scene.restart({ meta: this.meta, keepSelected: this.selected });
+        });
+    };
+    mk(CARD_X + 12, '‹', -1, 0);
+    mk(CARD_X + CARD_W - 12, '›', 1, 1);
   }
 
   /** Diamond emblem for the card. */
@@ -232,7 +268,7 @@ export class OriginSelectScene extends Phaser.Scene {
 
     zone.on('pointerdown', () => {
       const origin = ORIGINS[this.selected];
-      if (origin === undefined) return;
+      if (origin === undefined || this.isLocked(origin)) return; // locked cards don't confirm
       this.scene.start('RunPreviewScene', { meta: this.meta, originId: origin.id });
     });
 

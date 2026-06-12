@@ -1,4 +1,4 @@
-import type { ActiveStatus, DamageType, EntityStats } from '@shared-types/run-state';
+import type { ActiveStatus, DamageResist, DamageType, EntityStats } from '@shared-types/run-state';
 import type { MutationFamily } from '@shared-types/mutation';
 import { mitigate } from './combat';
 
@@ -34,6 +34,8 @@ interface Combatant {
   readonly statuses: readonly ActiveStatus[];
   /** Active Dominant Trait families (player only; enemies omit it). */
   readonly dominantTraits?: readonly MutationFamily[];
+  /** Typed percent resists from the run's Origin (T-301; player only). */
+  readonly resists?: readonly DamageResist[];
 }
 
 function has(statuses: readonly ActiveStatus[], effect: ActiveStatus['effect']): boolean {
@@ -98,6 +100,12 @@ export const MIN_CONNECT_DAMAGE = 1;
 export function damageTo(defender: Combatant, rawDamage: number, damageType: DamageType): number {
   if (rawDamage <= 0) return 0;
   const mitigated = mitigate(rawDamage, effectiveRes(defender), damageType);
-  const final = Math.floor(mitigated * damageTakenMultiplier(defender));
+  // Origin resists (T-301): percent off the matching damage type, after flat
+  // RES, before Fractured. 'true' damage stays beyond resists by definition.
+  const resist = damageType === 'true'
+    ? 0
+    : (defender.resists?.find((r) => r.damageType === damageType)?.percent ?? 0);
+  const resisted = resist > 0 ? Math.floor(mitigated * (1 - resist / 100)) : mitigated;
+  const final = Math.floor(resisted * damageTakenMultiplier(defender));
   return Math.max(MIN_CONNECT_DAMAGE, final);
 }

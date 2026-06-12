@@ -1,6 +1,7 @@
 import type { AbilitySlot } from '@shared-types/ability';
 import type { ItemDef } from '@shared-types/item';
 import type { PlayerState } from '@shared-types/run-state';
+import type { OriginPerk } from '@shared-types/origin';
 
 /**
  * The default Origin loadout used to seed a new run — a hardcoded precursor to
@@ -71,4 +72,41 @@ export function newRunPlayer(): PlayerState {
     mutations: [],
     dominantTraits: [],
   };
+}
+
+/**
+ * Applies the player-level half of an Origin perk (T-301, GDD §4.1) onto the
+ * starting player: an extra carried item (Combat Medic), an extra bar ability
+ * (Blacksite Agent), or a typed damage resist (Deep Sea Diver). Session-level
+ * perks — strand-draw affinity, zone VEIN bonus — live on the RunSession
+ * config instead. Base stats stay identical for every Origin (§4.2).
+ */
+export function applyOriginPerk(
+  player: PlayerState,
+  perk: OriginPerk,
+  itemPool: readonly ItemDef[],
+): PlayerState {
+  switch (perk.kind) {
+    case 'startingItem': {
+      const item = itemPool.find((i) => i.id === perk.itemId);
+      if (item === undefined) return player; // missing content degrades to no perk
+      return { ...player, items: [...player.items, { ...item }] };
+    }
+    case 'startingAbility':
+      return {
+        ...player,
+        abilities: [...player.abilities, { def: perk.ability, cooldownRemaining: 0 }],
+      };
+    case 'damageResistPercent':
+      return {
+        ...player,
+        resists: [
+          ...(player.resists ?? []),
+          { damageType: perk.damageType, percent: perk.percent },
+        ],
+      };
+    case 'familyAffinity':
+    case 'zoneVeinBonus':
+      return player; // session-level — applied via RunSessionOptions.origin
+  }
 }

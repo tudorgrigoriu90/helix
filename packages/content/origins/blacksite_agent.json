@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "blacksite_agent",
+  "name": "Blacksite Agent",
+  "tagline": "Ghost Step — slip out of phase on demand",
+  "unlockRuns": 0,
+  "perk": {
+    "kind": "startingAbility",
+    "ability": {
+      "id": "ghost_step",
+      "apCost": 1,
+      "cooldown": 5,
+      "range": 0,
+      "targetType": "self",
+      "baseDamage": 0,
+      "damageType": "void",
+      "intScaling": 0,
+      "aoeRadius": 0,
+      "appliesStatus": "phased",
+      "statusDuration": 2
+    }
+  },
+  "blurb": "Your file predates the breach and reads like a redaction exercise. Whatever they trained you to do between the cameras, the VEIN finds it familiar."
+}

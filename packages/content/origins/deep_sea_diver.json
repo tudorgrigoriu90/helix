@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "deep_sea_diver",
+  "name": "Deep Sea Diver",
+  "tagline": "−15% incoming pressure damage",
+  "unlockRuns": 0,
+  "perk": {
+    "kind": "damageResistPercent",
+    "damageType": "pressure",
+    "percent": 15
+  },
+  "blurb": "You have been crushed before, professionally. The deep's favorite argument lands on ears that stopped listening at three hundred meters."
+}

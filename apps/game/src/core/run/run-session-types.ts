@@ -5,6 +5,7 @@ import type { MutationDef } from '@shared-types/mutation';
 import type { ItemDef } from '@shared-types/item';
 import type { Mulberry32 } from '../rng/mulberry32';
 import type { EnemyRegistry } from './encounter';
+import type { OriginDef } from '@shared-types/origin';
 import type { DrawnCard, StrandOutcome } from '../mutation';
 
 /**
@@ -70,9 +71,10 @@ export interface DescentCheckpoint {
  *  `combatRngState`); v6 added `pendingLoot` (uncollected drops); v7 added
  *  `checkpoint` (DR-009 act-end rest, T-510); v8 added `bonusMutationTaken`
  *  (DR-009b bonus slot, T-511); v9 added `suspendedAtMs` (T-513 — written by
- *  the *scene* on persist; the deterministic core never reads a wall clock).
+ *  the *scene* on persist; the deterministic core never reads a wall clock);
+ *  v10 added `originId` (T-301 — session-level Origin perks survive resume).
  *  Older saves load fine — missing fields default to 0/none/null/false. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 9;
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 10;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -110,6 +112,10 @@ export interface RunSessionSave {
    *  the scene layer on persist — never read by the deterministic core — and
    *  used only to derive `descent_resumed.hoursSinceSuspend`. */
   readonly suspendedAtMs?: number;
+  /** The run's Origin id (added in save v10, T-301). The scene resolves it
+   *  back to a def on resume so session-level perks (draw affinity, zone VEIN
+   *  bonus) survive; player-level perk results already live on the player. */
+  readonly originId?: string;
   /**
    * The live combat state, present only when `status === 'in_combat'` and the
    * scene has synced it via `RunSession.syncCombat` (save v5). Its presence
@@ -158,6 +164,10 @@ export interface RunSessionOptions {
    * Omit it (the default) for a normal run that starts on floor 1.
    */
   readonly floorZero?: PopulatedFloor;
+  /** The run's Origin (T-301). Session-level perks — strand-draw affinity and
+   *  the zone VEIN bonus — read from here; player-level perks are applied to
+   *  the starting player by the caller via `applyOriginPerk`. */
+  readonly origin?: OriginDef;
 }
 
 /** Immutable run setup shared by the session facade and its subsystems. */
@@ -172,6 +182,8 @@ export interface SessionConfig {
   readonly itemPool: readonly ItemDef[];
   /** The fixed tutorial floor (T-137), or null for a normal procedural run. */
   readonly floorZero: PopulatedFloor | null;
+  /** The run's Origin, or null (T-301). */
+  readonly origin: OriginDef | null;
 }
 
 /** The mutable run — owned by the facade, operated on by the subsystems. */

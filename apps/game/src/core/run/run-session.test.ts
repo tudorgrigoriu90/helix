@@ -9,6 +9,7 @@ import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances, buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../floor-gen';
 import { RunSession, CURRENT_RUN_SESSION_SAVE_VERSION } from './run-session';
 import { gainMutationSig } from '../mutation';
+import type { OriginDef } from '@shared-types/origin';
 import { buildEnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
 
@@ -552,6 +553,54 @@ describe('RunSession — Proto-Strand (T-511, DR-009b)', () => {
     expect(s.bonusMutationTaken()).toBe(false);
     s.applyMutationChoice(mut('m_vo1', 'voidborn'));
     expect(s.bonusMutationTaken()).toBe(true);
+  });
+});
+
+describe('RunSession — Origin perks (T-301, GDD §4.1)', () => {
+  const geologist: OriginDef = {
+    schemaVersion: 1, id: 'geologist', name: 'Geologist', tagline: 't', blurb: 'b', unlockRuns: 0,
+    perk: { kind: 'zoneVeinBonus', zone: 'shallows', percent: 10 },
+  };
+
+  it('zoneVeinBonus boosts banked VEIN in the matching zone only', () => {
+    const s = new RunSession({
+      seed: 4, template: template(), registry, player: hero(), finalFloor: 20, origin: geologist,
+    });
+    s.grantVein(100);
+    expect(s.snapshot.veinCrystals).toBe(110); // floor 1 = shallows → +10%
+
+    const plain = new RunSession({ seed: 4, template: template(), registry, player: hero(), finalFloor: 20 });
+    plain.grantVein(100);
+    expect(plain.snapshot.veinCrystals).toBe(100);
+  });
+
+  it('persists the originId (save v10) so session perks survive resume', () => {
+    const s = new RunSession({
+      seed: 4, template: template(), registry, player: hero(), finalFloor: 20, origin: geologist,
+    });
+    const saved = s.toSave();
+    expect(saved.schemaVersion).toBe(CURRENT_RUN_SESSION_SAVE_VERSION);
+    expect(saved.originId).toBe('geologist');
+    const none = new RunSession({ seed: 4, template: template(), registry, player: hero(), finalFloor: 20 });
+    expect(none.toSave().originId).toBeUndefined();
+  });
+
+  it('familyAffinity leans cadence strand draws toward the family, deterministically', () => {
+    const affinity: OriginDef = { ...geologist, id: 'field_biologist', perk: { kind: 'familyAffinity', family: 'mycelial' } };
+    const count = (origin?: OriginDef): number => {
+      let mycelial = 0;
+      for (let seed = 1; seed <= 120; seed++) {
+        const s = new RunSession({
+          seed, template: template(), registry, player: hero(), finalFloor: 20,
+          mutations: POOL, strandEventEveryNFloors: 1, ...(origin ? { origin } : {}),
+        });
+        autoplayFloor(s);
+        s.beginStrandEvent();
+        mycelial += s.strandOffer.filter((c) => c.mutation.family === 'mycelial').length;
+      }
+      return mycelial;
+    };
+    expect(count(affinity)).toBeGreaterThan(count(undefined));
   });
 });
 

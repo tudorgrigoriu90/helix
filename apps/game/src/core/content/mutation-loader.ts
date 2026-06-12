@@ -87,7 +87,8 @@ function readModifiers(raw: unknown): readonly MutationModifier[] | ContentError
 // ── Granted-ability reader ─────────────────────────────────────────────────
 
 /** Validates the optional `grantsAbility` block: `null`, or a full AbilityDef. */
-function readGrantsAbility(raw: unknown): AbilityDef | null | ContentError {
+/** Reads an inline AbilityDef (`null` allowed) — shared with the origin loader (T-301). */
+export function readGrantsAbility(raw: unknown): AbilityDef | null | ContentError {
   if (raw === undefined) return contentError('MISSING_FIELD', 'grantsAbility is required (use null for passive-only mutations)', 'grantsAbility');
   if (raw === null) return null;
   if (!isPlainObject(raw)) return contentError('WRONG_TYPE', 'grantsAbility must be an object or null', 'grantsAbility');

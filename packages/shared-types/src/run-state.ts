@@ -64,6 +64,9 @@ export interface PlayerState {
    * treated as none.
    */
   readonly dominantTraits?: readonly MutationFamily[];
+  /** Typed damage resists granted by the run's Origin (T-301). Optional:
+   *  absent (pre-Origin saves) means none. */
+  readonly resists?: readonly DamageResist[];
 }
 
 /**
@@ -96,6 +99,12 @@ export interface EnemyState {
    * pre-vision saves load without migration and self-correct on the next phase.
    */
   readonly aware?: boolean;
+}
+
+/** A percent reduction against one incoming damage type (Origin perks, T-301). */
+export interface DamageResist {
+  readonly damageType: DamageType;
+  readonly percent: number;
 }
 
 export type TurnPhase =

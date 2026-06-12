@@ -82,6 +82,9 @@ export function beginStrandEvent(cfg: SessionConfig, st: SessionState): StrandOu
       owned,
       floor: st.floorNumber,
       rng: st.strandRng,
+      // Origin familyAffinity nudges cadence draws (T-301); the Proto-Strand
+      // above stays uniform by design (DR-009b).
+      affinity: cfg.origin?.perk.kind === 'familyAffinity' ? cfg.origin.perk.family : undefined,
     });
   }
   st.strandOutcome = outcome;
@@ -143,7 +146,7 @@ export function acceptIntermission(cfg: SessionConfig, st: SessionState): void {
     throw new Error(`acceptIntermission: not at a Strand Event (status: ${st.status})`);
   }
   const outcome = beginStrandEvent(cfg, st);
-  if (outcome.kind === 'intermission') bankVein(st, outcome.veinCrystals);
+  if (outcome.kind === 'intermission') bankVein(cfg, st, outcome.veinCrystals);
   endStrandEvent(cfg, st);
 }
 

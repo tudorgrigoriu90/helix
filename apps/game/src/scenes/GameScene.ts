@@ -50,6 +50,9 @@ import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 import { queueAudioLoads, playSfx, playMusic, getCategoryVolume, setCategoryVolume } from './audio/audio-registry';
 import { logEvent } from '../core/platform/analytics-adapter';
 import { wardenPreLine, wardenPostLine } from '../core/lace/warden-lines';
+import type { OriginDef } from '@shared-types/origin';
+import { parseOriginDef } from '../core/content/origin-loader';
+import { applyOriginPerk, newRunPlayer } from '../core/run/start-player';
 import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
 import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
@@ -68,6 +71,9 @@ const mutationModules = import.meta.glob('../../../../packages/content/mutations
 const mutationFiles = mutationModules as Record<string, { readonly default: unknown }>;
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const itemModules = import.meta.glob('../../../../packages/content/items/*.json', { eager: true });
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const originModules = import.meta.glob('../../../../packages/content/origins/*.json', { eager: true });
+const originFiles = originModules as Record<string, { readonly default: unknown }>;
 const itemFiles = itemModules as Record<string, { readonly default: unknown }>;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -120,6 +126,7 @@ export class GameScene extends Phaser.Scene {
   private laceLines: readonly LaceLine[] = [];
   private mutationPool: readonly MutationDef[] = [];
   private itemPool: readonly ItemDef[] = [];
+  private origins: OriginDef[] = [];
 
   private strandSelected: number | null = null;
   private strandRerollUsed = false;
@@ -309,11 +316,24 @@ export class GameScene extends Phaser.Scene {
     const suffixes = parseSuffixTable(suffixesJson);
     if (!suffixes.ok) throw new Error(`GameScene: bad organism-names/suffixes.json — ${suffixes.error.message}`);
     this.nameTables = { prefixes: prefixes.prefixes, traits: traits.traits, suffixes: suffixes.suffixes };
+
+    // Origins (T-301): parsed defs drive both the run's perk and the save's
+    // originId resolution on resume.
+    this.origins = Object.values(originFiles).flatMap((mod) => {
+      const res = parseOriginDef(mod.default);
+      if (!res.ok) throw new Error(`GameScene: bad origin content — ${res.error.message}`);
+      return [res.origin];
+    });
   }
 
   // ── Run lifecycle ─────────────────────────────────────────────────────────
 
   private startRun(): void {
+    const origin = this.origins.find((o) => o.id === this.originId);
+    const player =
+      origin !== undefined
+        ? applyOriginPerk(newRunPlayer(), origin.perk, this.itemPool)
+        : undefined;
     this.session = new RunSession({
       seed: this.seed,
       template: this.template,
@@ -323,6 +343,8 @@ export class GameScene extends Phaser.Scene {
       mutations: this.mutationPool,
       strandEventEveryNFloors: STRAND_INTERVAL,
       itemPool: this.itemPool,
+      ...(player !== undefined ? { player } : {}),
+      ...(origin !== undefined ? { origin } : {}),
     });
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
     this.view = 'map';
@@ -359,6 +381,7 @@ export class GameScene extends Phaser.Scene {
       this.startRun();
       return;
     }
+    const origin = this.origins.find((o) => o.id === result.value.originId);
     this.session = new RunSession({
       seed: this.seed,
       template: this.template,
@@ -368,6 +391,7 @@ export class GameScene extends Phaser.Scene {
       mutations: this.mutationPool,
       strandEventEveryNFloors: STRAND_INTERVAL,
       itemPool: this.itemPool,
+      ...(origin !== undefined ? { origin } : {}),
     });
     this.session.applySave(result.value);
     this.session.revive();
@@ -399,6 +423,10 @@ export class GameScene extends Phaser.Scene {
    */
   private resumeFromSave(save: RunSessionSave): void {
     this.seed = save.seed; // narration/music keys derive from the run's seed
+    // T-301: session-level Origin perks (draw affinity, zone VEIN bonus)
+    // resolve from the saved originId; player-level perk results already
+    // live on the saved player.
+    const origin = this.origins.find((o) => o.id === save.originId);
     this.session = new RunSession({
       seed: save.seed,
       template: this.template,
@@ -408,6 +436,7 @@ export class GameScene extends Phaser.Scene {
       mutations: this.mutationPool,
       strandEventEveryNFloors: STRAND_INTERVAL,
       itemPool: this.itemPool,
+      ...(origin !== undefined ? { origin } : {}),
     });
     this.session.applySave(save);
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));

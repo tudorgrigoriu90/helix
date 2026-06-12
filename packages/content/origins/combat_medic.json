@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "combat_medic",
+  "name": "Combat Medic",
+  "tagline": "Begin carrying a Deep Tonic",
+  "unlockRuns": 0,
+  "perk": {
+    "kind": "startingItem",
+    "itemId": "deep_tonic"
+  },
+  "blurb": "You kept other people alive in places that disagreed. The habit packed itself: one good tonic, always, before the door closes behind you."
+}

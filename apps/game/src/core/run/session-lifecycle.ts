@@ -70,6 +70,7 @@ export function toSave(cfg: SessionConfig, st: SessionState): RunSessionSave {
     ...(st.pendingLoot.length > 0 ? { pendingLoot: [...st.pendingLoot] } : {}),
     ...(st.checkpoint !== null ? { checkpoint: st.checkpoint } : {}),
     ...(st.bonusMutationTaken ? { bonusMutationTaken: true } : {}),
+    ...(cfg.origin !== null ? { originId: cfg.origin.id } : {}),
   };
 }
 

@@ -73,6 +73,7 @@ export class RunSession {
       strandInterval: options.strandEventEveryNFloors ?? STRAND_INTERVAL_DEFAULT,
       itemPool: options.itemPool ?? [],
       floorZero: options.floorZero ?? null,
+      origin: options.origin ?? null,
     };
     this.st = {
       floorNumber: 1,
@@ -294,7 +295,7 @@ export class RunSession {
   /** T-176: grant VEIN Crystals as an event-room reward.
    *  Updates both the spendable balance and the lifetime-earned total. */
   grantVein(amount: number): void {
-    economy.bankVein(this.st, amount);
+    economy.bankVein(this.cfg, this.st, amount);
   }
 
   /** T-176 / T-178: restore HP by `amount`, capped at maxHp.

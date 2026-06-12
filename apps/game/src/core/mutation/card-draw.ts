@@ -52,6 +52,24 @@ export interface DrawMutationsParams {
   readonly floor?: number;
   /** The `mutationdraw` sub-generator — `makeRng(seed, 'mutationdraw')`. */
   readonly rng: Mulberry32;
+  /** Origin familyAffinity (T-301): extra weight on this family for the
+   *  *weighted* slots only — the wild slot stays uniform (Rule 2). */
+  readonly affinity?: MutationFamily;
+}
+
+/** Weighting bonus an Origin's familyAffinity adds (on the 100-point scale). */
+export const AFFINITY_WEIGHT_BONUS = 10;
+
+/** familyWeights plus the Origin affinity bonus, when one applies. */
+function weightsWithAffinity(
+  owned: readonly MutationDef[],
+  affinity: MutationFamily | undefined,
+): ReadonlyMap<MutationFamily, number> {
+  const base = familyWeights(owned);
+  if (affinity === undefined) return base;
+  const boosted = new Map(base);
+  boosted.set(affinity, (boosted.get(affinity) ?? 0) + AFFINITY_WEIGHT_BONUS);
+  return boosted;
 }
 
 /** Equal weight for every family — Rule 1's "0 mutations owned" distribution. */
@@ -112,6 +130,7 @@ export interface DrawOneParams {
   readonly slot: DrawSlot;
   readonly tier: MutationTier;
   readonly rng: Mulberry32;
+  readonly affinity?: MutationFamily;
 }
 
 /**
@@ -123,7 +142,8 @@ export function drawOneCard(params: DrawOneParams): DrawnCard | null {
   const available = availableMutations(params.pool, params.excludeIds);
   if (available.length === 0) return null;
 
-  const dist = params.slot === 'wild' ? uniformFamilyWeights() : familyWeights(params.owned);
+  const dist =
+    params.slot === 'wild' ? uniformFamilyWeights() : weightsWithAffinity(params.owned, params.affinity);
   const family = pickFamily(dist, params.rng);
   const mutation = pickForSlot(available, params.tier, family, params.rng);
   return { mutation, slot: params.slot, tier: params.tier };
@@ -166,7 +186,7 @@ export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCa
   for (let i = 0; i < STRAND_CARD_COUNT; i++) {
     const slot: DrawSlot = i < weightedSlots ? 'weighted' : 'wild';
     const tier = tiers[i] ?? 'minor';
-    const card = drawOneCard({ pool, owned, excludeIds: excluded, slot, tier, rng });
+    const card = drawOneCard({ pool, owned, excludeIds: excluded, slot, tier, rng, affinity: params.affinity });
     if (card === null) break; // pool exhausted — return fewer cards
 
     excluded.add(card.mutation.id);

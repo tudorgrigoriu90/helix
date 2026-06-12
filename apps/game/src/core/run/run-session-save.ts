@@ -85,6 +85,10 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     if (parsed['suspendedAtMs'] !== undefined && typeof parsed['suspendedAtMs'] !== 'number') {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed suspendedAtMs' } };
     }
+    // v10 (T-301): the optional Origin id must be a string.
+    if (parsed['originId'] !== undefined && typeof parsed['originId'] !== 'string') {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed originId' } };
+    }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };
   },

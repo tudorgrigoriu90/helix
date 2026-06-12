@@ -89,6 +89,9 @@ export {
   CURRENT_FLOOR_TEMPLATE_SCHEMA_VERSION,
 } from './floor-template.js';
 
+export type { OriginDef, OriginPerk } from './origin.js';
+export { CURRENT_ORIGIN_SCHEMA_VERSION } from './origin.js';
+
 export {
   MAX_FLOOR,
   ZONE_COUNT,

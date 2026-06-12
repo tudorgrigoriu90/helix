@@ -22,6 +22,7 @@ import {
 } from './inventory';
 import { equipItem, unequipItem } from './item-effects';
 import { hashString, roomById, type SessionConfig, type SessionState } from './run-session-types';
+import { zoneNameForFloor } from '@shared-types/campaign';
 
 /**
  * Run-session economy subsystem (T-520): kill rewards (VEIN/XP/levels), the
@@ -53,11 +54,18 @@ export function xpFromKills(enemies: readonly EnemyState[], registry: EnemyRegis
 }
 
 /** Banks VEIN income: raises both the spendable balance and the lifetime
- *  earned total (the latter drives the run-end Shard conversion, T-113). */
-export function bankVein(st: SessionState, amount: number): void {
+ *  earned total (the latter drives the run-end Shard conversion, T-113).
+ *  An Origin's zoneVeinBonus (T-301, e.g. the Geologist's +10% in the Lithic
+ *  Deep) applies here — income only, never refunds or spends. */
+export function bankVein(cfg: SessionConfig, st: SessionState, amount: number): void {
   if (amount <= 0) return;
-  st.veinCrystals += amount;
-  st.veinEarned += amount;
+  const perk = cfg.origin?.perk;
+  const boosted =
+    perk?.kind === 'zoneVeinBonus' && zoneNameForFloor(st.floorNumber) === perk.zone
+      ? Math.floor(amount * (1 + perk.percent / 100))
+      : amount;
+  st.veinCrystals += boosted;
+  st.veinEarned += boosted;
 }
 
 /**

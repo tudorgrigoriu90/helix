@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "field_biologist",
+  "name": "Field Biologist",
+  "tagline": "Mycelial affinity — the network favors you in Strand draws",
+  "unlockRuns": 0,
+  "perk": {
+    "kind": "familyAffinity",
+    "family": "mycelial"
+  },
+  "blurb": "You catalogued the surface world's fungal networks before the VEIN called. Down here the spores recognise a sympathetic reader, and the strands lean your way."
+}

@@ -12,6 +12,7 @@ import { parseEnemyDef } from './enemy-loader';
 import { parseItemDef } from './item-loader';
 import { parseMutationDef } from './mutation-loader';
 import { parseCodexEntries } from './codex-loader';
+import { parseOriginDef } from './origin-loader';
 import { parseFloorTemplate } from '../floor-gen';
 import { parseLaceLines } from '../lace';
 import { crossReferenceContent } from './cross-reference';
@@ -164,6 +165,23 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
         mutations.filter((m) => m.family === family && m.tier === 'dominant').length,
         `${family} dominant-tier coverage`,
       ).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('ships the five default Origins, perks resolving against shipped content (T-301)', () => {
+    const results = readDir('origins').map((o) => ({ file: o.file, res: parseOriginDef(o.raw) }));
+    for (const { file, res } of results) {
+      expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
+    }
+    const origins = results.flatMap((o) => (o.res.ok ? [o.res.origin] : []));
+    const defaults = origins.filter((o) => o.unlockRuns === 0).map((o) => o.id).sort();
+    expect(defaults).toEqual(['blacksite_agent', 'combat_medic', 'deep_sea_diver', 'field_biologist', 'geologist']);
+    // A startingItem perk must reference shipped item content.
+    const itemIds = new Set(items.map((i) => i.id));
+    for (const o of origins) {
+      if (o.perk.kind === 'startingItem') {
+        expect(itemIds.has(o.perk.itemId), `${o.id} starting item "${o.perk.itemId}"`).toBe(true);
+      }
     }
   });
 
