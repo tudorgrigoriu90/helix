@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "convergence_lens",
+  "name": "Convergence Lens",
+  "rarity": "legendary",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 9
+    },
+    {
+      "kind": "maxAp",
+      "delta": 1
+    }
+  ]
+}

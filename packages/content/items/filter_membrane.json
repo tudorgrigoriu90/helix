@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "filter_membrane",
+  "name": "Filter Membrane",
+  "rarity": "uncommon",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 10
+    },
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 2
+    }
+  ]
+}

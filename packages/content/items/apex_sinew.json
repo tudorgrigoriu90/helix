@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "apex_sinew",
+  "name": "Apex Sinew",
+  "rarity": "rare",
+  "category": "equipment",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 6
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 3
+    }
+  ]
+}

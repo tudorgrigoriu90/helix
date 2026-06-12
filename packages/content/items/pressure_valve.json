@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "pressure_valve",
+  "name": "Pressure Valve",
+  "rarity": "uncommon",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 4
+    }
+  ]
+}

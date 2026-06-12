@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "mindlattice",
+  "name": "Mindlattice",
+  "rarity": "rare",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 7
+    }
+  ]
+}

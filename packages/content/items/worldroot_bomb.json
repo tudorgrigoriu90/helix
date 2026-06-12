@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "worldroot_bomb",
+  "name": "Worldroot Bomb",
+  "rarity": "legendary",
+  "category": "consumable",
+  "effect": {
+    "kind": "damage",
+    "amount": 80,
+    "damageType": "spore",
+    "aoeRadius": 2
+  }
+}

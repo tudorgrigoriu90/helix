@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "bulwark_plating",
+  "name": "Bulwark Plating",
+  "rarity": "rare",
+  "category": "equipment",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 5
+    },
+    {
+      "kind": "maxHp",
+      "delta": 10
+    }
+  ]
+}

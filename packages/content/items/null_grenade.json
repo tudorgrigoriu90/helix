@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "null_grenade",
+  "name": "Null Grenade",
+  "rarity": "uncommon",
+  "category": "consumable",
+  "effect": {
+    "kind": "damage",
+    "amount": 38,
+    "damageType": "void",
+    "aoeRadius": 1
+  }
+}

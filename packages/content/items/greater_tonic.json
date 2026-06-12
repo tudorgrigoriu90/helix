@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "greater_tonic",
+  "name": "Greater Tonic",
+  "rarity": "uncommon",
+  "category": "consumable",
+  "effect": {
+    "kind": "heal",
+    "amount": 60
+  }
+}

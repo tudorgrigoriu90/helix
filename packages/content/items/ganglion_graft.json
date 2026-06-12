@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "ganglion_graft",
+  "name": "Ganglion Graft",
+  "rarity": "uncommon",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 4
+    }
+  ]
+}

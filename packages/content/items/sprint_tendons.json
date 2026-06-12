@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "sprint_tendons",
+  "name": "Sprint Tendons",
+  "rarity": "uncommon",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 4
+    }
+  ]
+}

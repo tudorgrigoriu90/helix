@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "wardstone",
+  "name": "Wardstone",
+  "rarity": "rare",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 6
+    },
+    {
+      "kind": "maxHp",
+      "delta": 15
+    }
+  ]
+}

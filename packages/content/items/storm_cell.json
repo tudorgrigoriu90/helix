@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "storm_cell",
+  "name": "Storm Cell",
+  "rarity": "uncommon",
+  "category": "consumable",
+  "effect": {
+    "kind": "damage",
+    "amount": 40,
+    "damageType": "thermal",
+    "aoeRadius": 1
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "omega_serum",
+  "name": "Omega Serum",
+  "rarity": "legendary",
+  "category": "consumable",
+  "effect": {
+    "kind": "heal",
+    "amount": 200
+  }
+}

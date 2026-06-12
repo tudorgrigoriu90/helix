@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "leviathan_scale",
+  "name": "Leviathan Scale",
+  "rarity": "legendary",
+  "category": "equipment",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 8
+    },
+    {
+      "kind": "maxHp",
+      "delta": 25
+    }
+  ]
+}

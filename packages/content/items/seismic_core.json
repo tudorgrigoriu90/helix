@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "seismic_core",
+  "name": "Seismic Core",
+  "rarity": "rare",
+  "category": "consumable",
+  "effect": {
+    "kind": "damage",
+    "amount": 55,
+    "damageType": "seismic",
+    "aoeRadius": 2
+  }
+}

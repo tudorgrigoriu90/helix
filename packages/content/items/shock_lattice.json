@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "shock_lattice",
+  "name": "Shock Lattice",
+  "rarity": "uncommon",
+  "category": "consumable",
+  "effect": {
+    "kind": "applyStatus",
+    "status": "stagger",
+    "duration": 2,
+    "aoeRadius": 1
+  }
+}

@@ -643,14 +643,15 @@ Enemy stats scale with floor (Floor 1 is the authored baseline):
 > harness proved that at the original values a competent player cleared
 > Floor 15+ at exactly **0%** — the five §2.8 endings behind the Floor 20
 > Convergence were unreachable, violating the DR-008/T-524 intent that the
-> Apex be *punishing but reachable*. The retuned curve measured F1 98% /
-> F5 98% / F10 57% / F15 20% / F20 8%; the DR-009b Proto-Strand (T-511) lifted
-> it to F10 73% / F15 33% / F20 20%; the T-503 boss phase treatment (Floor-Boss
-> enrage + bespoke 3-phase Wardens) brings it to **F10 63% / F15 20% /
-> F20 10%** — inside the harness's enforced Floor-20 clear-rate band of
-> **[2%, 30%]** (`balance.test.ts`), so any future change that walls off the
-> endings fails CI. Code source of truth: `core/run/scaling.ts` +
-> `core/turn-engine/boss-phases.ts` + `packages/content/enemies/`.
+> Apex be *punishing but reachable*. The **live measured curve is published
+> per commit** as the `clear-rate-curve` CI artifact (T-504) — quoting numbers
+> here goes stale with every content drop (the Proto-Strand, the boss phases,
+> and each mutation/item tier landing all moved it). The harness enforces a
+> Floor-20 clear-rate band of **[2%, 30%]** (`balance.test.ts`), so any change
+> that walls off the endings — or trivialises the Apex — fails CI. As of
+> 2026-06-12 (full 66-mutation roster + full item tiers): F1 100% / F5 100% /
+> F10 57% / F15 23% / F20 20%. Code source of truth: `core/run/scaling.ts` +
+> `core/turn-engine/boss-phases.ts` + `packages/content/`.
 
 Item tier scales with floor:
 - Floors 1–5: Common only
@@ -1649,9 +1650,18 @@ LACE:    "[quote]"
 
 ### Appendix C — Item Catalogue
 
-[TO BE EXPANDED] — full stat blocks: tier, category, effect values, floor availability, Dispenser price, interaction notes with specific mutations.
+[TO BE EXPANDED] — interaction notes with specific mutations.
 
 **Build order:** Common-tier items for prototype (~15); Uncommon for alpha; full set for soft launch.
+
+> **AMENDMENT — 2026-06-12 (T-304).** The full-tier catalog is shipped and
+> machine-counted (`packages/content/items/`, content gate): **15 Common /
+> 10 Uncommon / 8 Rare / 5 Legendary = 38 items**, each band carrying both
+> consumables and build pieces (passives/equipment with always-on modifiers).
+> Floor availability follows the §9.1 rarity bands already enforced in
+> `item-drops.ts` (Common 1–10, Uncommon 4–15, Rare 8–20, Legendary 14–20);
+> Dispenser prices derive from the §9 rarity multipliers (1/2.5/6/15). Stat
+> blocks live in the content files — the single source of truth.
 
 ### Appendix D — LACE Dialogue Guidelines
 

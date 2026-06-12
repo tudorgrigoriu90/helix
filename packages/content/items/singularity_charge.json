@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "singularity_charge",
+  "name": "Singularity Charge",
+  "rarity": "rare",
+  "category": "consumable",
+  "effect": {
+    "kind": "damage",
+    "amount": 60,
+    "damageType": "void",
+    "aoeRadius": 2
+  }
+}

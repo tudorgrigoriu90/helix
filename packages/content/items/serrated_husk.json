@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "serrated_husk",
+  "name": "Serrated Husk",
+  "rarity": "uncommon",
+  "category": "equipment",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 4
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "keelplate",
+  "name": "Keelplate",
+  "rarity": "uncommon",
+  "category": "equipment",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 20
+    }
+  ]
+}

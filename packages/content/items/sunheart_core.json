@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "sunheart_core",
+  "name": "Sunheart Core",
+  "rarity": "legendary",
+  "category": "equipment",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 8
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 4
+    }
+  ]
+}
