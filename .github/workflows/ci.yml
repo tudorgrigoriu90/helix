@@ -36,6 +36,12 @@ jobs:
       - name: Coverage gate (≥80% lines on /core/)
         run: pnpm test:coverage
 
+      - name: Publish clear-rate curve (T-504)
+        uses: actions/upload-artifact@v4
+        with:
+          name: clear-rate-curve
+          path: apps/game/reports/clear-rate-curve.json
+
       - name: Determinism replay (100 fixed seeds)
         run: pnpm --filter @helix/game test:determinism
 

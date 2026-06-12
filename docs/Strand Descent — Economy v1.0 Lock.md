@@ -120,6 +120,16 @@ canonical bands; `shards.ts` doc-comment corrected from the 30-floor VEIN total.
 
 ## 3. Locked baseline — headline numbers (20-floor model)
 
+> **Clear-rate curve (T-504, published 2026-06-11).** The CI balance harness
+> now publishes the measured clear-rate curve as a build artifact
+> (`clear-rate-curve.json`, uploaded per run from `balance.test.ts`). Current
+> measured curve at the locked tuning (post T-502 boss-economy split, T-511
+> Proto-Strand, T-524 scaling retune): **F1 98% · F5 98% · F10 73% · F15 33% ·
+> F20 20%** — Floor 20 inside the enforced [2%, 30%] band, so the five endings
+> are reachable. The **VEIN headline totals below remain stale pending the
+> workbook v1.2 recompute (T-521)**; per-kill VEIN drivers are already
+> machine-pinned to code via `economy-lock.json` (T-522).
+
 | Metric                              | v1.1 (20f) | prior v1.0 (30f) | Source |
 | ----------------------------------- | ---------: | ---------------: | ------ |
 | Total VEIN / full clear             | **3,232**  | 4,797.5          | Currencies E50 |

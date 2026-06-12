@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { describe, it, expect, afterAll } from 'vitest';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { Action, Position } from '@shared-types/action';
@@ -299,9 +299,40 @@ function clearRate(finalFloor: number, seeds = 40): number {
 
 // ── Tests ─────────────────────────────────────────────────────────────────
 
+// ── T-504: clear-rate curve artifact ─────────────────────────────────────────
+// The measured rates are written to reports/clear-rate-curve.json after the
+// suite runs; CI uploads it as the published curve for every build, so balance
+// drift is visible per-commit instead of only when a threshold trips.
+
+const measuredRates: Record<string, number> = {};
+
+afterAll(() => {
+  if (Object.keys(measuredRates).length === 0) return;
+  const dir = fileURLToPath(new URL('../../../reports/', import.meta.url));
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    `${dir}clear-rate-curve.json`,
+    JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        policy: 'competent autoplay (T-524)',
+        thresholds: {
+          floor1Min: FLOOR1_CLEAR_MIN,
+          zone1EndMin: ZONE1_END_MIN,
+          apexBand: [APEX_CLEAR_MIN, APEX_CLEAR_MAX],
+        },
+        clearRates: measuredRates,
+      },
+      null,
+      2,
+    ) + '\n',
+  );
+});
+
 describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
   it('floor 1 is reliably winnable', () => {
     const f1 = clearRate(1, 60);
+    measuredRates['floor1'] = f1;
     // eslint-disable-next-line no-console
     console.log(`  F1 clear rate: ${(f1 * 100).toFixed(0)}%`);
     expect(f1).toBeGreaterThanOrEqual(FLOOR1_CLEAR_MIN);
@@ -310,6 +341,7 @@ describe('combat balance — all 20 floors (T-78 difficulty curve)', () => {
   it('difficulty curve descends across zone milestones', () => {
     const depths = [5, 10, 15, 20];
     const rates = depths.map((d) => clearRate(d, 40));
+    depths.forEach((d, i) => { measuredRates[`floor${d}`] = rates[i]!; });
     // eslint-disable-next-line no-console
     console.log(
       depths

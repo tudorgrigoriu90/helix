@@ -56,3 +56,6 @@ Thumbs.db
 # Misc
 *.tmp
 *.bak
+
+# Balance harness reports (CI artifact — T-504)
+apps/game/reports/
