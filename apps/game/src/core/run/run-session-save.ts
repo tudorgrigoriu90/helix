@@ -81,6 +81,10 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     if (parsed['bonusMutationTaken'] !== undefined && typeof parsed['bonusMutationTaken'] !== 'boolean') {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed bonusMutationTaken' } };
     }
+    // v9 (T-513): the optional scene-written suspend timestamp must be a number.
+    if (parsed['suspendedAtMs'] !== undefined && typeof parsed['suspendedAtMs'] !== 'number') {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed suspendedAtMs' } };
+    }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };
   },

@@ -29,16 +29,18 @@ export interface EventSchema {
   };
 
   // ── Combat ────────────────────────────────────────────────────────────────
-  /** A combat encounter begins. */
+  /** A combat encounter begins. `bossTier` present on boss rooms (DR-008, T-513). */
   readonly combat_start: {
     readonly roomType: 'combat' | 'boss';
     readonly floorNumber: number;
     readonly enemyCount: number;
+    readonly bossTier?: 'floor_boss' | 'zone_warden';
   };
-  /** A combat encounter ends. */
+  /** A combat encounter ends. `bossTier` present on boss rooms (DR-008, T-513). */
   readonly combat_end: {
     readonly outcome: 'victory' | 'defeat';
     readonly turnsElapsed: number;
+    readonly bossTier?: 'floor_boss' | 'zone_warden';
   };
   /** Player uses an ability. */
   readonly ability_used: {
@@ -77,6 +79,33 @@ export interface EventSchema {
   readonly vein_intermission: {
     readonly floorNumber: number;
     readonly vcGained: number;
+  };
+
+  // ── DR-009/DR-009b descent structure (T-513) ──────────────────────────────
+  /** The Floor 2 Proto-Strand offer appears (DR-009b). */
+  readonly proto_strand_shown: {
+    readonly floorNumber: number;
+  };
+  /** A Proto-Strand card is taken (fills the bonus slot at +5 SIG). */
+  readonly proto_strand_selected: {
+    readonly mutationId: string;
+    readonly family: string;
+  };
+  /** The S072 Descend/Rest choice appears after a Strand Event (DR-009). */
+  readonly descent_checkpoint_offered: {
+    readonly floorNumber: number;
+    readonly act: number;
+  };
+  /** The player rests — run suspended at the act-end checkpoint. */
+  readonly descent_checkpoint_rested: {
+    readonly floorNumber: number;
+    readonly act: number;
+  };
+  /** A checkpointed run resumes from the Hub's Continue Descent card.
+   *  (UFD 02 names these `act_n` / `hours_since_suspend`.) */
+  readonly descent_resumed: {
+    readonly actN: number;
+    readonly hoursSinceSuspend: number;
   };
 
   // ── Room navigation ───────────────────────────────────────────────────────

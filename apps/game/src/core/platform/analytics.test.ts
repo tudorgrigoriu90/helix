@@ -84,4 +84,27 @@ describe('analytics-adapter — logEvent', () => {
 
     expect(received[0]).toEqual({ decision: 'declined' });
   });
+
+  it('carries the DR-009/DR-008 descent events with typed params (T-513)', () => {
+    const received: Array<{ name: string; params: unknown }> = [];
+    const adapter: AnalyticsAdapter = {
+      logEvent(name, params) { received.push({ name, params }); },
+    };
+    setAnalyticsAdapter(adapter);
+
+    logEvent('proto_strand_shown', { floorNumber: 2 });
+    logEvent('proto_strand_selected', { mutationId: 'thermal_overclock', family: 'thermal' });
+    logEvent('descent_checkpoint_offered', { floorNumber: 5, act: 1 });
+    logEvent('descent_checkpoint_rested', { floorNumber: 5, act: 1 });
+    logEvent('descent_resumed', { actN: 2, hoursSinceSuspend: 13.37 });
+    logEvent('combat_start', { roomType: 'boss', floorNumber: 5, enemyCount: 1, bossTier: 'zone_warden' });
+    logEvent('combat_end', { outcome: 'victory', turnsElapsed: 9, bossTier: 'zone_warden' });
+
+    expect(received.map((e) => e.name)).toEqual([
+      'proto_strand_shown', 'proto_strand_selected', 'descent_checkpoint_offered',
+      'descent_checkpoint_rested', 'descent_resumed', 'combat_start', 'combat_end',
+    ]);
+    expect(received[4]!.params).toEqual({ actN: 2, hoursSinceSuspend: 13.37 });
+    expect((received[5]!.params as { bossTier?: string }).bossTier).toBe('zone_warden');
+  });
 });

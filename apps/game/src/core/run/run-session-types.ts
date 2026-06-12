@@ -69,9 +69,10 @@ export interface DescentCheckpoint {
  *  v4 added `veinEarned`; v5 added mid-combat persistence (`combat` +
  *  `combatRngState`); v6 added `pendingLoot` (uncollected drops); v7 added
  *  `checkpoint` (DR-009 act-end rest, T-510); v8 added `bonusMutationTaken`
- *  (DR-009b bonus slot, T-511). Older saves load fine — missing fields
- *  default to 0/none/null/false. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 8;
+ *  (DR-009b bonus slot, T-511); v9 added `suspendedAtMs` (T-513 — written by
+ *  the *scene* on persist; the deterministic core never reads a wall clock).
+ *  Older saves load fine — missing fields default to 0/none/null/false. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 9;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -105,6 +106,10 @@ export interface RunSessionSave {
   /** True once the run's single bonus-slot mutation is taken — the Proto-Strand
    *  pick or a LACE event-room adaptation (added in save v8; absent → false). */
   readonly bonusMutationTaken?: boolean;
+  /** Wall-clock ms when the save was written (added in save v9, T-513). Set by
+   *  the scene layer on persist — never read by the deterministic core — and
+   *  used only to derive `descent_resumed.hoursSinceSuspend`. */
+  readonly suspendedAtMs?: number;
   /**
    * The live combat state, present only when `status === 'in_combat'` and the
    * scene has synced it via `RunSession.syncCombat` (save v5). Its presence

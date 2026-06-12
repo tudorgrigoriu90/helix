@@ -429,6 +429,13 @@ export class GameScene extends Phaser.Scene {
       // Continue Descent: consume the checkpoint and land on the next floor's
       // entrance (UFD 02 S017 / S029).
       this.session.descend();
+      const hours = save.suspendedAtMs !== undefined
+        ? (Date.now() - save.suspendedAtMs) / 3_600_000
+        : 0;
+      logEvent('descent_resumed', {
+        actN: checkpoint.act + 1,
+        hoursSinceSuspend: Math.round(hours * 100) / 100,
+      });
       this.narrator.signalMood('new_floor');
       if (this.session.snapshot.floorNumber >= 16) this.narrator.signalMood('deep_floor');
     } else {
@@ -449,8 +456,20 @@ export class GameScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  /** The DR-008 tier of the current room's boss, for boss_tier analytics
+   *  params (T-513). Undefined when the room holds no boss-tier enemy. */
+  private currentBossTier(): 'floor_boss' | 'zone_warden' | undefined {
+    for (const spawn of this.session.currentRoom().enemies) {
+      const def = this.enemyRegistry.get(spawn.enemyDefId);
+      if (def !== undefined && isBossTier(def.tier)) return def.tier;
+    }
+    return undefined;
+  }
+
   private persist(): void {
-    void this.saves.save(this.session.toSave());
+    // T-513: the scene stamps the save with the wall clock (the deterministic
+    // core never reads one) — feeds descent_resumed.hoursSinceSuspend.
+    void this.saves.save({ ...this.session.toSave(), suspendedAtMs: Date.now() });
   }
 
   private floorMusicKey(floor: number): string {
@@ -555,6 +574,7 @@ export class GameScene extends Phaser.Scene {
       roomType: room.type as 'combat' | 'boss',
       floorNumber: this.session.snapshot.floorNumber,
       enemyCount: encounter.enemies.length,
+      ...(room.type === 'boss' ? { bossTier: this.currentBossTier() } : {}),
     });
     this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
     if (room.type === 'boss') playMusic(this, 'music_boss');
@@ -1254,6 +1274,7 @@ export class GameScene extends Phaser.Scene {
     logEvent('combat_end', {
       outcome: state.phase === 'defeat' ? 'defeat' : 'victory',
       turnsElapsed: state.turn,
+      ...(this.session.currentRoom().type === 'boss' ? { bossTier: this.currentBossTier() } : {}),
     });
 
     const wasBoss = this.session.currentRoom().type === 'boss';
@@ -1701,6 +1722,10 @@ export class GameScene extends Phaser.Scene {
    *  return to the Hub. The save written here carries the checkpoint, so the
    *  Hub shows the "Continue Descent" card; pause-only — never a retry point. */
   private restAtCheckpoint(): void {
+    const checkpoint = this.session.checkpoint();
+    if (checkpoint !== null) {
+      logEvent('descent_checkpoint_rested', { floorNumber: checkpoint.floor, act: checkpoint.act });
+    }
     this.persist();
     playSfx(this, 'ui_confirm');
     this.scene.start('HubScene', { meta: this.meta });
@@ -1818,10 +1843,14 @@ export class GameScene extends Phaser.Scene {
     this.dominantTraitReveal = [];
     this.strandAnimateCards = 'all';
     this.view = 'strand';
-    logEvent('strand_event_open', {
-      floorNumber: this.session.snapshot.floorNumber,
-      mutationCount: this.session.snapshot.player.mutations.length,
-    });
+    if (this.session.isProtoStrand()) {
+      logEvent('proto_strand_shown', { floorNumber: this.session.snapshot.floorNumber });
+    } else {
+      logEvent('strand_event_open', {
+        floorNumber: this.session.snapshot.floorNumber,
+        mutationCount: this.session.snapshot.player.mutations.length,
+      });
+    }
     this.say('generic');
     this.persist();
     this.renderAll();
@@ -1860,6 +1889,7 @@ export class GameScene extends Phaser.Scene {
     const prevOwnedDefs = this.mutationPool.filter((m) => prevSnap.player.mutations.includes(m.id));
     const prevSynCount = unlockedSynergies(prevOwnedDefs).length;
     const prevTraits = [...(prevSnap.player.dominantTraits ?? [])];
+    const wasProto = this.session.isProtoStrand(); // resolving the pick clears it
     this.session.chooseStrandMutation(card.mutation.id);
     playSfx(this, 'sfx_mutation');
     this.laceText.setText(`LACE: ${card.mutation.lace}`);
@@ -1871,6 +1901,7 @@ export class GameScene extends Phaser.Scene {
       tier: mut.tier,
       slot: mut.grantsAbility !== null ? 'active' : 'passive',
     });
+    if (wasProto) logEvent('proto_strand_selected', { mutationId: mut.id, family: mut.family });
     this.playMutationPulse();
 
     // T-190: new hybrid synergy → reverent mood signal.
@@ -1919,9 +1950,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** S072 framing line (UFD 04 amendment) — shown once the Strand Event
-   *  resolves and the Descend/Rest choice is on screen. */
+   *  resolves and the Descend/Rest choice is on screen. Also the analytics
+   *  funnel point: the choice appearing IS the checkpoint offer (T-513). */
   private sayCheckpointRestLine(): void {
-    if (this.session.checkpoint() === null) return;
+    const checkpoint = this.session.checkpoint();
+    if (checkpoint === null) return;
+    logEvent('descent_checkpoint_offered', { floorNumber: checkpoint.floor, act: checkpoint.act });
     this.laceText.setText('LACE: Rest. The VEIN is patient. Your new strand will settle.');
   }
 
