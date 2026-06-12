@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_kinship",
+  "name": "Lithic Kinship",
+  "tagline": "Dispensers favour lithic-leaning stock",
+  "unlock": {
+    "kind": "runsWithFamily",
+    "family": "lithic",
+    "count": 10
+  },
+  "effect": {
+    "kind": "shopFamilyBias",
+    "family": "lithic"
+  },
+  "blurb": "Ten descents built from stone outward. The Dispensers have started shelving minerals where you will see them. Rock recognises patience."
+}

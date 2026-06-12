@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "vein_memory",
+  "name": "Vein Memory",
+  "tagline": "LACE hints the next floor's biome once per run",
+  "unlock": {
+    "kind": "reachFloor",
+    "floor": 15
+  },
+  "effect": {
+    "kind": "laceBiomeHint"
+  },
+  "blurb": "Fifteen floors deep, the routes start to rhyme. Once each descent I will tell you what waits below. Consider it a professional courtesy."
+}

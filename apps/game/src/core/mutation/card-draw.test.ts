@@ -102,3 +102,43 @@ describe('card draw — T-85 (GDD §5.4 Rules 2 & 4)', () => {
     expect(abyssalWeighted).toBeGreaterThan(otherWeighted);
   });
 });
+
+describe('Sigma Strain draw effects — T-306 (GDD §11.2)', () => {
+  it('extraWildCards appends wild slots to the offer (True Convergence)', () => {
+    const cards = drawMutationCards({
+      pool: makePool(4), owned: [], rng: makeRng(11, 'mutationdraw'), extraWildCards: 1,
+    });
+    expect(cards).toHaveLength(STRAND_CARD_COUNT + 1);
+    expect(cards.filter((c) => c.slot === 'wild')).toHaveLength(WILD_CARD_COUNT + 1);
+    expect(new Set(ids(cards)).size).toBe(cards.length); // still all distinct (Rule 4)
+  });
+
+  it('the extra wild card inherits the last slot’s tier (Rule 3 preserved at depth)', () => {
+    const pool = makePool(8);
+    for (let seed = 0; seed < 50; seed++) {
+      const cards = drawMutationCards({
+        pool, owned: [], floor: 15, rng: makeRng(seed, 'mutationdraw'), extraWildCards: 1,
+      });
+      const last = cards[cards.length - 1];
+      const prior = cards[cards.length - 2];
+      expect(last?.tier).toBe(prior?.tier);
+    }
+  });
+
+  it('forceFirstFamily pins the first card’s family when available (Early Adaptation)', () => {
+    const pool = makePool(6);
+    for (let seed = 0; seed < 100; seed++) {
+      const cards = drawMutationCards({
+        pool, owned: [], rng: makeRng(seed, 'mutationdraw'), forceFirstFamily: 'voidborn',
+      });
+      expect(cards[0]?.mutation.family).toBe('voidborn');
+    }
+  });
+
+  it('without the strain flags the draw is byte-identical to the baseline', () => {
+    const pool = makePool(4);
+    const a = drawMutationCards({ pool, owned: [], rng: makeRng(5, 'mutationdraw') });
+    const b = drawMutationCards({ pool, owned: [], rng: makeRng(5, 'mutationdraw'), extraWildCards: 0 });
+    expect(ids(a)).toEqual(ids(b));
+  });
+});

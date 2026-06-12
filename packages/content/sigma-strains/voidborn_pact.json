@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_pact",
+  "name": "Voidborn Pact",
+  "tagline": "Dispensers favour voidborn-leaning stock",
+  "unlock": {
+    "kind": "runsWithFamily",
+    "family": "voidborn",
+    "count": 10
+  },
+  "effect": {
+    "kind": "shopFamilyBias",
+    "family": "voidborn"
+  },
+  "blurb": "Ten descents leaning into the dark between things. The Dispensers stock accordingly, though none of us ask where those goods come from."
+}

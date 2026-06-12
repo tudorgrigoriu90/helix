@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "void_sense",
+  "name": "Void Sense",
+  "tagline": "Void enemies reveal their next action",
+  "unlock": {
+    "kind": "deathsToType",
+    "damageType": "void",
+    "count": 5
+  },
+  "effect": {
+    "kind": "enemyIntentReveal",
+    "damageType": "void"
+  },
+  "blurb": "Five times the void ended you, and five times something of you stayed behind to watch. Now the watching runs both ways."
+}

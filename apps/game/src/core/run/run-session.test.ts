@@ -585,6 +585,44 @@ describe('RunSession — Origin perks (T-301, GDD §4.1)', () => {
     expect(none.toSave().originId).toBeUndefined();
   });
 
+  it('sigma-strain session effects (T-306): VEIN bonus, starting VEIN, draw nudges', () => {
+    // veinBonusPercent applies everywhere and stacks on the Origin zone bonus.
+    const boosted = new RunSession({
+      seed: 4, template: template(), registry, player: hero(), finalFloor: 20, origin: geologist,
+      strainFx: { veinBonusPercent: 5, startingVein: 0, extraWildCard: false, firstCardMatchesLastFamily: false },
+    });
+    boosted.grantVein(100);
+    expect(boosted.snapshot.veinCrystals).toBe(115); // floor(110 × 1.05)
+
+    // startingVein banks at construction, as income; a resumed save never re-grants.
+    const cached = new RunSession({
+      seed: 4, template: template(), registry, player: hero(), finalFloor: 20,
+      strainFx: { veinBonusPercent: 0, startingVein: 25, extraWildCard: false, firstCardMatchesLastFamily: false },
+    });
+    expect(cached.snapshot.veinCrystals).toBe(25);
+    expect(cached.snapshot.veinEarned).toBe(25);
+    const midRun = { ...cached.toSave(), veinCrystals: 7, veinEarned: 7 };
+    const resumed = new RunSession({
+      seed: 4, template: template(), registry, player: hero(), finalFloor: 20,
+      strainFx: { veinBonusPercent: 0, startingVein: 25, extraWildCard: false, firstCardMatchesLastFamily: false },
+    });
+    resumed.applySave(midRun);
+    expect(resumed.snapshot.veinCrystals).toBe(7); // not 32
+
+    // extraWildCard widens the cadence offer; firstCardMatchesLastFamily pins
+    // the first card to the most recently acquired mutation's family.
+    const s = new RunSession({
+      seed: 9, template: template(), registry, player: hero(['m_ab1']), finalFloor: 20,
+      mutations: POOL, strandEventEveryNFloors: 1,
+      strainFx: { veinBonusPercent: 0, startingVein: 0, extraWildCard: true, firstCardMatchesLastFamily: true },
+    });
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    expect(s.strandOffer).toHaveLength(4); // 3 + the extra wild
+    expect(s.strandOffer[0]!.mutation.family).toBe('abyssal'); // m_ab2 — same family, not owned
+    expect(s.strandOffer.filter((c) => c.slot === 'wild')).toHaveLength(2);
+  });
+
   it('familyAffinity leans cadence strand draws toward the family, deterministically', () => {
     const affinity: OriginDef = { ...geologist, id: 'field_biologist', perk: { kind: 'familyAffinity', family: 'mycelial' } };
     const count = (origin?: OriginDef): number => {

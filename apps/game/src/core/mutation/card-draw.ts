@@ -55,6 +55,11 @@ export interface DrawMutationsParams {
   /** Origin familyAffinity (T-301): extra weight on this family for the
    *  *weighted* slots only — the wild slot stays uniform (Rule 2). */
   readonly affinity?: MutationFamily;
+  /** Early Adaptation strain (T-306): the first weighted slot's family is
+   *  pinned to this instead of sampled ("1st mutation card matches last family"). */
+  readonly forceFirstFamily?: MutationFamily;
+  /** True Convergence strain (T-306): extra wild cards appended to the offer. */
+  readonly extraWildCards?: number;
 }
 
 /** Weighting bonus an Origin's familyAffinity adds (on the 100-point scale). */
@@ -131,6 +136,10 @@ export interface DrawOneParams {
   readonly tier: MutationTier;
   readonly rng: Mulberry32;
   readonly affinity?: MutationFamily;
+  /** When set, the family is pinned instead of sampled (Early Adaptation, T-306).
+   *  The RNG is still consumed once so the rest of the draw stays stream-stable
+   *  whether or not the strain is unlocked mid-profile. */
+  readonly forceFamily?: MutationFamily;
 }
 
 /**
@@ -144,7 +153,8 @@ export function drawOneCard(params: DrawOneParams): DrawnCard | null {
 
   const dist =
     params.slot === 'wild' ? uniformFamilyWeights() : weightsWithAffinity(params.owned, params.affinity);
-  const family = pickFamily(dist, params.rng);
+  const sampled = pickFamily(dist, params.rng);
+  const family = params.forceFamily ?? sampled;
   const mutation = pickForSlot(available, params.tier, family, params.rng);
   return { mutation, slot: params.slot, tier: params.tier };
 }
@@ -182,11 +192,21 @@ export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCa
   const excluded = new Set<string>(owned.map((m) => m.id));
   const cards: DrawnCard[] = [];
   const weightedSlots = STRAND_CARD_COUNT - WILD_CARD_COUNT;
+  // True Convergence (T-306): extra wild cards extend the offer; they reuse the
+  // last slot's tier so depth escalation (Rule 3) is preserved.
+  const total = STRAND_CARD_COUNT + Math.max(0, params.extraWildCards ?? 0);
 
-  for (let i = 0; i < STRAND_CARD_COUNT; i++) {
+  for (let i = 0; i < total; i++) {
     const slot: DrawSlot = i < weightedSlots ? 'weighted' : 'wild';
-    const tier = tiers[i] ?? 'minor';
-    const card = drawOneCard({ pool, owned, excludeIds: excluded, slot, tier, rng, affinity: params.affinity });
+    const tier = tiers[Math.min(i, tiers.length - 1)] ?? 'minor';
+    const card = drawOneCard({
+      pool, owned, excludeIds: excluded, slot, tier, rng,
+      affinity: params.affinity,
+      // Early Adaptation (T-306) pins the first weighted slot's family only.
+      ...(i === 0 && params.forceFirstFamily !== undefined
+        ? { forceFamily: params.forceFirstFamily }
+        : {}),
+    });
     if (card === null) break; // pool exhausted — return fewer cards
 
     excluded.add(card.mutation.id);

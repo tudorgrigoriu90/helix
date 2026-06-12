@@ -168,7 +168,32 @@ export interface RunSessionOptions {
    *  the zone VEIN bonus — read from here; player-level perks are applied to
    *  the starting player by the caller via `applyOriginPerk`. */
   readonly origin?: OriginDef;
+  /** The session-level Sigma Strain effects (T-306): the global VEIN bonus,
+   *  starting VEIN, and the strand-draw nudges. Player-level strain effects
+   *  are applied to the starting player by the caller via
+   *  `applyStrainFxToPlayer`; re-derive this from the profile on resume. */
+  readonly strainFx?: SessionStrainFx;
 }
+
+/** The slice of the aggregated strain effects the session itself consumes (T-306). */
+export interface SessionStrainFx {
+  /** Percent bonus on all VEIN banked, every zone (Vein Attunement et al.). */
+  readonly veinBonusPercent: number;
+  /** Flat VEIN banked at run start (Initiate's Cache / Provisioned Descent). */
+  readonly startingVein: number;
+  /** Cadence draws offer one extra wild card (True Convergence). */
+  readonly extraWildCard: boolean;
+  /** First weighted card matches the last-acquired mutation's family (Early Adaptation). */
+  readonly firstCardMatchesLastFamily: boolean;
+}
+
+/** The no-strains baseline session effects. */
+export const ZERO_SESSION_STRAIN_FX: SessionStrainFx = {
+  veinBonusPercent: 0,
+  startingVein: 0,
+  extraWildCard: false,
+  firstCardMatchesLastFamily: false,
+};
 
 /** Immutable run setup shared by the session facade and its subsystems. */
 export interface SessionConfig {
@@ -184,6 +209,8 @@ export interface SessionConfig {
   readonly floorZero: PopulatedFloor | null;
   /** The run's Origin, or null (T-301). */
   readonly origin: OriginDef | null;
+  /** Session-level Sigma Strain effects (T-306). */
+  readonly strainFx: SessionStrainFx;
 }
 
 /** The mutable run — owned by the facade, operated on by the subsystems. */

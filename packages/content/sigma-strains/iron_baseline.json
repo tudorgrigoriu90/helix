@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "iron_baseline",
+  "name": "Iron Baseline",
+  "tagline": "+5% max HP",
+  "unlock": {
+    "kind": "runsCompleted",
+    "count": 100
+  },
+  "effect": {
+    "kind": "maxHpPercent",
+    "percent": 5
+  },
+  "blurb": "One hundred descents. The baseline stopped being a baseline somewhere around the eightieth; now it is a foundation."
+}

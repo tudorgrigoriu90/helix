@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_resistance",
+  "name": "Thermal Resistance",
+  "tagline": "−10% thermal damage taken",
+  "unlock": {
+    "kind": "killsOfType",
+    "damageType": "thermal",
+    "count": 100
+  },
+  "effect": {
+    "kind": "damageResistPercent",
+    "damageType": "thermal",
+    "percent": 10
+  },
+  "blurb": "A hundred burning things put out. The skin keeps a record of every scald and files it under precedent. Heat negotiates with you now."
+}

@@ -1,7 +1,11 @@
 import type { MetaState } from '@shared-types/meta-state';
 import type { LaceMoodPressure } from '@shared-types/lace-line';
+import type { MutationFamily } from '@shared-types/mutation';
+import type { DamageType } from '@shared-types/run-state';
+import type { SigmaStrainDef } from '@shared-types/sigma-strain';
 import { shardsForRun } from '../economy';
 import { driftPressure } from '../lace';
+import { aggregateStrainFx, evaluateStrainUnlocks } from '../strains';
 
 /**
  * Meta-progression — folds a finished run into the persistent profile (T-111).
@@ -30,10 +34,31 @@ export interface RunOutcome {
    * still drifts — mood fades on quiet runs too, not only active ones.
    */
   readonly laceMoodPressure?: LaceMoodPressure;
+  // ── Sigma Strain achievement tallies (T-306, GDD §11.2) ───────────────────
+  /** Kills this run per enemy basic-attack damage type. */
+  readonly killsByType?: Readonly<Partial<Record<DamageType, number>>>;
+  /** Damage type of the killing blow (deaths only; omit on wins/surrender). */
+  readonly deathDamageType?: DamageType;
+  /** The build's most-stacked mutation family at run end (omit if no mutations). */
+  readonly dominantFamily?: MutationFamily;
+  /** The mutation ids the run ended with (feeds Convergence Echo's carry). */
+  readonly mutationIds?: readonly string[];
 }
 
 function union(a: readonly string[], b: readonly string[]): string[] {
   return [...new Set([...a, ...b])];
+}
+
+function addCounts<K extends string>(
+  base: Readonly<Partial<Record<K, number>>>,
+  add: Readonly<Partial<Record<K, number>>>,
+): Partial<Record<K, number>> {
+  const next: Partial<Record<K, number>> = { ...base };
+  for (const key of Object.keys(add) as K[]) {
+    const n = add[key] ?? 0;
+    if (n > 0) next[key] = (next[key] ?? 0) + n;
+  }
+  return next;
 }
 
 /**
@@ -67,14 +92,28 @@ export function completeTutorial(meta: MetaState): MetaState {
   };
 }
 
-export function recordRunOutcome(meta: MetaState, outcome: RunOutcome): MetaState {
+/**
+ * Folds a finished run into the profile. When the Sigma Strain pool (T-306) is
+ * supplied, three more things happen here: already-unlocked shard-bonus strains
+ * boost the run's Shard conversion, the run's typed tallies advance the
+ * achievement counters, and any milestone the updated counters now satisfy
+ * unlocks its strain — all in one pure step.
+ */
+export function recordRunOutcome(
+  meta: MetaState,
+  outcome: RunOutcome,
+  strainPool: readonly SigmaStrainDef[] = [],
+): MetaState {
   const l = meta.lifetime;
-  const shardsEarned = shardsForRun({
+  const baseShards = shardsForRun({
     vein: outcome.veinEarned ?? 0,
     firstRunToday: outcome.firstRunToday ?? false,
     achievementsUnlocked: outcome.shardAchievements ?? 0,
   });
-  return {
+  // Shard bonus from strains unlocked *before* this run (GDD §11.2 [META]).
+  const fx = aggregateStrainFx(strainPool, meta.sigmaStrainIds);
+  const shardsEarned = baseShards * (1 + fx.shardBonusPercent / 100);
+  const folded: MetaState = {
     ...meta,
     codexEntryIds: union(meta.codexEntryIds, outcome.codexFound ?? []),
     achievementIds: union(meta.achievementIds, outcome.achievementsEarned ?? []),
@@ -88,5 +127,20 @@ export function recordRunOutcome(meta: MetaState, outcome: RunOutcome): MetaStat
       enemiesKilled: l.enemiesKilled + Math.max(0, outcome.enemiesKilled),
       totalPlaytimeMs: l.totalPlaytimeMs + Math.max(0, outcome.playtimeMs),
     },
+    killsByType: addCounts(meta.killsByType, outcome.killsByType ?? {}),
+    deathsByType:
+      !outcome.won && outcome.deathDamageType !== undefined
+        ? addCounts(meta.deathsByType, { [outcome.deathDamageType]: 1 })
+        : meta.deathsByType,
+    runsByFamily:
+      outcome.dominantFamily !== undefined
+        ? addCounts(meta.runsByFamily, { [outcome.dominantFamily]: 1 })
+        : meta.runsByFamily,
+    lastRunMutationIds: [...(outcome.mutationIds ?? [])],
   };
+  // Milestones crossed by this run's tallies unlock their strains now (§11.3).
+  const newlyUnlocked = evaluateStrainUnlocks(strainPool, folded);
+  return newlyUnlocked.length === 0
+    ? folded
+    : { ...folded, sigmaStrainIds: union(folded.sigmaStrainIds, newlyUnlocked) };
 }

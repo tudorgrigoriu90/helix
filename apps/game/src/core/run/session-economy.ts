@@ -56,14 +56,19 @@ export function xpFromKills(enemies: readonly EnemyState[], registry: EnemyRegis
 /** Banks VEIN income: raises both the spendable balance and the lifetime
  *  earned total (the latter drives the run-end Shard conversion, T-113).
  *  An Origin's zoneVeinBonus (T-301, e.g. the Geologist's +10% in the Lithic
- *  Deep) applies here — income only, never refunds or spends. */
+ *  Deep) applies here — income only, never refunds or spends. A Sigma Strain
+ *  VEIN bonus (T-306) stacks multiplicatively on top, every zone. */
 export function bankVein(cfg: SessionConfig, st: SessionState, amount: number): void {
   if (amount <= 0) return;
   const perk = cfg.origin?.perk;
-  const boosted =
+  const zoneBoosted =
     perk?.kind === 'zoneVeinBonus' && zoneNameForFloor(st.floorNumber) === perk.zone
       ? Math.floor(amount * (1 + perk.percent / 100))
       : amount;
+  const boosted =
+    cfg.strainFx.veinBonusPercent > 0
+      ? Math.floor(zoneBoosted * (1 + cfg.strainFx.veinBonusPercent / 100))
+      : zoneBoosted;
   st.veinCrystals += boosted;
   st.veinEarned += boosted;
 }

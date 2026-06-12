@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "survivors_instinct",
+  "name": "Survivor's Instinct",
+  "tagline": "+5% max HP",
+  "unlock": {
+    "kind": "enemiesKilled",
+    "count": 1000
+  },
+  "effect": {
+    "kind": "maxHpPercent",
+    "percent": 5
+  },
+  "blurb": "One thousand things that wanted you dead, outlasted. Whatever instinct that built, it lives in the marrow now."
+}

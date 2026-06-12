@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_symbiosis",
+  "name": "Mycelial Symbiosis",
+  "tagline": "Dispensers favour mycelial-leaning stock",
+  "unlock": {
+    "kind": "runsWithFamily",
+    "family": "mycelial",
+    "count": 10
+  },
+  "effect": {
+    "kind": "shopFamilyBias",
+    "family": "mycelial"
+  },
+  "blurb": "Ten descents threaded through the network. The Dispensers stock with you in mind now — the mycelium keeps excellent customer records."
+}

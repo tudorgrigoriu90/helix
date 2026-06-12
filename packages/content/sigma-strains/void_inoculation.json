@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "void_inoculation",
+  "name": "Void Inoculation",
+  "tagline": "−10% void damage taken",
+  "unlock": {
+    "kind": "killsOfType",
+    "damageType": "void",
+    "count": 100
+  },
+  "effect": {
+    "kind": "damageResistPercent",
+    "damageType": "void",
+    "percent": 10
+  },
+  "blurb": "One hundred absences, returned to absence. There is a thin film of nothing on you now, and the nothing outside respects it."
+}

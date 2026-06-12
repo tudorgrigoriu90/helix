@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "resilient_baseline",
+  "name": "Resilient Baseline",
+  "tagline": "+5% max HP",
+  "unlock": {
+    "kind": "runsCompleted",
+    "count": 5
+  },
+  "effect": {
+    "kind": "maxHpPercent",
+    "percent": 5
+  },
+  "blurb": "Five descents and the body stops arguing with the pressure. The tissue remembers what the mind forgets, and it thickens."
+}

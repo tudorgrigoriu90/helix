@@ -23,6 +23,16 @@ export const META_MIGRATIONS: Readonly<Record<number, Migration>> = {
   // already played, so default them to "tutorial done" — they shouldn't be sent
   // back through it on update.
   3: (d) => ({ ...d, schemaVersion: 4, tutorialComplete: typeof d['tutorialComplete'] === 'boolean' ? d['tutorialComplete'] : true }),
+  // v4 → v5: the Sigma Strain achievement counters (T-306). Existing profiles
+  // start their tallies from zero — past kills/deaths were never typed.
+  4: (d) => ({
+    ...d,
+    schemaVersion: 5,
+    killsByType: {},
+    deathsByType: {},
+    runsByFamily: {},
+    lastRunMutationIds: [],
+  }),
 };
 
 /** A fresh profile for a first-time player. */
@@ -37,6 +47,10 @@ export function newMetaState(): MetaState {
     laceMood: { ...ZERO_MOOD_PRESSURE },
     tutorialComplete: false, // a first-time player plays Floor 0
     lifetime: { runs: 0, wins: 0, deepestFloor: 0, enemiesKilled: 0, totalPlaytimeMs: 0 },
+    killsByType: {},
+    deathsByType: {},
+    runsByFamily: {},
+    lastRunMutationIds: [],
   };
 }
 
@@ -63,7 +77,11 @@ function isMetaShape(d: Record<string, unknown>): boolean {
     isObject(d['laceMood']) &&
     typeof d['tutorialComplete'] === 'boolean' &&
     isObject(d['lifetime']) &&
-    typeof d['lifetime']['runs'] === 'number'
+    typeof d['lifetime']['runs'] === 'number' &&
+    isObject(d['killsByType']) &&
+    isObject(d['deathsByType']) &&
+    isObject(d['runsByFamily']) &&
+    isStringArray(d['lastRunMutationIds'])
   );
 }
 

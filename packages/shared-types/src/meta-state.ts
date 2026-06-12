@@ -6,6 +6,8 @@
  */
 
 import type { LaceMoodPressure } from './lace-line';
+import type { MutationFamily } from './mutation.js';
+import type { DamageType } from './run-state.js';
 
 export interface LifetimeStats {
   readonly runs: number;
@@ -45,7 +47,21 @@ export interface MetaState {
    */
   readonly tutorialComplete: boolean;
   readonly lifetime: LifetimeStats;
+  /**
+   * Sigma Strain achievement counters (T-306, GDD §11.2). Sparse maps — a type
+   * or family the player has never tallied is simply absent (treated as 0).
+   */
+  /** Lifetime kills per enemy basic-attack damage type ("Kill 100 Thermal enemies"). */
+  readonly killsByType: Readonly<Partial<Record<DamageType, number>>>;
+  /** Lifetime deaths per killing-blow damage type ("Die to Void enemy 5 times"). */
+  readonly deathsByType: Readonly<Partial<Record<DamageType, number>>>;
+  /** Runs finished per most-stacked mutation family ("10 runs with Abyssal"). */
+  readonly runsByFamily: Readonly<Partial<Record<MutationFamily, number>>>;
+  /** The mutation ids the player ended the last run with (Convergence Echo). */
+  readonly lastRunMutationIds: readonly string[];
 }
 
-/** v2 added `shardCrystals`; v3 added `laceMood`; v4 added `tutorialComplete`. */
-export const CURRENT_META_SCHEMA_VERSION = 4;
+/** v2 added `shardCrystals`; v3 added `laceMood`; v4 added `tutorialComplete`;
+ *  v5 added the Sigma Strain counters (`killsByType`, `deathsByType`,
+ *  `runsByFamily`, `lastRunMutationIds`) — T-306. */
+export const CURRENT_META_SCHEMA_VERSION = 5;

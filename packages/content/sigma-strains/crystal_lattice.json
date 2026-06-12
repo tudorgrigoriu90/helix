@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "crystal_lattice",
+  "name": "Crystal Lattice",
+  "tagline": "+10% Shard conversion at run end",
+  "unlock": {
+    "kind": "wins",
+    "count": 3
+  },
+  "effect": {
+    "kind": "shardBonusPercent",
+    "percent": 10
+  },
+  "blurb": "Three full descents, three returns. What you bring back crystallises cleaner now — the lattice has learned your shape."
+}

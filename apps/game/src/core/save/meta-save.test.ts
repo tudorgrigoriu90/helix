@@ -76,4 +76,19 @@ describe('MetaState migration — T-143 (tutorial) / T-100 (laceMood) / T-113 (s
       expect(res.meta.tutorialComplete).toBe(true);
     }
   });
+
+  it('migrates a v4 save forward (back-fills the T-306 strain counters at zero)', () => {
+    const res = deserializeMetaState(JSON.stringify({
+      schemaVersion: 4, shardCrystals: 1, laceMood: ZERO_MOOD, tutorialComplete: true, ...baseFields,
+    }));
+    expect(res.ok, res.ok ? '' : res.error.message).toBe(true);
+    if (res.ok) {
+      expect(res.meta.schemaVersion).toBe(CURRENT_META_SCHEMA_VERSION);
+      expect(res.meta.killsByType).toEqual({});
+      expect(res.meta.deathsByType).toEqual({});
+      expect(res.meta.runsByFamily).toEqual({});
+      expect(res.meta.lastRunMutationIds).toEqual([]);
+      expect(res.meta.sigmaStrainIds).toEqual([]); // pre-existing field preserved
+    }
+  });
 });

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "tremor_sense",
+  "name": "Tremor Sense",
+  "tagline": "Seismic enemies reveal their next action",
+  "unlock": {
+    "kind": "deathsToType",
+    "damageType": "seismic",
+    "count": 5
+  },
+  "effect": {
+    "kind": "enemyIntentReveal",
+    "damageType": "seismic"
+  },
+  "blurb": "Five burials, none of them final. The ground confides in you now, a half-beat before it betrays you."
+}

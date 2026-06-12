@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "initiates_cache",
+  "name": "Initiate's Cache",
+  "tagline": "Begin each run with 25 VEIN",
+  "unlock": {
+    "kind": "runsCompleted",
+    "count": 1
+  },
+  "effect": {
+    "kind": "startingVein",
+    "amount": 25
+  },
+  "blurb": "One descent on record. The VEIN refunds a sliver of what it took. Consider it the house acknowledging a returning guest."
+}

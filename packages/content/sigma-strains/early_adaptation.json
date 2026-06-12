@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "early_adaptation",
+  "name": "Early Adaptation",
+  "tagline": "First Strand card matches your last family",
+  "unlock": {
+    "kind": "reachFloor",
+    "floor": 10
+  },
+  "effect": {
+    "kind": "firstCardMatchesLastFamily"
+  },
+  "blurb": "The strand remembers its last splice. Whatever you became most recently, the first offer leans toward more of it. Momentum, as biology."
+}

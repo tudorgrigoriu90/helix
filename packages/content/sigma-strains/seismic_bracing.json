@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "seismic_bracing",
+  "name": "Seismic Bracing",
+  "tagline": "−10% seismic damage taken",
+  "unlock": {
+    "kind": "killsOfType",
+    "damageType": "seismic",
+    "count": 100
+  },
+  "effect": {
+    "kind": "damageResistPercent",
+    "damageType": "seismic",
+    "percent": 10
+  },
+  "blurb": "After the hundredth tremor-thing fell, your stance changed. The ground still moves; you simply stopped being where it argues."
+}

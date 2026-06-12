@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "shard_resonance",
+  "name": "Shard Resonance",
+  "tagline": "+10% Shard conversion at run end",
+  "unlock": {
+    "kind": "wins",
+    "count": 10
+  },
+  "effect": {
+    "kind": "shardBonusPercent",
+    "percent": 10
+  },
+  "blurb": "Ten completions. The shards hum when you carry them, and humming shards weigh heavier on the scale. Physics objects; the VEIN overrules it."
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "adapted_eyes",
+  "name": "Adapted Eyes",
+  "tagline": "Room types visible on the minimap",
+  "unlock": {
+    "kind": "reachFloor",
+    "floor": 5
+  },
+  "effect": {
+    "kind": "minimapRoomTypes"
+  },
+  "blurb": "Past the fifth floor the dark stops being uniform. Your eyes learned to read the architecture before you enter it. I find that efficient."
+}

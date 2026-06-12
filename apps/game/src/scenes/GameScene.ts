@@ -53,6 +53,12 @@ import { wardenPreLine, wardenPostLine } from '../core/lace/warden-lines';
 import type { OriginDef } from '@shared-types/origin';
 import { parseOriginDef } from '../core/content/origin-loader';
 import { applyOriginPerk, newRunPlayer } from '../core/run/start-player';
+import type { SigmaStrainDef } from '@shared-types/sigma-strain';
+import type { DamageType, PlayerState } from '@shared-types/run-state';
+import { parseSigmaStrainDef } from '../core/content/sigma-strain-loader';
+import { aggregateStrainFx, applyStrainFxToPlayer, ZERO_STRAIN_FX, type StrainFx } from '../core/strains';
+import { applyMutation } from '../core/mutation';
+import type { SessionStrainFx } from '../core/run/run-session-types';
 import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
 import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
@@ -74,6 +80,9 @@ const itemModules = import.meta.glob('../../../../packages/content/items/*.json'
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const originModules = import.meta.glob('../../../../packages/content/origins/*.json', { eager: true });
 const originFiles = originModules as Record<string, { readonly default: unknown }>;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const strainModules = import.meta.glob('../../../../packages/content/sigma-strains/*.json', { eager: true });
+const strainFiles = strainModules as Record<string, { readonly default: unknown }>;
 const itemFiles = itemModules as Record<string, { readonly default: unknown }>;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -127,6 +136,14 @@ export class GameScene extends Phaser.Scene {
   private mutationPool: readonly MutationDef[] = [];
   private itemPool: readonly ItemDef[] = [];
   private origins: OriginDef[] = [];
+  /** The Sigma Strain catalog (T-306) — unlock milestones + run-start effects. */
+  private strainPool: SigmaStrainDef[] = [];
+  /** The profile's aggregated strain effects, recomputed at every run start. */
+  private strainFx: StrainFx = ZERO_STRAIN_FX;
+  /** Kills this run per enemy basic-attack damage type (strain counters, T-306). */
+  private killsByType: Partial<Record<DamageType, number>> = {};
+  /** Damage type of the most recent hit on the player — attributes deaths. */
+  private lastPlayerHitType: DamageType | null = null;
 
   private strandSelected: number | null = null;
   private strandRerollUsed = false;
@@ -324,16 +341,60 @@ export class GameScene extends Phaser.Scene {
       if (!res.ok) throw new Error(`GameScene: bad origin content — ${res.error.message}`);
       return [res.origin];
     });
+
+    // Sigma Strains (T-306): the meta-progression catalog. Unlocks fold in at
+    // run end (recordRunOutcome); effects apply at run start (startRun).
+    this.strainPool = Object.values(strainFiles).flatMap((mod) => {
+      const res = parseSigmaStrainDef(mod.default);
+      if (!res.ok) throw new Error(`GameScene: bad sigma-strain content — ${res.error.message}`);
+      return [res.strain];
+    });
   }
 
   // ── Run lifecycle ─────────────────────────────────────────────────────────
 
+  /** The slice of the aggregated strain effects the RunSession consumes (T-306). */
+  private sessionStrainFx(): SessionStrainFx {
+    return {
+      veinBonusPercent: this.strainFx.veinBonusPercent,
+      startingVein: this.strainFx.startingVein,
+      extraWildCard: this.strainFx.extraWildCard,
+      firstCardMatchesLastFamily: this.strainFx.firstCardMatchesLastFamily,
+    };
+  }
+
+  /** Convergence Echo (T-306): carry one seeded-random mutation from the last
+   *  run into this one. No SIG accrual — the strain is a memory, not a pick. */
+  private applyCarriedMutation(player: PlayerState): PlayerState {
+    if (!this.strainFx.carryMutation || this.meta.lastRunMutationIds.length === 0) return player;
+    const rng = makeRng(this.seed, 'straincarry');
+    const id = this.meta.lastRunMutationIds[rng.nextInt(this.meta.lastRunMutationIds.length)];
+    const def = this.mutationPool.find((m) => m.id === id);
+    return def === undefined ? player : applyMutation(player, def);
+  }
+
+  /** Advances the per-damage-type kill tally for the strain counters (T-306). */
+  private tallyKillByType(entityId: string): void {
+    const enemy = this.combat?.enemies.find((e) => e.id === entityId);
+    const def = enemy !== undefined ? this.enemyRegistry.get(enemy.enemyDefId) : undefined;
+    if (def !== undefined) {
+      this.killsByType[def.damageType] = (this.killsByType[def.damageType] ?? 0) + 1;
+    }
+  }
+
   private startRun(): void {
     const origin = this.origins.find((o) => o.id === this.originId);
-    const player =
+    // Sigma Strains (T-306): aggregate the profile's unlocked effects, apply
+    // the player-level ones (max-HP nudge, typed resists), then — for
+    // Convergence Echo — carry one seeded-random mutation from the last run.
+    this.strainFx = aggregateStrainFx(this.strainPool, this.meta.sigmaStrainIds);
+    let player = applyStrainFxToPlayer(
       origin !== undefined
         ? applyOriginPerk(newRunPlayer(), origin.perk, this.itemPool)
-        : undefined;
+        : newRunPlayer(),
+      this.strainFx,
+    );
+    player = this.applyCarriedMutation(player);
     this.session = new RunSession({
       seed: this.seed,
       template: this.template,
@@ -343,14 +404,17 @@ export class GameScene extends Phaser.Scene {
       mutations: this.mutationPool,
       strandEventEveryNFloors: STRAND_INTERVAL,
       itemPool: this.itemPool,
-      ...(player !== undefined ? { player } : {}),
+      player,
       ...(origin !== undefined ? { origin } : {}),
+      strainFx: this.sessionStrainFx(),
     });
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
     this.view = 'map';
     this.combat = null;
     this.targeting = null;
     this.enemiesKilled = 0;
+    this.killsByType = {};
+    this.lastPlayerHitType = null;
     this.damageTakenThisRun = 0;
     this.runStartMs = Date.now();
     this.runRecorded = false;
@@ -382,6 +446,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const origin = this.origins.find((o) => o.id === result.value.originId);
+    // T-306: session-level strain effects re-derive from the profile; the
+    // player-level results already live on the saved player.
+    this.strainFx = aggregateStrainFx(this.strainPool, this.meta.sigmaStrainIds);
     this.session = new RunSession({
       seed: this.seed,
       template: this.template,
@@ -392,6 +459,7 @@ export class GameScene extends Phaser.Scene {
       strandEventEveryNFloors: STRAND_INTERVAL,
       itemPool: this.itemPool,
       ...(origin !== undefined ? { origin } : {}),
+      strainFx: this.sessionStrainFx(),
     });
     this.session.applySave(result.value);
     this.session.revive();
@@ -401,6 +469,8 @@ export class GameScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.enemiesKilled = 0;
+    this.killsByType = {};
+    this.lastPlayerHitType = null;
     this.damageTakenThisRun = 0;
     this.runStartMs = Date.now();
     this.runRecorded = false;
@@ -427,6 +497,9 @@ export class GameScene extends Phaser.Scene {
     // resolve from the saved originId; player-level perk results already
     // live on the saved player.
     const origin = this.origins.find((o) => o.id === save.originId);
+    // T-306: session-level strain effects re-derive from the profile; the
+    // player-level results already live on the saved player.
+    this.strainFx = aggregateStrainFx(this.strainPool, this.meta.sigmaStrainIds);
     this.session = new RunSession({
       seed: save.seed,
       template: this.template,
@@ -437,6 +510,7 @@ export class GameScene extends Phaser.Scene {
       strandEventEveryNFloors: STRAND_INTERVAL,
       itemPool: this.itemPool,
       ...(origin !== undefined ? { origin } : {}),
+      strainFx: this.sessionStrainFx(),
     });
     this.session.applySave(save);
     this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
@@ -444,6 +518,8 @@ export class GameScene extends Phaser.Scene {
     this.combat = null;
     this.targeting = null;
     this.enemiesKilled = 0;
+    this.killsByType = {};
+    this.lastPlayerHitType = null;
     this.damageTakenThisRun = 0;
     this.runStartMs = Date.now();
     this.runRecorded = false;
@@ -940,11 +1016,15 @@ export class GameScene extends Phaser.Scene {
   private applyEnemyPhaseBookkeeping(effects: readonly Effect[]): void {
     let playerHurt = false;
     for (const fx of effects) {
-      if (fx.type === 'entityDied' && fx.entityId !== 'player') this.enemiesKilled += 1;
+      if (fx.type === 'entityDied' && fx.entityId !== 'player') {
+        this.enemiesKilled += 1;
+        this.tallyKillByType(fx.entityId);
+      }
       if (fx.type === 'defeat') this.deathCause = fx.cause;
       if (fx.type === 'damageDealt' && fx.targetId === 'player') {
         playerHurt = true;
         this.damageTakenThisRun += fx.amount;
+        this.lastPlayerHitType = fx.damageType; // attributes a death (T-306)
       }
       if (fx.type === 'phaseChanged' && fx.to === 'enemy') this.playEnemyPhaseFlash();
     }
@@ -1282,6 +1362,7 @@ export class GameScene extends Phaser.Scene {
     for (const fx of effects) {
       if (fx.type === 'entityDied' && fx.entityId !== 'player') {
         this.enemiesKilled += 1;
+        this.tallyKillByType(fx.entityId);
         this.say('enemy_killed');
         playSfx(this, 'sfx_enemy_death');
       }
@@ -1290,6 +1371,7 @@ export class GameScene extends Phaser.Scene {
       if (fx.type === 'damageDealt' && fx.targetId === 'player') {
         playerHurt = true;
         this.damageTakenThisRun += fx.amount;
+        this.lastPlayerHitType = fx.damageType; // attributes a death (T-306)
       }
       // S048/T-169: flash the hit entity's tile + float the damage/heal number.
       if (fx.type === 'damageDealt') this.playHitFlash(fx.targetId);
@@ -1405,13 +1487,27 @@ export class GameScene extends Phaser.Scene {
       ...(won ? {} : { deathCause: this.deathCause }),
     });
     const before = this.meta.shardCrystals;
-    this.meta = recordRunOutcome(this.meta, {
-      won,
-      floorReached: snap.floorNumber,
-      enemiesKilled: this.enemiesKilled,
-      playtimeMs: durationMs,
-      veinEarned: snap.veinEarned,
-    });
+    // T-306: the typed tallies advance the strain counters; crossing a
+    // milestone unlocks its strain inside recordRunOutcome.
+    const dominantFamily =
+      snap.player.mutations.length > 0 ? this.primaryFamily(snap.player.mutations) : undefined;
+    this.meta = recordRunOutcome(
+      this.meta,
+      {
+        won,
+        floorReached: snap.floorNumber,
+        enemiesKilled: this.enemiesKilled,
+        playtimeMs: durationMs,
+        veinEarned: snap.veinEarned,
+        killsByType: this.killsByType,
+        ...(!won && this.lastPlayerHitType !== null
+          ? { deathDamageType: this.lastPlayerHitType }
+          : {}),
+        ...(dominantFamily !== undefined ? { dominantFamily } : {}),
+        mutationIds: snap.player.mutations,
+      },
+      this.strainPool,
+    );
     this.lastRunShards = this.meta.shardCrystals - before;
     void this.metaSaves.save(this.meta);
   }

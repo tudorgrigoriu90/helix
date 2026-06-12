@@ -957,10 +957,33 @@ All passive effects in this section are labeled **[META]** in UI surfaces to dis
 | Thermal Resistance    | Kill 100 Thermal enemies      | -10% thermal damage received                                   |
 | Abyssal Affinity      | 10 runs with Abyssal          | Abyssal items appear more often in shops                       |
 | Void Sense            | Die to Void enemy 5 times     | Void enemies' next action is revealed (player-granted tell — foresight as an earned edge, not a baseline) |
-| **True Convergence**  | Complete a run (Floor 20)     | Wild mutation always offered in Strand Events                  |
+| **True Convergence**  | Complete a run (Floor 20)     | Wild mutation always offered in Strand Events (shipped as: one extra wild card on every cadence draw) |
 | **Convergence Echo**  | 200 runs completed            | Carry 1 random mutation from last run into next                |
+| Pressure Acclimation  | Kill 100 Pressure enemies     | -10% pressure damage received                                  |
+| Spore Tolerance       | Kill 100 Spore enemies        | -10% spore damage received                                     |
+| Seismic Bracing       | Kill 100 Seismic enemies      | -10% seismic damage received                                   |
+| Void Inoculation      | Kill 100 Void enemies         | -10% void damage received                                      |
+| Callused Hide         | Kill 200 Physical enemies     | -5% physical damage received                                   |
+| Mycelial Symbiosis    | 10 runs with Mycelial         | Mycelial items appear more often in shops                      |
+| Lithic Kinship        | 10 runs with Lithic           | Lithic items appear more often in shops                        |
+| Voidborn Pact         | 10 runs with Voidborn         | Voidborn items appear more often in shops                      |
+| Thermal Communion     | 10 runs with Thermal          | Thermal items appear more often in shops                       |
+| Ember Sense           | Die to Thermal enemy 5 times  | Thermal enemies' next action is revealed                       |
+| Pressure Sense        | Die to Pressure enemy 5 times | Pressure enemies' next action is revealed                      |
+| Tremor Sense          | Die to Seismic enemy 5 times  | Seismic enemies' next action is revealed                       |
+| Vein Attunement       | Kill 500 enemies (lifetime)   | +5% VEIN from all sources                                      |
+| Vein Mastery          | Kill 2,000 enemies (lifetime) | +5% VEIN from all sources (stacks with Vein Attunement)        |
+| Crystal Lattice       | Complete 3 runs to Floor 20   | +10% Shard conversion at run end                               |
+| Shard Resonance       | Complete 10 runs to Floor 20  | +10% Shard conversion at run end (stacks with Crystal Lattice) |
+| Initiate's Cache      | Complete 1 run                | Begin each run with 25 VEIN                                    |
+| Provisioned Descent   | Complete 50 runs              | Begin each run with 100 VEIN                                   |
+| Deep Resilience       | Complete 5 runs to Floor 20   | +5% max HP (stacks with Resilient Baseline)                    |
+| Survivor's Instinct   | Kill 1,000 enemies (lifetime) | +5% max HP                                                     |
+| Iron Baseline         | Complete 100 runs             | +5% max HP                                                     |
 
 (Naming de-duplicated per Patch 11: the strain formerly called "Sigma Prime" is renamed **True Convergence**; "Convergence Echo" is exclusively a strain, not an Origin.)
+
+> **Amended 2026-06-12 (T-306):** the full 30-strain roster is shipped as content (`packages/content/sigma-strains/`, machine-counted by the bundle gate). Unlock milestones evaluate automatically at run end against new lifetime counters (kills per damage type, deaths per killing-blow type, runs per most-stacked family — meta save v5). Numeric effects (max HP, typed resists, VEIN/Shard bonuses, starting VEIN) and the Strand-draw effects (extra wild card, first-card-matches-last-family, run-carry) are live in the engine; the four *information* effects (minimap room types, LACE biome hint, enemy intent reveal, shop family bias) ship as typed marker effects whose scene wiring is tracked with the E-4 screens. Stacking max-HP strains total +20% at the 100-run/1,000-kill long tail — accepted as within the "nudges" contract.
 
 **Codex:** 80 base lore entries + Pass Archive (see §10.5). Permanent unlocks. No gameplay effect.
 

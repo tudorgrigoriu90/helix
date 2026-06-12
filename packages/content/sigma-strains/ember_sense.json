@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "ember_sense",
+  "name": "Ember Sense",
+  "tagline": "Thermal enemies reveal their next action",
+  "unlock": {
+    "kind": "deathsToType",
+    "damageType": "thermal",
+    "count": 5
+  },
+  "effect": {
+    "kind": "enemyIntentReveal",
+    "damageType": "thermal"
+  },
+  "blurb": "Burned out of five bodies. The heat signature arrives a half-second early for you now — grief, weaponised as foresight."
+}

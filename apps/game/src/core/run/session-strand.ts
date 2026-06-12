@@ -77,6 +77,12 @@ export function beginStrandEvent(cfg: SessionConfig, st: SessionState): StrandOu
   const outcome = resolveStrandEvent(owned.length);
   if (outcome.kind === 'draw') {
     st.strandRng = makeRng((cfg.masterSeed ^ Math.imul(st.floorNumber, 0x9e3779b1)) >>> 0, 'mutationdraw');
+    // Early Adaptation (T-306): the first weighted card matches the family of
+    // the most recently acquired mutation — meaningless with nothing owned.
+    const lastFamily =
+      cfg.strainFx.firstCardMatchesLastFamily && owned.length > 0
+        ? owned[owned.length - 1]!.family
+        : undefined;
     st.strandCards = drawMutationCards({
       pool: cfg.mutationPool,
       owned,
@@ -85,6 +91,9 @@ export function beginStrandEvent(cfg: SessionConfig, st: SessionState): StrandOu
       // Origin familyAffinity nudges cadence draws (T-301); the Proto-Strand
       // above stays uniform by design (DR-009b).
       affinity: cfg.origin?.perk.kind === 'familyAffinity' ? cfg.origin.perk.family : undefined,
+      // True Convergence (T-306): one extra wild card on cadence draws only.
+      extraWildCards: cfg.strainFx.extraWildCard ? 1 : 0,
+      ...(lastFamily !== undefined ? { forceFirstFamily: lastFamily } : {}),
     });
   }
   st.strandOutcome = outcome;

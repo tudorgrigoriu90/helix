@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "pressure_acclimation",
+  "name": "Pressure Acclimation",
+  "tagline": "−10% pressure damage taken",
+  "unlock": {
+    "kind": "killsOfType",
+    "damageType": "pressure",
+    "count": 100
+  },
+  "effect": {
+    "kind": "damageResistPercent",
+    "damageType": "pressure",
+    "percent": 10
+  },
+  "blurb": "A hundred crushing things, uncrushed you. The deep still squeezes, but it has learned where you bend."
+}

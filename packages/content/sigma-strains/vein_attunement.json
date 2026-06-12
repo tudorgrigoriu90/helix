@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "vein_attunement",
+  "name": "Vein Attunement",
+  "tagline": "+5% VEIN from all sources",
+  "unlock": {
+    "kind": "enemiesKilled",
+    "count": 500
+  },
+  "effect": {
+    "kind": "veinBonusPercent",
+    "percent": 5
+  },
+  "blurb": "Five hundred organisms returned to the flow. The VEIN pays a finder's margin to those who feed it generously."
+}

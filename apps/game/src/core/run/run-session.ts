@@ -8,6 +8,7 @@ import { newRunPlayer } from './start-player';
 import { levelForTotalXp } from '../economy';
 import {
   STRAND_INTERVAL_DEFAULT,
+  ZERO_SESSION_STRAIN_FX,
   autoClearIfTrivial,
   restIfSafe,
   roomById,
@@ -74,6 +75,7 @@ export class RunSession {
       itemPool: options.itemPool ?? [],
       floorZero: options.floorZero ?? null,
       origin: options.origin ?? null,
+      strainFx: options.strainFx ?? ZERO_SESSION_STRAIN_FX,
     };
     this.st = {
       floorNumber: 1,
@@ -84,10 +86,12 @@ export class RunSession {
       status: 'exploring',
       player: options.player ?? newRunPlayer(),
       sig: 0,
-      veinCrystals: 0,
+      // A startingVein strain banks its grant as run income (T-306); applySave
+      // overwrites both fields, so a resumed run never double-grants.
+      veinCrystals: this.cfg.strainFx.startingVein,
       xp: 0,
       pendingStatPoints: 0,
-      veinEarned: 0,
+      veinEarned: this.cfg.strainFx.startingVein,
       strandRng: null,
       strandOutcome: null,
       strandCards: [],

@@ -102,6 +102,21 @@ describe('Codex bodies pass the voice gate — T-300 (the Codex is LACE\'s journ
   });
 });
 
+describe('Sigma Strain blurbs pass the voice gate — T-306 (strain cards speak in LACE\'s voice)', () => {
+  it('every strain blurb is voice-bible clean', () => {
+    const dir = fileURLToPath(new URL('../../../../../packages/content/sigma-strains/', import.meta.url));
+    const lines = readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => {
+        const raw = JSON.parse(readFileSync(`${dir}${file}`, 'utf-8')) as { id: string; blurb: string };
+        return { id: raw.id, text: raw.blurb };
+      });
+    expect(lines.length).toBeGreaterThanOrEqual(30);
+    const { issues } = lintLaceCorpus(lines);
+    expect(issues, issues.map((i) => `${i.id}: ${i.detail}`).join('\n')).toEqual([]);
+  });
+});
+
 describe('Origin blurbs pass the voice gate — T-301', () => {
   it('every origin blurb is voice-bible clean', () => {
     const dir = fileURLToPath(new URL('../../../../../packages/content/origins/', import.meta.url));

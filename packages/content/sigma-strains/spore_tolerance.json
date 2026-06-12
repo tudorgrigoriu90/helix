@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "spore_tolerance",
+  "name": "Spore Tolerance",
+  "tagline": "−10% spore damage taken",
+  "unlock": {
+    "kind": "killsOfType",
+    "damageType": "spore",
+    "count": 100
+  },
+  "effect": {
+    "kind": "damageResistPercent",
+    "damageType": "spore",
+    "percent": 10
+  },
+  "blurb": "A hundred blooms cut down before they finished blooming. Your lungs filter what used to colonise them. The mycosphere is quietly offended."
+}

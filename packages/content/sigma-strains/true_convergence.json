@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "true_convergence",
+  "name": "True Convergence",
+  "tagline": "Strand Events offer one extra wild card",
+  "unlock": {
+    "kind": "wins",
+    "count": 1
+  },
+  "effect": {
+    "kind": "extraWildCard"
+  },
+  "blurb": "You reached the bottom and came back. The strand no longer offers you a menu; it offers you a horizon. One more card, from anywhere."
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_affinity",
+  "name": "Abyssal Affinity",
+  "tagline": "Dispensers favour abyssal-leaning stock",
+  "unlock": {
+    "kind": "runsWithFamily",
+    "family": "abyssal",
+    "count": 10
+  },
+  "effect": {
+    "kind": "shopFamilyBias",
+    "family": "abyssal"
+  },
+  "blurb": "Ten descents built on pressure and dark water. The Dispensers have noticed your preferences. So have I."
+}

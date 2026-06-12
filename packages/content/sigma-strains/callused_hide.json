@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "callused_hide",
+  "name": "Callused Hide",
+  "tagline": "−5% physical damage taken",
+  "unlock": {
+    "kind": "killsOfType",
+    "damageType": "physical",
+    "count": 200
+  },
+  "effect": {
+    "kind": "damageResistPercent",
+    "damageType": "physical",
+    "percent": 5
+  },
+  "blurb": "Two hundred ordinary deaths, dealt rather than received. The simplest damage is the hardest to unlearn, so the body grew a margin for it."
+}

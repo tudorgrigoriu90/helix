@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "provisioned_descent",
+  "name": "Provisioned Descent",
+  "tagline": "Begin each run with 100 VEIN",
+  "unlock": {
+    "kind": "runsCompleted",
+    "count": 50
+  },
+  "effect": {
+    "kind": "startingVein",
+    "amount": 100
+  },
+  "blurb": "Fifty descents teach a certain pragmatism. Someone — I am not naming the someone — leaves a small cache at the first threshold now."
+}

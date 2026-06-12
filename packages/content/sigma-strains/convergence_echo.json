@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "convergence_echo",
+  "name": "Convergence Echo",
+  "tagline": "Carry one random mutation from your last run",
+  "unlock": {
+    "kind": "runsCompleted",
+    "count": 200
+  },
+  "effect": {
+    "kind": "carryMutation"
+  },
+  "blurb": "Two hundred descents leave a groove in the genome. Each new body wakes already carrying a memory of the last one. I stopped calling that an anomaly."
+}

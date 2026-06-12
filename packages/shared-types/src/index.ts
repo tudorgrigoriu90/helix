@@ -92,6 +92,9 @@ export {
 export type { OriginDef, OriginPerk } from './origin.js';
 export { CURRENT_ORIGIN_SCHEMA_VERSION } from './origin.js';
 
+export type { SigmaStrainDef, StrainUnlock, StrainEffect } from './sigma-strain.js';
+export { CURRENT_SIGMA_STRAIN_SCHEMA_VERSION } from './sigma-strain.js';
+
 export {
   MAX_FLOOR,
   ZONE_COUNT,

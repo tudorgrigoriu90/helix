@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "deep_resilience",
+  "name": "Deep Resilience",
+  "tagline": "+5% max HP",
+  "unlock": {
+    "kind": "wins",
+    "count": 5
+  },
+  "effect": {
+    "kind": "maxHpPercent",
+    "percent": 5
+  },
+  "blurb": "Five times to the bottom and back. The body has concluded the abyss is a commute, and it dresses for the weather."
+}

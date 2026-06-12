@@ -26,7 +26,7 @@ export class Mulberry32 {
 // Each concern gets its own Mulberry32 derived from rootSeed + hash(label).
 // Adding a new label never shifts existing sub-generators. TDD §6.1.
 
-export type RngLabel = 'combat' | 'loot' | 'floorgen' | 'mutationdraw' | 'events';
+export type RngLabel = 'combat' | 'loot' | 'floorgen' | 'mutationdraw' | 'events' | 'straincarry';
 
 /** djb2-variant: hashes a label string to a u32 offset. */
 function hashLabel(label: string): number {

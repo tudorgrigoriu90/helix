@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "vein_mastery",
+  "name": "Vein Mastery",
+  "tagline": "+5% VEIN from all sources",
+  "unlock": {
+    "kind": "enemiesKilled",
+    "count": 2000
+  },
+  "effect": {
+    "kind": "veinBonusPercent",
+    "percent": 5
+  },
+  "blurb": "Two thousand returns to the flow, all routed through you. At this volume the VEIN rounds in your favour without being asked."
+}

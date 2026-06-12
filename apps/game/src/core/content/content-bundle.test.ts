@@ -13,6 +13,7 @@ import { parseItemDef } from './item-loader';
 import { parseMutationDef } from './mutation-loader';
 import { parseCodexEntries } from './codex-loader';
 import { parseOriginDef } from './origin-loader';
+import { parseSigmaStrainDef } from './sigma-strain-loader';
 import { parseFloorTemplate } from '../floor-gen';
 import { parseLaceLines } from '../lace';
 import { crossReferenceContent } from './cross-reference';
@@ -183,6 +184,32 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
         expect(itemIds.has(o.perk.itemId), `${o.id} starting item "${o.perk.itemId}"`).toBe(true);
       }
     }
+  });
+
+  it('ships exactly the 30 Sigma Strains, the nine GDD §11.2 canon ids among them (T-306)', () => {
+    const results = readDir('sigma-strains').map((s) => ({ file: s.file, res: parseSigmaStrainDef(s.raw) }));
+    for (const { file, res } of results) {
+      expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
+    }
+    const strains = results.flatMap((s) => (s.res.ok ? [s.res.strain] : []));
+    expect(strains).toHaveLength(30);
+    const ids = new Set(strains.map((s) => s.id));
+    expect(ids.size, 'strain ids must be globally unique').toBe(30);
+    // The nine strains designed in GDD §11.2 are a locked contract.
+    for (const canon of [
+      'resilient_baseline', 'adapted_eyes', 'early_adaptation', 'vein_memory',
+      'thermal_resistance', 'abyssal_affinity', 'void_sense', 'true_convergence',
+      'convergence_echo',
+    ]) {
+      expect(ids.has(canon), `canon strain "${canon}" missing`).toBe(true);
+    }
+    // Binary effects never repeat across the catalog (typed binaries may repeat
+    // per type/family but not per identical parameterisation).
+    const binaryKeys = strains
+      .map((s) => s.effect)
+      .filter((e) => !('percent' in e) && !('amount' in e))
+      .map((e) => JSON.stringify(e));
+    expect(new Set(binaryKeys).size, 'duplicate binary strain effect').toBe(binaryKeys.length);
   });
 
   it('the bundle has no dangling cross-references', () => {

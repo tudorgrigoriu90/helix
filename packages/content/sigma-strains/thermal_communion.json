@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_communion",
+  "name": "Thermal Communion",
+  "tagline": "Dispensers favour thermal-leaning stock",
+  "unlock": {
+    "kind": "runsWithFamily",
+    "family": "thermal",
+    "count": 10
+  },
+  "effect": {
+    "kind": "shopFamilyBias",
+    "family": "thermal"
+  },
+  "blurb": "Ten descents burning from the inside. The Dispensers keep the volatile shelf warm for you now. I have flagged this as mutual."
+}

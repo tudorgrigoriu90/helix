@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "pressure_sense",
+  "name": "Pressure Sense",
+  "tagline": "Pressure enemies reveal their next action",
+  "unlock": {
+    "kind": "deathsToType",
+    "damageType": "pressure",
+    "count": 5
+  },
+  "effect": {
+    "kind": "enemyIntentReveal",
+    "damageType": "pressure"
+  },
+  "blurb": "Crushed five times. Now you feel the water gather before it moves, the way the drowned are said to. I would know."
+}
