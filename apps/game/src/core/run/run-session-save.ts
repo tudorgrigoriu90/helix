@@ -77,6 +77,10 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     ) {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed checkpoint' } };
     }
+    // v8 (T-511, DR-009b): the optional bonus-slot flag must be a boolean.
+    if (parsed['bonusMutationTaken'] !== undefined && typeof parsed['bonusMutationTaken'] !== 'boolean') {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed bonusMutationTaken' } };
+    }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };
   },

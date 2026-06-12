@@ -69,6 +69,7 @@ export function toSave(cfg: SessionConfig, st: SessionState): RunSessionSave {
     ...(persistCombat ? { combat: st.combatState!, combatRngState: st.combatRngState } : {}),
     ...(st.pendingLoot.length > 0 ? { pendingLoot: [...st.pendingLoot] } : {}),
     ...(st.checkpoint !== null ? { checkpoint: st.checkpoint } : {}),
+    ...(st.bonusMutationTaken ? { bonusMutationTaken: true } : {}),
   };
 }
 
@@ -90,6 +91,8 @@ export function applySave(cfg: SessionConfig, st: SessionState, save: RunSession
   st.pendingLoot = save.pendingLoot !== undefined ? [...save.pendingLoot] : [];
   // Pre-v7 saves lack the DR-009 checkpoint (T-510) — loadFloor cleared it.
   st.checkpoint = save.checkpoint ?? null;
+  // Pre-v8 saves lack the DR-009b bonus slot (T-511) — treated as free.
+  st.bonusMutationTaken = save.bonusMutationTaken ?? false;
   // A mid-combat save (v5+) carries the encounter; restore it so the run
   // resumes mid-fight. Otherwise an in-combat status degrades to exploring.
   if (save.status === 'in_combat' && save.combat !== undefined) {

@@ -632,11 +632,13 @@ Enemy stats scale with floor (Floor 1 is the authored baseline):
 > harness proved that at the original values a competent player cleared
 > Floor 15+ at exactly **0%** — the five §2.8 endings behind the Floor 20
 > Convergence were unreachable, violating the DR-008/T-524 intent that the
-> Apex be *punishing but reachable*. The retuned curve measures F1 98% /
-> F5 98% / F10 57% / F15 20% / F20 8%, and the harness now enforces a Floor-20
-> clear-rate band of **[2%, 30%]** (`balance.test.ts`), so any future change
-> that walls off the endings fails CI. Code source of truth:
-> `core/run/scaling.ts` + `packages/content/enemies/`.
+> Apex be *punishing but reachable*. The retuned curve measured F1 98% /
+> F5 98% / F10 57% / F15 20% / F20 8%; with the DR-009b Proto-Strand landed
+> (T-511) the early build power lifts it to F10 73% / F15 33% / F20 20% —
+> still inside the harness's enforced Floor-20 clear-rate band of **[2%, 30%]**
+> (`balance.test.ts`), so any future change that walls off the endings fails
+> CI. Code source of truth: `core/run/scaling.ts` +
+> `packages/content/enemies/`.
 
 Item tier scales with floor:
 - Floors 1–5: Common only

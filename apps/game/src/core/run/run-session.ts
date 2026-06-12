@@ -94,6 +94,7 @@ export class RunSession {
       combatRngState: 0,
       pendingLoot: [],
       checkpoint: null,
+      bonusMutationTaken: false,
       dispenserStockByRoom: new Map(),
     };
     // A tutorial run begins on the hardcoded floor 0; a normal run on floor 1.
@@ -141,6 +142,19 @@ export class RunSession {
    *  Event — the S072 Descend/Rest choice and the Hub card key off it. */
   checkpoint(): DescentCheckpoint | null {
     return this.st.checkpoint;
+  }
+
+  /** True while the open Strand Event is the Floor 2 Proto-Strand (DR-009b):
+   *  2 Minor cards, uniform families, no reroll, +5 SIG, no S072 checkpoint. */
+  isProtoStrand(): boolean {
+    return strand.isProtoStrand(this.cfg, this.st);
+  }
+
+  /** True once the run's single bonus mutation slot is filled (Proto-Strand
+   *  pick or LACE event-room adaptation) — the event room swaps its mutation
+   *  option for a VEIN grant when this is set (DR-009b). */
+  bonusMutationTaken(): boolean {
+    return this.st.bonusMutationTaken;
   }
 
   // ── Save / resume (session-lifecycle.ts) ────────────────────────────────

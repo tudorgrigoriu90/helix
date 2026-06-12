@@ -19,6 +19,8 @@ import type { DrawnCard, StrandOutcome } from '../mutation';
 
 /** A Strand Event fires after clearing the boss of every Nth floor (GDD §5). */
 export const STRAND_INTERVAL_DEFAULT = 5;
+/** The Proto-Strand fires once after this floor's boss room (DR-009b, T-511). */
+export const PROTO_STRAND_FLOOR = 2;
 /** Fraction of max HP restored on entering a Safe Room (UFD S026, GDD §6.1). */
 export const SAFE_ROOM_HEAL_FRACTION = 0.25;
 
@@ -66,9 +68,10 @@ export interface DescentCheckpoint {
  *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
  *  v4 added `veinEarned`; v5 added mid-combat persistence (`combat` +
  *  `combatRngState`); v6 added `pendingLoot` (uncollected drops); v7 added
- *  `checkpoint` (DR-009 act-end rest, T-510). Older saves load fine — missing
- *  fields default to 0/none/null. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 7;
+ *  `checkpoint` (DR-009 act-end rest, T-510); v8 added `bonusMutationTaken`
+ *  (DR-009b bonus slot, T-511). Older saves load fine — missing fields
+ *  default to 0/none/null/false. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 8;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -99,6 +102,9 @@ export interface RunSessionSave {
    *  absent → none). Present only while `status === 'floor_complete'` right
    *  after a Strand Event — the Hub's "Continue Descent" card keys off it. */
   readonly checkpoint?: DescentCheckpoint;
+  /** True once the run's single bonus-slot mutation is taken — the Proto-Strand
+   *  pick or a LACE event-room adaptation (added in save v8; absent → false). */
+  readonly bonusMutationTaken?: boolean;
   /**
    * The live combat state, present only when `status === 'in_combat'` and the
    * scene has synced it via `RunSession.syncCombat` (save v5). Its presence
@@ -193,6 +199,10 @@ export interface SessionState {
   /** The DR-009 act-end checkpoint (T-510): set when a Strand Event resolves,
    *  cleared on descend. Null whenever the run isn't paused at an act end. */
   checkpoint: DescentCheckpoint | null;
+  /** DR-009b (T-511): the run's one bonus mutation slot — filled by the Floor 2
+   *  Proto-Strand pick or a LACE event-room adaptation, whichever comes first.
+   *  Run-scoped (never resets on descend). */
+  bonusMutationTaken: boolean;
   /** Dispenser stock per merchant room — computed once per room and reset each
    *  floor (GDD §10.3 "refresh once per floor"). */
   dispenserStockByRoom: Map<string, ItemDef[]>;

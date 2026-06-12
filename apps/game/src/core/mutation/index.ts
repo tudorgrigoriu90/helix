@@ -1,6 +1,8 @@
 export { adjacentFamilies, otherFamilies, isAdjacent } from './family';
 export {
   drawMutationCards,
+  drawProtoStrandCards,
+  PROTO_STRAND_CARD_COUNT,
   drawOneCard,
   STRAND_CARD_COUNT,
   WILD_CARD_COUNT,

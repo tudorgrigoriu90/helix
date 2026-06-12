@@ -3165,10 +3165,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Title
-    const titleT = this.add.text(W / 2, STAGE_Y + 8, 'STRAND EVENT', {
+    const proto = this.session.isProtoStrand();
+    const titleT = this.add.text(W / 2, STAGE_Y + 8, proto ? 'PROTO-STRAND' : 'STRAND EVENT', {
       fontFamily: 'monospace', fontSize: '12px', color: C.green, letterSpacing: 4,
     }).setOrigin(0.5, 0);
-    const subT = this.add.text(W / 2, STAGE_Y + 24, 'choose your mutation', {
+    const subT = this.add.text(W / 2, STAGE_Y + 24, proto ? 'an early adaptation stirs — choose' : 'choose your mutation', {
       fontFamily: 'monospace', fontSize: '9px', color: C.dim,
     }).setOrigin(0.5, 0);
     this.transient.push(titleT, subT);
@@ -3506,7 +3507,10 @@ export class GameScene extends Phaser.Scene {
         const takeLabel = this.strandConfirmPending ? 'CONFIRM TAKE' : 'TAKE';
         const takeColor = this.strandConfirmPending ? C.yellow : C.green;
         this.button(20, takeLabel, takeColor, () => this.takeStrandCard());
-        if (!this.strandRerollUsed) this.button(210, 'REROLL', C.yellow, () => this.rerollStrandCard());
+        // The Floor 2 Proto-Strand offers no reroll (DR-009b, T-511).
+        if (!this.strandRerollUsed && !this.session.isProtoStrand()) {
+          this.button(210, 'REROLL', C.yellow, () => this.rerollStrandCard());
+        }
       }
       return;
     }

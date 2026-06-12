@@ -3,6 +3,7 @@ import { zoneForFloor } from '@shared-types/campaign';
 import { makeRng } from '../rng/mulberry32';
 import {
   drawMutationCards,
+  drawProtoStrandCards,
   rerollCard,
   applyMutation,
   resolveStrandEvent,
@@ -11,7 +12,7 @@ import {
   type StrandOutcome,
 } from '../mutation';
 import { bankVein } from './session-economy';
-import type { SessionConfig, SessionState } from './run-session-types';
+import { PROTO_STRAND_FLOOR, type SessionConfig, type SessionState } from './run-session-types';
 
 /**
  * Run-session Strand Event subsystem (T-520): the post-boss mutation draw
@@ -25,6 +26,22 @@ import type { SessionConfig, SessionState } from './run-session-types';
  *  excluded — its Strand is the scripted tutorial room, not the boss cadence. */
 export function strandEventDue(cfg: SessionConfig, st: SessionState): boolean {
   return cfg.mutationPool.length > 0 && st.floorNumber >= 1 && st.floorNumber % cfg.strandInterval === 0;
+}
+
+/** True when this floor's boss clear should open the Floor 2 Proto-Strand
+ *  (DR-009b, T-511) — only when the floor isn't already a cadence floor. */
+export function protoStrandDue(cfg: SessionConfig, st: SessionState): boolean {
+  return (
+    cfg.mutationPool.length > 0 &&
+    st.floorNumber === PROTO_STRAND_FLOOR &&
+    !strandEventDue(cfg, st)
+  );
+}
+
+/** True while the open Strand Event is the Floor 2 Proto-Strand (DR-009b):
+ *  2 Minor cards, uniform families, no reroll, +5 SIG, no S072 checkpoint. */
+export function isProtoStrand(cfg: SessionConfig, st: SessionState): boolean {
+  return st.status === 'strand_event' && protoStrandDue(cfg, st);
 }
 
 /** The owned mutations resolved to their defs (for weighting + application). */
@@ -49,6 +66,14 @@ export function beginStrandEvent(cfg: SessionConfig, st: SessionState): StrandOu
   if (st.strandOutcome !== null) return st.strandOutcome;
 
   const owned = ownedMutationDefs(cfg, st);
+  // The Proto-Strand (DR-009b) is always a draw — at Floor 2 the mutation cap
+  // is unreachable, and its offer is the 2-card Minor/uniform variant.
+  if (isProtoStrand(cfg, st)) {
+    st.strandRng = makeRng((cfg.masterSeed ^ Math.imul(st.floorNumber, 0x9e3779b1)) >>> 0, 'mutationdraw');
+    st.strandCards = drawProtoStrandCards({ pool: cfg.mutationPool, owned, rng: st.strandRng });
+    st.strandOutcome = { kind: 'draw' };
+    return st.strandOutcome;
+  }
   const outcome = resolveStrandEvent(owned.length);
   if (outcome.kind === 'draw') {
     st.strandRng = makeRng((cfg.masterSeed ^ Math.imul(st.floorNumber, 0x9e3779b1)) >>> 0, 'mutationdraw');
@@ -67,6 +92,9 @@ export function beginStrandEvent(cfg: SessionConfig, st: SessionState): StrandOu
 export function rerollStrandCard(cfg: SessionConfig, st: SessionState, index: number): void {
   if (st.status !== 'strand_event' || st.strandRng === null) {
     throw new Error('rerollStrandCard: no active Strand Event draw');
+  }
+  if (isProtoStrand(cfg, st)) {
+    throw new Error('rerollStrandCard: the Proto-Strand offers no reroll (DR-009b)');
   }
   st.strandCards = rerollCard({
     offer: st.strandCards,
@@ -87,7 +115,11 @@ export function chooseStrandMutation(cfg: SessionConfig, st: SessionState, mutat
     throw new Error(`chooseStrandMutation: "${mutationId}" is not in the current offer`);
   }
   st.player = applyMutation(st.player, card.mutation);
-  st.sig = gainMutationSig(st.sig, card.mutation, 'strand');
+  // A Proto-Strand pick fills the run's bonus slot at the +5 room rate
+  // (DR-009b); a cadence pick grants the full +10 (DR-007).
+  const proto = isProtoStrand(cfg, st);
+  st.sig = gainMutationSig(st.sig, card.mutation, proto ? 'lace_event' : 'strand');
+  if (proto) st.bonusMutationTaken = true;
   refreshDominantTraits(cfg, st);
   endStrandEvent(cfg, st);
 }
@@ -101,6 +133,7 @@ export function chooseStrandMutation(cfg: SessionConfig, st: SessionState, mutat
 export function applyMutationChoice(cfg: SessionConfig, st: SessionState, mutation: MutationDef): void {
   st.player = applyMutation(st.player, mutation);
   st.sig = gainMutationSig(st.sig, mutation, 'lace_event');
+  st.bonusMutationTaken = true; // the run's one bonus slot (DR-009b)
   refreshDominantTraits(cfg, st);
 }
 
@@ -115,14 +148,17 @@ export function acceptIntermission(cfg: SessionConfig, st: SessionState): void {
 }
 
 export function endStrandEvent(cfg: SessionConfig, st: SessionState): void {
+  // The Proto-Strand is an early taste, not an act end — no S072 checkpoint
+  // (DR-009b). Decide before the status flips out of 'strand_event'.
+  const proto = isProtoStrand(cfg, st);
   st.strandRng = null;
   st.strandOutcome = null;
   st.strandCards = [];
   st.status = 'floor_complete';
-  // DR-009 (T-510): resolving a Strand Event is the act-end pause point — the
-  // player now chooses Descend or Rest (S072). The Floor 20 Warden never
-  // reaches here (it transitions straight to victory), but guard anyway.
-  if (st.floorNumber < cfg.finalFloor) {
+  // DR-009 (T-510): resolving a cadence Strand Event is the act-end pause
+  // point — the player now chooses Descend or Rest (S072). The Floor 20
+  // Warden never reaches here (it transitions straight to victory).
+  if (!proto && st.floorNumber < cfg.finalFloor) {
     st.checkpoint = { floor: st.floorNumber, act: zoneForFloor(st.floorNumber) };
   }
 }

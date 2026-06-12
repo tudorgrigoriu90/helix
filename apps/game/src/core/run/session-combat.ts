@@ -86,6 +86,7 @@ export function endEncounter(cfg: SessionConfig, st: SessionState, finalState: R
     economy.bankVein(st, FLOOR_VEIN_CONSTANT);
     if (st.floorNumber >= cfg.finalFloor) st.status = 'victory';
     else if (strand.strandEventDue(cfg, st)) st.status = 'strand_event';
+    else if (strand.protoStrandDue(cfg, st)) st.status = 'strand_event'; // DR-009b
     else st.status = 'floor_complete';
   } else {
     st.status = 'exploring';

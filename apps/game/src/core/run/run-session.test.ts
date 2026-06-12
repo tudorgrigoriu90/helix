@@ -8,6 +8,7 @@ import { makeRng } from '../rng/mulberry32';
 import { TurnEngine, chebyshev } from '../turn-engine';
 import { bfsDistances, buildFloorZero, FLOOR_ZERO_ROOM_IDS } from '../floor-gen';
 import { RunSession, CURRENT_RUN_SESSION_SAVE_VERSION } from './run-session';
+import { gainMutationSig } from '../mutation';
 import { buildEnemyRegistry } from './encounter';
 import { newRunPlayer } from './start-player';
 
@@ -436,7 +437,7 @@ describe('RunSession — descent checkpoints (T-510, DR-009)', () => {
     s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
 
     const saved = s.toSave();
-    expect(saved.schemaVersion).toBe(7);
+    expect(saved.schemaVersion).toBe(CURRENT_RUN_SESSION_SAVE_VERSION);
     expect(saved.checkpoint).toEqual({ floor: 1, act: 1 });
 
     const restored = strandSession(4);
@@ -453,6 +454,104 @@ describe('RunSession — descent checkpoints (T-510, DR-009)', () => {
     const old = strandSession(4);
     old.applySave(v6 as unknown as typeof saved);
     expect(old.checkpoint()).toBeNull();
+  });
+});
+
+describe('RunSession — Proto-Strand (T-511, DR-009b)', () => {
+  /** Default cadence (5) so floor 2 is the Proto-Strand, not a cadence event. */
+  function protoSession(seed: number): RunSession {
+    return new RunSession({
+      seed, template: template(), registry, player: hero(), finalFloor: 20, mutations: POOL,
+    });
+  }
+
+  function intoProto(s: RunSession): void {
+    autoplayFloor(s); // floor 1 → plain floor_complete (not a cadence floor)
+    expect(s.snapshot.status).toBe('floor_complete');
+    expect(s.checkpoint()).toBeNull();
+    s.descend();
+    autoplayFloor(s); // floor 2 boss clear → Proto-Strand
+  }
+
+  it('fires once after the Floor 2 boss room — the first build choice', () => {
+    const s = protoSession(4);
+    intoProto(s);
+    expect(s.snapshot.status).toBe('strand_event');
+    expect(s.isProtoStrand()).toBe(true);
+  });
+
+  it('offers exactly 2 Minor cards and refuses a reroll', () => {
+    const s = protoSession(4);
+    intoProto(s);
+    expect(s.beginStrandEvent()).toEqual({ kind: 'draw' });
+    expect(s.strandOffer).toHaveLength(2);
+    for (const card of s.strandOffer) expect(card.mutation.tier).toBe('minor');
+    expect(() => s.rerollStrandCard(0)).toThrow(/no reroll/);
+  });
+
+  it('a pick grants +5 SIG (the bonus-slot rate), fills the slot, and sets no checkpoint', () => {
+    const s = protoSession(4);
+    intoProto(s);
+    s.beginStrandEvent();
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+    expect(s.snapshot.sig).toBe(5); // lace_event rate, not the +10 strand rate
+    expect(s.bonusMutationTaken()).toBe(true);
+    expect(s.snapshot.status).toBe('floor_complete');
+    expect(s.checkpoint()).toBeNull(); // no S072 after a Proto-Strand
+  });
+
+  it('is deterministic per seed and survives save/resume mid-event (save v8)', () => {
+    const offer = (s: RunSession): string[] => s.strandOffer.map((c) => c.mutation.id);
+    const a = protoSession(11);
+    intoProto(a);
+    a.beginStrandEvent();
+
+    const b = protoSession(11);
+    intoProto(b);
+    b.beginStrandEvent();
+    expect(offer(a)).toEqual(offer(b));
+
+    const resumed = protoSession(11);
+    resumed.applySave(a.toSave());
+    expect(resumed.isProtoStrand()).toBe(true);
+    expect(resumed.beginStrandEvent().kind).toBe('draw');
+    expect(offer(resumed)).toEqual(offer(a));
+  });
+
+  it('persists the bonus slot through save/resume; pre-v8 saves default to free', () => {
+    const s = protoSession(4);
+    intoProto(s);
+    s.beginStrandEvent();
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+    const saved = s.toSave();
+    expect(saved.schemaVersion).toBe(CURRENT_RUN_SESSION_SAVE_VERSION);
+    expect(saved.bonusMutationTaken).toBe(true);
+
+    const restored = protoSession(4);
+    restored.applySave(saved);
+    expect(restored.bonusMutationTaken()).toBe(true);
+
+    const v7 = { ...saved, schemaVersion: 7 } as Record<string, unknown>;
+    delete v7['bonusMutationTaken'];
+    const old = protoSession(4);
+    old.applySave(v7 as unknown as typeof saved);
+    expect(old.bonusMutationTaken()).toBe(false);
+  });
+
+  it('cap math (DR-009b): 3 cadence picks + the bonus slot top out at 35 SIG', () => {
+    let sig = 0;
+    sig = gainMutationSig(sig, mut('a', 'abyssal'), 'strand');
+    sig = gainMutationSig(sig, mut('b', 'mycelial'), 'strand');
+    sig = gainMutationSig(sig, mut('c', 'lithic'), 'strand');
+    sig = gainMutationSig(sig, mut('d', 'voidborn'), 'lace_event'); // the bonus slot
+    expect(sig).toBe(35); // 3 × 10 + 5 — under the SIG_CAP of 40 by design
+  });
+
+  it('an event-room adaptation also fills the bonus slot (shared, DR-009b)', () => {
+    const s = protoSession(4);
+    expect(s.bonusMutationTaken()).toBe(false);
+    s.applyMutationChoice(mut('m_vo1', 'voidborn'));
+    expect(s.bonusMutationTaken()).toBe(true);
   });
 });
 

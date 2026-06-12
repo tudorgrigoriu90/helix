@@ -129,6 +129,29 @@ export function drawOneCard(params: DrawOneParams): DrawnCard | null {
   return { mutation, slot: params.slot, tier: params.tier };
 }
 
+/** Cards a Proto-Strand offers (DR-009b — a taste, not the full event). */
+export const PROTO_STRAND_CARD_COUNT = 2;
+
+/**
+ * Proto-Strand draw (DR-009b, T-511): the Floor 2 early hook offers
+ * {@link PROTO_STRAND_CARD_COUNT} **Minor-tier** cards with **uniform** family
+ * sampling (the wild-slot distribution — at floor 2 there is no build yet to
+ * weight toward). No reroll. Same determinism contract as the full draw: the
+ * only entropy is the supplied `mutationdraw` sub-generator.
+ */
+export function drawProtoStrandCards(params: DrawMutationsParams): readonly DrawnCard[] {
+  const { pool, owned, rng } = params;
+  const excluded = new Set<string>(owned.map((m) => m.id));
+  const cards: DrawnCard[] = [];
+  for (let i = 0; i < PROTO_STRAND_CARD_COUNT; i++) {
+    const card = drawOneCard({ pool, owned, excludeIds: excluded, slot: 'wild', tier: 'minor', rng });
+    if (card === null) break; // pool exhausted — return fewer cards
+    excluded.add(card.mutation.id);
+    cards.push(card);
+  }
+  return cards;
+}
+
 export function drawMutationCards(params: DrawMutationsParams): readonly DrawnCard[] {
   const { pool, owned, rng } = params;
   const tiers = tiersForFloor(params.floor ?? 1); // Rule 3 — per-slot tier mix.
