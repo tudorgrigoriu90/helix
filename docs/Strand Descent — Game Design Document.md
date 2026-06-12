@@ -1400,9 +1400,9 @@ Rationale: TypeScript is the Director's strongest language and Claude Code's str
 
 | Room | Purpose | LACE line |
 | ---- | ------- | --------- |
-| 1    | Movement only. Walk to an exit. No enemy. | *"You're awake. Walk to the door."* |
+| 1    | Movement only. Walk to an exit. No enemy. | *"You're awake. The door has been waiting longer than you have."* |
 | 2    | First enemy. Weak melee chaser — closes, then strikes when adjacent. Combat basics. | *"Triangle. It moves toward you. Strike first or pay."* |
-| 3    | First mutation choice — micro Strand Event with 2 safe cards. | *"Pressure. Choose. Quickly."* |
+| 3    | First mutation choice — micro Strand Event with 2 safe cards. | *"Pressure. Two shapes the VEIN could make of you. It will not hold them open long."* |
 | 4    | Floor 0 "boss" — slightly bigger enemy that teaches item use. | *"Larger. Slower. Use what you carry."* |
 
 Returning players skip from the Hub. Achievement "First Convergence" granted on Floor 0 boss kill. Skip flag stored in MetaState.

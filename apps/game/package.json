@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:determinism": "vitest run --reporter=verbose src/core/rng/determinism-replay.test.ts",
-    "validate:content": "vitest run --reporter=verbose src/core/content/content-bundle.test.ts src/core/economy/economy-lock.test.ts",
+    "validate:content": "vitest run --reporter=verbose src/core/content/content-bundle.test.ts src/core/economy/economy-lock.test.ts src/core/lace/voice-lint.test.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

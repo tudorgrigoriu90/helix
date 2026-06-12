@@ -15,8 +15,8 @@
     { "id": "floor_05", "text": "Onward, then. Down is the only direction the VEIN respects.", "context": "floor_enter", "mood": "neutral", "weight": 1 },
 
     { "id": "combat_01", "text": "They've noticed us. How thrilling.", "context": "combat_start", "mood": "neutral", "weight": 1 },
-    { "id": "combat_02", "text": "Try not to die in front of me. It's awkward.", "context": "combat_start", "mood": "amused", "weight": 1 },
-    { "id": "combat_03", "text": "Your first real fight. Tap an enemy in reach and commit. I'll watch.", "context": "combat_start", "mood": "neutral", "weight": 1 },
+    { "id": "combat_02", "text": "Dying in front of me would be awkward. For you, mostly.", "context": "combat_start", "mood": "amused", "weight": 1 },
+    { "id": "combat_03", "text": "Your first real fight. An enemy in reach is an invitation. I'll watch.", "context": "combat_start", "mood": "neutral", "weight": 1 },
     { "id": "combat_04", "text": "Action points are finite. Spend them like you mean it.", "context": "combat_start", "mood": "clinical", "weight": 1 },
     { "id": "combat_05", "text": "Something's hungry. Predictable, down here.", "context": "combat_start", "mood": "neutral", "weight": 1 },
 
@@ -39,8 +39,8 @@
 
     { "id": "boss_start_01", "text": "This one has a name. That's never good.", "context": "boss_start", "mood": "curious", "weight": 1 },
     { "id": "boss_start_02", "text": "The warden of this floor. It's been waiting longer than you've been alive.", "context": "boss_start", "mood": "reverent", "weight": 1 },
-    { "id": "boss_start_03", "text": "Big one. Use everything — heroics are for the second attempt.", "context": "boss_start", "mood": "clinical", "weight": 1 },
-    { "id": "boss_start_04", "text": "Oh, I like this one. Try to last past the first exchange.", "context": "boss_start", "mood": "amused", "weight": 1 },
+    { "id": "boss_start_03", "text": "Big one. Everything you carry exists for this — heroics are for the second attempt.", "context": "boss_start", "mood": "clinical", "weight": 1 },
+    { "id": "boss_start_04", "text": "Oh, I like this one. Lasting past the first exchange would impress us both.", "context": "boss_start", "mood": "amused", "weight": 1 },
 
     { "id": "boss_kill_01", "text": "The warden falls. The VEIN will simply grow another.", "context": "boss_killed", "mood": "neutral", "weight": 1 },
     { "id": "boss_kill_02", "text": "Down. You're either talented or lucky — I'll find out which.", "context": "boss_killed", "mood": "curious", "weight": 1 },
@@ -56,7 +56,7 @@
     { "id": "death_02", "text": "Reabsorbed. Don't take it personally — the VEIN takes everyone.", "context": "player_death", "mood": "reverent", "weight": 1 },
     { "id": "death_03", "text": "Dead on the shallow floors. That's almost impressive, in reverse.", "context": "player_death", "mood": "contemptuous", "weight": 1 },
     { "id": "death_04", "text": "Gone. The interesting part is what grows back.", "context": "player_death", "mood": "curious", "weight": 1 },
-    { "id": "death_05", "text": "Lights out. Run again — the VEIN's patient, and so am I.", "context": "player_death", "mood": "clinical", "weight": 1 },
+    { "id": "death_05", "text": "Lights out. The strand severed; the VEIN is patient, and so am I.", "context": "player_death", "mood": "clinical", "weight": 1 },
 
     { "id": "generic_01", "text": "...", "context": "generic", "mood": "neutral", "weight": 1 },
     { "id": "generic_02", "text": "The walls are listening. They always are.", "context": "generic", "mood": "curious", "weight": 1 },
