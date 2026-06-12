@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { EnemyDef } from '@shared-types/enemy';
 import { isBossTier } from '@shared-types/enemy';
+import { MAX_FLOOR } from '@shared-types/campaign';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { PopulatedRoom } from '@shared-types/floor-plan';
 import type { RunState } from '@shared-types/run-state';
@@ -92,7 +93,7 @@ const GC = {
   btnBg: 0x1a3028, btnBrd: 0xa0ffdc,
 };
 
-const FINAL_FLOOR = 20;
+const FINAL_FLOOR = MAX_FLOOR; // canonical campaign shape (T-523)
 const STRAND_INTERVAL = 5;
 
 type View = 'map' | 'combat' | 'strand' | 'shop' | 'levelup' | 'loot' | 'swap' | 'inventory' | 'event' | 'safe';

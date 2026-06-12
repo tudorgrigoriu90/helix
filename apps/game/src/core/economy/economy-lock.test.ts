@@ -20,7 +20,7 @@ import {
 } from './pricing';
 import { XP_BASE, XP_GROWTH, RUN_LEVEL_CAP, XP_PER_KILL } from './xp';
 import { SIG_CAP, LACE_EVENT_SIG_BONUS } from '../mutation/sig';
-import { ZONE_WARDEN_FLOORS } from '@shared-types/enemy';
+import { MAX_FLOOR, ZONE_COUNT, WARDEN_FLOORS } from '@shared-types/campaign';
 
 /**
  * Economy ↔ lock reconciliation — T-522 (review F2 class).
@@ -80,9 +80,11 @@ const lock = JSON.parse(readFileSync(LOCK_PATH, 'utf-8')) as EconomyLock;
 describe('economy ↔ lock reconciliation — T-522', () => {
   it('campaign shape matches the lock', () => {
     expect(lock.campaign.zones * lock.campaign.floorsPerZone).toBe(lock.campaign.maxFloor);
+    expect(MAX_FLOOR).toBe(lock.campaign.maxFloor);
+    expect(ZONE_COUNT).toBe(lock.campaign.zones);
     expect(FLOORS_PER_ZONE).toBe(lock.campaign.floorsPerZone);
     expect(RUN_LEVEL_CAP).toBe(lock.campaign.maxFloor); // one level per floor (GDD §4.3)
-    expect([...ZONE_WARDEN_FLOORS]).toEqual([...lock.campaign.wardenFloors]);
+    expect([...WARDEN_FLOORS]).toEqual([...lock.campaign.wardenFloors]);
   });
 
   it('VEIN drops match the lock (DR-008 tier split)', () => {

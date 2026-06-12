@@ -89,6 +89,16 @@ export {
   CURRENT_FLOOR_TEMPLATE_SCHEMA_VERSION,
 } from './floor-template.js';
 
+export {
+  MAX_FLOOR,
+  ZONE_COUNT,
+  FLOORS_PER_ZONE,
+  WARDEN_FLOORS,
+  ZONE_ORDER,
+  zoneForFloor,
+  zoneNameForFloor,
+} from './campaign.js';
+
 export type {
   RoomNode,
   FloorEdge,

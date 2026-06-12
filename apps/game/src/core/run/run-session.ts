@@ -1,4 +1,5 @@
 import type { FloorTemplate } from '@shared-types/floor-template';
+import { MAX_FLOOR } from '@shared-types/campaign';
 import type { PopulatedFloor, PopulatedRoom } from '@shared-types/floor-plan';
 import type { EnemyState, EntityStats, PlayerState, RunState } from '@shared-types/run-state';
 import type { MutationDef } from '@shared-types/mutation';
@@ -52,7 +53,7 @@ import {
  * next. Fully deterministic from the master seed.
  */
 
-const FINAL_FLOOR_DEFAULT = 20;
+const FINAL_FLOOR_DEFAULT = MAX_FLOOR; // canonical campaign shape (T-523)
 /** A Strand Event fires after clearing the boss of every Nth floor (GDD §5). */
 const STRAND_INTERVAL_DEFAULT = 5;
 /** Fraction of max HP restored on entering a Safe Room (UFD S026, GDD §6.1). */

@@ -30,8 +30,9 @@ export function isBossTier(tier: EnemyTier): tier is BossTier {
   return tier === 'floor_boss' || tier === 'zone_warden';
 }
 
-/** Floors whose boss is a Zone Warden (DR-008: one per zone end). */
-export const ZONE_WARDEN_FLOORS: readonly number[] = [5, 10, 15, 20];
+/** Floors whose boss is a Zone Warden (DR-008) — alias of the canonical
+ *  campaign constant (T-523) kept for existing imports. */
+export { WARDEN_FLOORS as ZONE_WARDEN_FLOORS } from './campaign.js';
 
 /**
  * The four authored Zone Wardens, in floor order (5/10/15/20). A stable

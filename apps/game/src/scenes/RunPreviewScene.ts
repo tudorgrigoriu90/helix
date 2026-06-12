@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { MetaState } from '@shared-types/meta-state';
 import { newMetaState } from '../core/save';
+import { MAX_FLOOR } from '@shared-types/campaign';
 
 /**
  * S019 Run Preview — T-148.
@@ -30,7 +31,7 @@ const C = {
   gold: '#ffdd44',
 };
 
-const FINAL_FLOOR = 20;
+const FINAL_FLOOR = MAX_FLOOR; // canonical campaign shape (T-523)
 
 export class RunPreviewScene extends Phaser.Scene {
   private meta: MetaState = newMetaState();

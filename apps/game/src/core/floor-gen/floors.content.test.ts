@@ -3,7 +3,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { EnemyDef } from '@shared-types/enemy';
 import { ZONE_WARDEN_FLOORS } from '@shared-types/enemy';
-import type { FloorTemplate, Zone } from '@shared-types/floor-template';
+import { zoneNameForFloor } from '@shared-types/campaign';
+import type { FloorTemplate } from '@shared-types/floor-template';
 import { parseFloorTemplate } from './floor-template-loader';
 import { parseEnemyDef } from '../content/enemy-loader';
 
@@ -19,13 +20,6 @@ const CONTENT = fileURLToPath(new URL('../../../../../packages/content/', import
 const FLOORS_DIR = `${CONTENT}floors/`;
 const ENEMIES_DIR = `${CONTENT}enemies/`;
 
-/** GDD §7.1: five floors per zone, four zones across the 20-floor descent. */
-function zoneForFloor(n: number): Zone {
-  if (n <= 5) return 'shallows';
-  if (n <= 10) return 'mycosphere';
-  if (n <= 15) return 'lithic';
-  return 'convergence';
-}
 
 function readJson(dir: string, file: string): unknown {
   return JSON.parse(readFileSync(`${dir}${file}`, 'utf-8'));
@@ -79,7 +73,7 @@ describe('floor-template content — T-291 / T-298 / T-305', () => {
 
   it("each floor's zone matches its GDD §7.1 band", () => {
     for (const { tpl } of allFloors()) {
-      expect(tpl.zone, `floor ${tpl.floor}`).toBe(zoneForFloor(tpl.floor));
+      expect(tpl.zone, `floor ${tpl.floor}`).toBe(zoneNameForFloor(tpl.floor));
     }
   });
 

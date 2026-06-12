@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { EnemyDef } from '@shared-types/enemy';
 import { ZONE_WARDEN_FLOORS, ZONE_WARDEN_IDS } from '@shared-types/enemy';
+import { MAX_FLOOR, zoneNameForFloor } from '@shared-types/campaign';
 import type { FloorTemplate } from '@shared-types/floor-template';
 import type { ItemDef } from '@shared-types/item';
 import type { MutationDef } from '@shared-types/mutation';
@@ -118,6 +119,16 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
         lines.filter((l) => l.context === context).length,
         `context "${context}" must have ≥1 line`,
       ).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('ships exactly the canonical campaign: MAX_FLOOR floors, zones agree (T-523)', () => {
+    expect(floors).toHaveLength(MAX_FLOOR);
+    const byFloor = new Map(floors.map((f) => [f.floor, f]));
+    for (let n = 1; n <= MAX_FLOOR; n++) {
+      const tpl = byFloor.get(n);
+      expect(tpl, `floor ${n} template missing`).toBeDefined();
+      expect(tpl?.zone, `floor ${n} zone`).toBe(zoneNameForFloor(n));
     }
   });
 

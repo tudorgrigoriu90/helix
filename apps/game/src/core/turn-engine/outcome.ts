@@ -1,8 +1,6 @@
 import type { DeathCause, RunState } from '@shared-types/run-state';
+import { MAX_FLOOR } from '@shared-types/campaign';
 import type { Effect } from './effect';
-
-/** Floor 20 is the Convergence — clearing it is a run victory (GDD §2.8 / §7.1). */
-const FINAL_FLOOR = 20;
 
 export interface OutcomeResult {
   readonly state: RunState;
@@ -25,7 +23,7 @@ export function detectOutcome(state: RunState, cause: DeathCause = 'enemy_kill')
   }
 
   if (state.enemies.length > 0 && state.enemies.every((e) => e.hp <= 0)) {
-    if (state.floorNumber >= FINAL_FLOOR) {
+    if (state.floorNumber >= MAX_FLOOR) {
       return { state: { ...state, phase: 'victory' }, effects: [{ type: 'victory' }] };
     }
     return { state: { ...state, phase: 'floor_complete' }, effects: [{ type: 'floorComplete' }] };
