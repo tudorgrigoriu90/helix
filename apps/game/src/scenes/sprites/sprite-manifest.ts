@@ -345,6 +345,8 @@ const ITEMS: readonly SpriteSpec[] = [
   { key: 'sunheart_core', category: 'item', fallbackColor: 0xffaa33, fallbackShape: 'rect', description: 'Item icon: legendary sunheart core (+STR/+AGI).' },
   { key: 'omega_serum', category: 'item', fallbackColor: 0x33ffdd, fallbackShape: 'rect', description: 'Item icon: legendary omega serum, full restore.' },
   { key: 'worldroot_bomb', category: 'item', fallbackColor: 0x55cc44, fallbackShape: 'rect', description: 'Item icon: legendary worldroot spore bomb, wide blast.' },
+  { key: 'void_eye', category: 'item', fallbackColor: 0xaa44ff, fallbackShape: 'rect', description: 'Item icon: cursed Void Eye — an unblinking violet eye; insight bought with exposure (+INT, −RES).' },
+  { key: 'fever_root', category: 'item', fallbackColor: 0xff6655, fallbackShape: 'rect', description: 'Item icon: cursed Fever Root — a pulsing red root; feverish vitality at the cost of tempo (+max HP, −AP).' },
 ];
 
 // ── Ability icons (ability bar) — lower priority ─────────────────────────────

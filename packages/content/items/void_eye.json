@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "void_eye",
+  "name": "Void Eye",
+  "rarity": "rare",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 6
+    },
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": -4
+    }
+  ],
+  "cursed": true
+}

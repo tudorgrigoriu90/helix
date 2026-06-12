@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "fever_root",
+  "name": "Fever Root",
+  "rarity": "rare",
+  "category": "passive",
+  "effect": null,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 24
+    },
+    {
+      "kind": "maxAp",
+      "delta": -1
+    }
+  ],
+  "cursed": true
+}

@@ -74,7 +74,14 @@ describe('Common-tier item content — T-292', () => {
     for (const kind of ['heal', 'damage', 'applyStatus', 'none']) {
       expect(kinds.has(kind), kind).toBe(true);
     }
-    // At least one cursed item ships (the curse mechanic, GDD §9.3).
-    expect(items.some((i) => i.cursed === true)).toBe(true);
+    // The launch cursed trio ships (GDD §9.3, T-312): each pairs a strong
+    // positive with an always-on negative and cannot be dropped once carried.
+    const cursedIds = items.filter((i) => i.cursed === true).map((i) => i.id).sort();
+    expect(cursedIds).toEqual(['fever_root', 'hungry_blade', 'void_eye']);
+    for (const item of items.filter((i) => i.cursed === true)) {
+      const mods = item.modifiers ?? [];
+      expect(mods.some((m) => m.delta > 0), `${item.id} positive`).toBe(true);
+      expect(mods.some((m) => m.delta < 0), `${item.id} negative`).toBe(true);
+    }
   });
 });

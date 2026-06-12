@@ -793,6 +793,15 @@ Cursed Items have a powerful positive and an always-active negative passive. Red
 
 Examples: Hungry Blade (+50% melee, -3 HP per attack); Void Eye (see HP, +20% void damage taken); Fever Root (+8 HP/turn, no active abilities).
 
+> **AMENDMENT — 2026-06-12 (T-312).** The launch trio ships as flat-modifier
+> approximations of the sketches above, since item modifiers are flat stat
+> deltas (TDD §8-adjacent convention; percent/per-turn item effects are a
+> future engine feature): **Hungry Blade** +6 STR / −8 max HP · **Void Eye**
+> +6 INT / −4 RES · **Fever Root** +24 max HP / −1 max AP. The curse rules are
+> engine-enforced and tested: cannot be dropped or swapped out once carried;
+> removed only by run end or a Purge effect (`purgeCursed`); red-marked in
+> every inventory surface.
+
 ### 9.4 Loot Drop Rules
 
 - Common enemies: 50% chance, 1 item (Common)

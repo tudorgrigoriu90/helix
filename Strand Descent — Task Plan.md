@@ -765,8 +765,8 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 
 | ID    | Title                                                  | Role     | Priority | Refs       | Notes |
 | ----- | ------------------------------------------------------ | -------- | -------- | ---------- | ----- |
-| T-311 | Cursed item schema + flagging                          | Game Engineer | P2 | GDD §9.3   | |
-| T-312 | Hungry Blade, Void Eye, Fever Root (3 cursed at launch) | Director | P2     | GDD §9.3   | |
+| T-311 | ~~Cursed item schema + flagging~~ — **DONE 2026-06-12** (close-out: already shipped via T-444/T-449 — `ItemDef.cursed` + loader validation, engine-enforced can't-drop/can't-swap with `purgeCursed()` escape, red-marked inventory rows; this row was never reconciled). | Game Engineer | P2 | GDD §9.3   | DONE |
+| T-312 | ~~Hungry Blade, Void Eye, Fever Root (3 cursed at launch)~~ — **DONE 2026-06-12.** Void Eye (+6 INT / −4 RES) and Fever Root (+24 max HP / −1 max AP) join the shipped Hungry Blade (+6 STR / −8 max HP) — flat-modifier approximations of the GDD sketches (percent/per-turn item effects are a future engine feature; GDD §9.3 amended with the shipped stat lines). Items gate pins the exact trio and asserts every cursed item pairs a positive with a negative modifier. Both rares drop from the normal pool — the harness promptly punished itself picking them up (F10 57→45%), which is the risk/reward working; curve stays in band (F20 15%). | Director | P2     | GDD §9.3   | DONE |
 
 ---
 
