@@ -38,6 +38,7 @@ export function loadFloor(cfg: SessionConfig, st: SessionState, n: number): void
   st.combatState = null; // a new floor is never mid-combat
   st.combatRngState = 0;
   st.pendingLoot = []; // uncollected loot doesn't follow you down a floor
+  st.checkpoint = null; // descending consumes the act-end checkpoint (DR-009)
   restIfSafe(st, st.current); // before auto-clear (once-per-room guard applies)
   autoClearIfTrivial(st, st.current);
   st.status = 'exploring';
@@ -67,6 +68,7 @@ export function toSave(cfg: SessionConfig, st: SessionState): RunSessionSave {
     pendingStatPoints: st.pendingStatPoints,
     ...(persistCombat ? { combat: st.combatState!, combatRngState: st.combatRngState } : {}),
     ...(st.pendingLoot.length > 0 ? { pendingLoot: [...st.pendingLoot] } : {}),
+    ...(st.checkpoint !== null ? { checkpoint: st.checkpoint } : {}),
   };
 }
 
@@ -86,6 +88,8 @@ export function applySave(cfg: SessionConfig, st: SessionState, save: RunSession
   // lower-bound estimate of income so resumed runs still convert some Shards.
   st.veinEarned = save.veinEarned ?? st.veinCrystals;
   st.pendingLoot = save.pendingLoot !== undefined ? [...save.pendingLoot] : [];
+  // Pre-v7 saves lack the DR-009 checkpoint (T-510) — loadFloor cleared it.
+  st.checkpoint = save.checkpoint ?? null;
   // A mid-combat save (v5+) carries the encounter; restore it so the run
   // resumes mid-fight. Otherwise an in-combat status degrades to exploring.
   if (save.status === 'in_combat' && save.combat !== undefined) {

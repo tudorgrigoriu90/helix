@@ -150,6 +150,9 @@ export class GameScene extends Phaser.Scene {
   private reviveUsed = false;
   /** T-198: set by init() when this scene restart is a post-death revive. */
   private pendingRevive = false;
+  /** A save passed in by the boot S100 modal or the Hub's Continue Descent
+   *  card (T-510) — when present, create() resumes it instead of starting fresh. */
+  private resumeSave: RunSessionSave | null = null;
 
   private view: View = 'map';
   /** T-175: current ability bar page (0-indexed); page N shows slots N×6 … N×6+5. */
@@ -219,6 +222,7 @@ export class GameScene extends Phaser.Scene {
     if (typeof data['originId'] === 'string') this.originId = data['originId'];
     if (typeof data['seed'] === 'number') this.seed = data['seed'];
     this.pendingRevive = data['revive'] === true;
+    this.resumeSave = (data['resumeSave'] as RunSessionSave | undefined) ?? null;
   }
 
   create(): void {
@@ -246,6 +250,8 @@ export class GameScene extends Phaser.Scene {
     this.loadContent();
     if (this.pendingRevive) {
       void this.resumeWithRevive();
+    } else if (this.resumeSave !== null) {
+      this.resumeFromSave(this.resumeSave);
     } else {
       this.startRun();
     }
@@ -379,6 +385,65 @@ export class GameScene extends Phaser.Scene {
     this.reviveUsed = true;
     this.revealingEnemies = false;
     this.say('generic');
+    this.playFloorMusic();
+    this.renderAll();
+  }
+
+  /**
+   * T-510: resume a saved run handed over by the boot S100 modal or the Hub's
+   * "Continue Descent" card (DR-009). A checkpointed save descends immediately —
+   * the resume lands at a fresh floor entrance, never replays the cleared act
+   * end. A mid-fight save (v5+) re-enters combat with its exact RNG state;
+   * a mid-floor save resumes exploring at the saved room.
+   */
+  private resumeFromSave(save: RunSessionSave): void {
+    this.seed = save.seed; // narration/music keys derive from the run's seed
+    this.session = new RunSession({
+      seed: save.seed,
+      template: this.template,
+      floorTemplates: this.floorTemplates,
+      registry: this.enemyRegistry,
+      finalFloor: FINAL_FLOOR,
+      mutations: this.mutationPool,
+      strandEventEveryNFloors: STRAND_INTERVAL,
+      itemPool: this.itemPool,
+    });
+    this.session.applySave(save);
+    this.narrator = new LaceNarrator(this.laceLines, makeRng(this.seed, 'events'));
+    this.view = 'map';
+    this.combat = null;
+    this.targeting = null;
+    this.enemiesKilled = 0;
+    this.damageTakenThisRun = 0;
+    this.runStartMs = Date.now();
+    this.runRecorded = false;
+    this.lastRunShards = 0;
+    this.deathCause = 'enemy_kill';
+    this.achievementsEarned = [];
+    this.reviveUsed = false;
+    this.strandIntroShown = true; // a resumed run has seen its intro beats
+    this.revealingEnemies = false;
+
+    const checkpoint = this.session.checkpoint();
+    if (checkpoint !== null && this.session.snapshot.status === 'floor_complete') {
+      // Continue Descent: consume the checkpoint and land on the next floor's
+      // entrance (UFD 02 S017 / S029).
+      this.session.descend();
+      this.narrator.signalMood('new_floor');
+      if (this.session.snapshot.floorNumber >= 16) this.narrator.signalMood('deep_floor');
+      this.say('floor_enter');
+    } else {
+      const ac = this.session.activeCombat();
+      if (ac !== null) {
+        // Mid-fight save (T-114): re-enter the encounter at its exact RNG state.
+        this.combat = ac.state;
+        this.combatRng = makeRng(ac.state.seed, 'combat');
+        this.combatRng.state = ac.rngState >>> 0;
+        this.view = 'combat';
+      }
+      this.say('generic');
+    }
+    this.persist();
     this.playFloorMusic();
     this.renderAll();
   }
@@ -1631,6 +1696,15 @@ export class GameScene extends Phaser.Scene {
 
   // ── Floor descent ─────────────────────────────────────────────────────────
 
+  /** S072 REST (DR-009, T-510): suspend the run at the act-end checkpoint and
+   *  return to the Hub. The save written here carries the checkpoint, so the
+   *  Hub shows the "Continue Descent" card; pause-only — never a retry point. */
+  private restAtCheckpoint(): void {
+    this.persist();
+    playSfx(this, 'ui_confirm');
+    this.scene.start('HubScene', { meta: this.meta });
+  }
+
   /** S029 narration card (T-194) → S022 reveal mask (T-149) → new floor. */
   private descendFloor(): void {
     const completedFloor = this.session.snapshot.floorNumber;
@@ -1816,6 +1890,7 @@ export class GameScene extends Phaser.Scene {
       // Auto-dismiss celebration after 3 seconds; player can also tap CONTINUE
     } else {
       this.view = 'map';
+      this.sayCheckpointRestLine();
       this.persist();
       this.renderAll();
     }
@@ -1837,8 +1912,16 @@ export class GameScene extends Phaser.Scene {
   private continueIntermission(): void {
     this.session.acceptIntermission();
     this.view = 'map';
+    this.sayCheckpointRestLine();
     this.persist();
     this.renderAll();
+  }
+
+  /** S072 framing line (UFD 04 amendment) — shown once the Strand Event
+   *  resolves and the Descend/Rest choice is on screen. */
+  private sayCheckpointRestLine(): void {
+    if (this.session.checkpoint() === null) return;
+    this.laceText.setText('LACE: Rest. The VEIN is patient. Your new strand will settle.');
   }
 
   // ── Loot ──────────────────────────────────────────────────────────────────
@@ -3467,7 +3550,12 @@ export class GameScene extends Phaser.Scene {
     if (this.view === 'inventory') { this.button(20, 'CLOSE', C.green, () => this.closeInventory()); return; }
     if (this.view === 'levelup') return;
     if (this.view === 'map' && this.session.snapshot.status === 'floor_complete') {
+      // S072 (DR-009, T-510): an act end offers Descend / Rest; ordinary floor
+      // completes keep the single DESCEND.
       this.button(20, 'DESCEND', C.yellow, () => this.descendFloor());
+      if (this.session.checkpoint() !== null) {
+        this.button(210, 'REST', C.dim, () => this.restAtCheckpoint());
+      }
       return;
     }
   }

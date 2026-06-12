@@ -67,6 +67,16 @@ export const runSessionCodec: SaveCodec<RunSessionSave> = {
     if (parsed['pendingLoot'] !== undefined && !Array.isArray(parsed['pendingLoot'])) {
       return { ok: false, error: { code: 'CORRUPT', message: 'run save has malformed pendingLoot' } };
     }
+    // v7 (T-510, DR-009): an optional act-end checkpoint must be {floor, act}.
+    const checkpoint = parsed['checkpoint'];
+    if (
+      checkpoint !== undefined &&
+      (!isObject(checkpoint) ||
+        typeof checkpoint['floor'] !== 'number' ||
+        typeof checkpoint['act'] !== 'number')
+    ) {
+      return { ok: false, error: { code: 'CORRUPT', message: 'run save has a malformed checkpoint' } };
+    }
 
     return { ok: true, value: parsed as unknown as RunSessionSave };
   },

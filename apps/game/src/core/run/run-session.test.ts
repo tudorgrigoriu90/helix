@@ -392,6 +392,70 @@ describe('RunSession — tutorial mode (Floor 0, T-138)', () => {
   });
 });
 
+describe('RunSession — descent checkpoints (T-510, DR-009)', () => {
+  it('resolving a Strand Event records the act-end checkpoint', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    expect(s.checkpoint()).toBeNull(); // not until the event resolves
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+    expect(s.snapshot.status).toBe('floor_complete');
+    expect(s.checkpoint()).toEqual({ floor: 1, act: 1 });
+  });
+
+  it('a VEIN Intermission also ends at the checkpoint (S071 → S072)', () => {
+    const s = strandSession(4, ['m_ab1', 'm_ab2', 'm_my1', 'm_li1']); // at the 4-mutation cap
+    autoplayFloor(s);
+    const outcome = s.beginStrandEvent();
+    expect(outcome.kind).toBe('intermission'); // at the 4-mutation cap
+    s.acceptIntermission();
+    expect(s.checkpoint()).toEqual({ floor: 1, act: 1 });
+  });
+
+  it('descending consumes the checkpoint (pause point, never a retry point)', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+    s.descend();
+    expect(s.checkpoint()).toBeNull();
+    expect(s.snapshot.floorNumber).toBe(2);
+  });
+
+  it('an ordinary floor complete (no Strand Event) records no checkpoint', () => {
+    const s = new RunSession({ seed: 4, template: template(), registry, player: hero(), finalFloor: 20 });
+    autoplayFloor(s);
+    expect(s.snapshot.status).toBe('floor_complete');
+    expect(s.checkpoint()).toBeNull();
+  });
+
+  it('persists through save/restore (save v7) and is absent from older saves', () => {
+    const s = strandSession(4);
+    autoplayFloor(s);
+    s.beginStrandEvent();
+    s.chooseStrandMutation(s.strandOffer[0]!.mutation.id);
+
+    const saved = s.toSave();
+    expect(saved.schemaVersion).toBe(7);
+    expect(saved.checkpoint).toEqual({ floor: 1, act: 1 });
+
+    const restored = strandSession(4);
+    restored.applySave(saved);
+    expect(restored.checkpoint()).toEqual({ floor: 1, act: 1 });
+    expect(restored.snapshot.status).toBe('floor_complete');
+    restored.descend(); // Continue Descent lands on a fresh floor entrance
+    expect(restored.snapshot.floorNumber).toBe(2);
+    expect(restored.checkpoint()).toBeNull();
+
+    // v6 fixture (pre-DR-009): no checkpoint field → none restored.
+    const v6 = { ...saved, schemaVersion: 6 } as Record<string, unknown>;
+    delete v6['checkpoint'];
+    const old = strandSession(4);
+    old.applySave(v6 as unknown as typeof saved);
+    expect(old.checkpoint()).toBeNull();
+  });
+});
+
 function chooseAction(state: RunState): Action {
   const { player } = state;
   const living = state.enemies.filter((e) => e.hp > 0);

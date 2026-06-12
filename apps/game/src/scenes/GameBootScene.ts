@@ -141,13 +141,15 @@ export class GameBootScene extends Phaser.Scene {
 
   private route(decision: ResumeDecision): void {
     logEvent('session_start', {
-      hasActiveRun: decision.kind === 'prompt',
+      hasActiveRun: decision.kind === 'prompt' || decision.kind === 'checkpoint',
       lifetimeRuns: this.meta.lifetime.runs,
       consentGranted: storedConsent() === 'granted',
     });
     if (decision.kind === 'prompt') {
       this.showResumeModal(decision.summary);
     } else {
+      // 'fresh' — nothing to resume; 'checkpoint' (DR-009, T-510) — the Hub
+      // itself shows the "Continue Descent" card in place of the S100 modal.
       this.scene.start('HubScene', { meta: this.meta });
     }
   }

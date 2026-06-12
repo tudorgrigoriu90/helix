@@ -59,3 +59,27 @@ describe('decideResume — T-117 (S100 trigger logic)', () => {
     expect(decideResume(save('floor_complete')).kind).toBe('prompt');
   });
 });
+
+describe('decideResume — descent checkpoints (T-510, DR-009)', () => {
+  it('a checkpointed save yields the Continue Descent card, not the S100 modal', () => {
+    const d = decideResume(save('floor_complete', {
+      floorNumber: 5,
+      checkpoint: { floor: 5, act: 1 },
+    }));
+    expect(d.kind).toBe('checkpoint');
+    if (d.kind === 'checkpoint') {
+      expect(d.summary.nextFloor).toBe(6);
+      expect(d.summary.nextAct).toBe(2);
+      expect(d.summary.nextZone).toBe('mycosphere');
+      expect(d.save.checkpoint).toEqual({ floor: 5, act: 1 });
+    }
+  });
+
+  it('a floor_complete save without a checkpoint keeps the S100 prompt', () => {
+    expect(decideResume(save('floor_complete')).kind).toBe('prompt');
+  });
+
+  it('a mid-floor save with a stale checkpoint field still prompts (status gate)', () => {
+    expect(decideResume(save('exploring', { checkpoint: { floor: 5, act: 1 } })).kind).toBe('prompt');
+  });
+});

@@ -1,5 +1,7 @@
+import { zoneNameForFloor, zoneForFloor } from '@shared-types/campaign';
+import type { Zone } from '@shared-types/floor-template';
 import type { LoadResult } from '../save/save-manager';
-import type { RunSessionSave, RunStatus } from './run-session';
+import type { DescentCheckpoint, RunSessionSave, RunStatus } from './run-session';
 
 /**
  * Resume Run? trigger logic — T-117 (UFD S100, edge case E011).
@@ -27,9 +29,24 @@ export interface ResumeSummary {
   readonly inCombat: boolean;
 }
 
+/** What the Hub's S017 "Continue Descent" card shows (DR-009, T-510). */
+export interface CheckpointSummary {
+  readonly checkpoint: DescentCheckpoint;
+  /** The floor the resume will land on (a fresh floor entrance). */
+  readonly nextFloor: number;
+  /** 1-based act about to be played, and its biome — the card's "Act N — Zone". */
+  readonly nextAct: number;
+  readonly nextZone: Zone;
+  /** Mutation ids carried so far (the card's organism/mutation icons). */
+  readonly mutationIds: readonly string[];
+}
+
 export type ResumeDecision =
   /** Show the S100 "Resume Run?" modal with this summary. */
   | { readonly kind: 'prompt'; readonly summary: ResumeSummary }
+  /** A DR-009 act-end checkpoint: skip S100; the Hub shows the
+   *  "Continue Descent" card instead (UFD 02 S017 amendment, T-510). */
+  | { readonly kind: 'checkpoint'; readonly summary: CheckpointSummary; readonly save: RunSessionSave }
   /** No resumable run — go to the normal first-launch / Hub flow. */
   | { readonly kind: 'fresh' };
 
@@ -42,6 +59,23 @@ export function decideResume(loaded: LoadResult<RunSessionSave> | null): ResumeD
 
   const save = loaded.value;
   if (TERMINAL_STATUSES.has(save.status)) return { kind: 'fresh' };
+
+  // A run suspended at a DR-009 act-end checkpoint resumes from the Hub's
+  // "Continue Descent" card rather than the generic S100 modal (T-510).
+  if (save.status === 'floor_complete' && save.checkpoint !== undefined) {
+    const nextFloor = save.checkpoint.floor + 1;
+    return {
+      kind: 'checkpoint',
+      save,
+      summary: {
+        checkpoint: save.checkpoint,
+        nextFloor,
+        nextAct: zoneForFloor(nextFloor),
+        nextZone: zoneNameForFloor(nextFloor),
+        mutationIds: save.player.mutations,
+      },
+    };
+  }
 
   return {
     kind: 'prompt',

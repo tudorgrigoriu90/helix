@@ -11,6 +11,7 @@ import {
   autoClearIfTrivial,
   restIfSafe,
   roomById,
+  type DescentCheckpoint,
   type RunSessionOptions,
   type RunSessionSave,
   type RunSnapshot,
@@ -50,6 +51,7 @@ const FINAL_FLOOR_DEFAULT = MAX_FLOOR; // canonical campaign shape (T-523)
 export {
   CURRENT_RUN_SESSION_SAVE_VERSION,
   SAFE_ROOM_HEAL_FRACTION,
+  type DescentCheckpoint,
   type RunSessionOptions,
   type RunSessionSave,
   type RunSnapshot,
@@ -91,6 +93,7 @@ export class RunSession {
       combatState: null,
       combatRngState: 0,
       pendingLoot: [],
+      checkpoint: null,
       dispenserStockByRoom: new Map(),
     };
     // A tutorial run begins on the hardcoded floor 0; a normal run on floor 1.
@@ -131,6 +134,13 @@ export class RunSession {
 
   needsCombat(): boolean {
     return combat.needsCombat(this.st);
+  }
+
+  /** The DR-009 act-end checkpoint the run is paused at (T-510), or null.
+   *  Non-null only while `status === 'floor_complete'` right after a Strand
+   *  Event — the S072 Descend/Rest choice and the Hub card key off it. */
+  checkpoint(): DescentCheckpoint | null {
+    return this.st.checkpoint;
   }
 
   // ── Save / resume (session-lifecycle.ts) ────────────────────────────────

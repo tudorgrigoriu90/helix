@@ -50,12 +50,25 @@ export interface RunSnapshot {
   readonly pendingStatPoints: number;
 }
 
+/**
+ * A DR-009 descent checkpoint: the act-end pause point recorded when a Strand
+ * Event resolves (floors 5/10/15 — never the Floor 20 Warden, which leads
+ * straight to the Convergence). `floor` is the cleared zone-end floor; `act`
+ * its 1-based zone. A checkpoint is a *pause* point, never a retry point:
+ * death still ends the run from anywhere, and a suspended run never expires.
+ */
+export interface DescentCheckpoint {
+  readonly floor: number;
+  readonly act: number;
+}
+
 /** Schema version for the persisted run-session shape.
  *  v2 added `sig` + `veinCrystals`; v3 added `xp` + `pendingStatPoints`;
  *  v4 added `veinEarned`; v5 added mid-combat persistence (`combat` +
- *  `combatRngState`); v6 added `pendingLoot` (uncollected drops). Older saves
- *  load fine — missing fields default to 0/none. */
-export const CURRENT_RUN_SESSION_SAVE_VERSION = 6;
+ *  `combatRngState`); v6 added `pendingLoot` (uncollected drops); v7 added
+ *  `checkpoint` (DR-009 act-end rest, T-510). Older saves load fine — missing
+ *  fields default to 0/none/null. */
+export const CURRENT_RUN_SESSION_SAVE_VERSION = 7;
 
 /**
  * Everything needed to resume a run. The floor graph itself is *not* stored — it
@@ -82,6 +95,10 @@ export interface RunSessionSave {
   readonly veinEarned?: number;
   /** Uncollected drops awaiting pickup (added in save v6; absent → none). */
   readonly pendingLoot?: readonly ItemDef[];
+  /** The DR-009 act-end checkpoint the run is paused at (added in save v7;
+   *  absent → none). Present only while `status === 'floor_complete'` right
+   *  after a Strand Event — the Hub's "Continue Descent" card keys off it. */
+  readonly checkpoint?: DescentCheckpoint;
   /**
    * The live combat state, present only when `status === 'in_combat'` and the
    * scene has synced it via `RunSession.syncCombat` (save v5). Its presence
@@ -173,6 +190,9 @@ export interface SessionState {
   combatRngState: number;
   /** Drops rolled on kills / loot rooms awaiting pickup (T-445/T-446). */
   pendingLoot: ItemDef[];
+  /** The DR-009 act-end checkpoint (T-510): set when a Strand Event resolves,
+   *  cleared on descend. Null whenever the run isn't paused at an act end. */
+  checkpoint: DescentCheckpoint | null;
   /** Dispenser stock per merchant room — computed once per room and reset each
    *  floor (GDD §10.3 "refresh once per floor"). */
   dispenserStockByRoom: Map<string, ItemDef[]>;

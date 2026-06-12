@@ -1,4 +1,5 @@
 import type { MutationDef } from '@shared-types/mutation';
+import { zoneForFloor } from '@shared-types/campaign';
 import { makeRng } from '../rng/mulberry32';
 import {
   drawMutationCards,
@@ -88,7 +89,7 @@ export function chooseStrandMutation(cfg: SessionConfig, st: SessionState, mutat
   st.player = applyMutation(st.player, card.mutation);
   st.sig = gainMutationSig(st.sig, card.mutation, 'strand');
   refreshDominantTraits(cfg, st);
-  endStrandEvent(st);
+  endStrandEvent(cfg, st);
 }
 
 /**
@@ -110,14 +111,20 @@ export function acceptIntermission(cfg: SessionConfig, st: SessionState): void {
   }
   const outcome = beginStrandEvent(cfg, st);
   if (outcome.kind === 'intermission') bankVein(st, outcome.veinCrystals);
-  endStrandEvent(st);
+  endStrandEvent(cfg, st);
 }
 
-export function endStrandEvent(st: SessionState): void {
+export function endStrandEvent(cfg: SessionConfig, st: SessionState): void {
   st.strandRng = null;
   st.strandOutcome = null;
   st.strandCards = [];
   st.status = 'floor_complete';
+  // DR-009 (T-510): resolving a Strand Event is the act-end pause point — the
+  // player now chooses Descend or Rest (S072). The Floor 20 Warden never
+  // reaches here (it transitions straight to victory), but guard anyway.
+  if (st.floorNumber < cfg.finalFloor) {
+    st.checkpoint = { floor: st.floorNumber, act: zoneForFloor(st.floorNumber) };
+  }
 }
 
 /** Recomputes the active Dominant Trait families onto the player (GDD §5.5) so
