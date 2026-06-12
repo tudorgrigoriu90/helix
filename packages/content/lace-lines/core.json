@@ -62,6 +62,11 @@
     { "id": "generic_02", "text": "The walls are listening. They always are.", "context": "generic", "mood": "curious", "weight": 1 },
     { "id": "generic_03", "text": "Keep moving.", "context": "generic", "mood": "neutral", "weight": 1 },
     { "id": "generic_04", "text": "Every step down is a choice the VEIN made for you.", "context": "generic", "mood": "reverent", "weight": 1 },
-    { "id": "generic_05", "text": "I've watched a thousand of you. You're doing fine. Mostly.", "context": "generic", "mood": "amused", "weight": 1 }
+    { "id": "generic_05", "text": "I've watched a thousand of you. You're doing fine. Mostly.", "context": "generic", "mood": "amused", "weight": 1 },
+    { "id": "resume_01", "text": "You're back. The VEIN kept your shape warm while you were gone.", "context": "resume_recap", "mood": "neutral", "weight": 1 },
+    { "id": "resume_02", "text": "Recalibrating. Same organism, same descent. The floor hasn't moved.", "context": "resume_recap", "mood": "clinical", "weight": 1 },
+    { "id": "resume_03", "text": "I held your place. The dark below is exactly as patient as advertised.", "context": "resume_recap", "mood": "amused", "weight": 1 },
+    { "id": "resume_04", "text": "Your strands settled while you rested. They remember where you stopped.", "context": "resume_recap", "mood": "reverent", "weight": 1 },
+    { "id": "resume_05", "text": "Signal restored. Inventory intact, integrity unchanged, descent pending.", "context": "resume_recap", "mood": "clinical", "weight": 1 }
   ]
 }

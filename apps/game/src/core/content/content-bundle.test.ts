@@ -112,7 +112,8 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
     // falls through to `generic` for a core run event (T-98/T-102).
     const contexts: readonly LaceLine['context'][] = [
       'run_start', 'floor_enter', 'combat_start', 'enemy_killed', 'player_hurt',
-      'room_cleared', 'boss_start', 'boss_killed', 'floor_complete', 'player_death', 'generic',
+      'room_cleared', 'boss_start', 'boss_killed', 'floor_complete', 'player_death',
+      'resume_recap', 'generic',
     ];
     for (const context of contexts) {
       expect(

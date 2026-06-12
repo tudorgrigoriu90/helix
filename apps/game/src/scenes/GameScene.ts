@@ -431,7 +431,6 @@ export class GameScene extends Phaser.Scene {
       this.session.descend();
       this.narrator.signalMood('new_floor');
       if (this.session.snapshot.floorNumber >= 16) this.narrator.signalMood('deep_floor');
-      this.say('floor_enter');
     } else {
       const ac = this.session.activeCombat();
       if (ac !== null) {
@@ -441,8 +440,10 @@ export class GameScene extends Phaser.Scene {
         this.combatRng.state = ac.rngState >>> 0;
         this.view = 'combat';
       }
-      this.say('generic');
     }
+    // T-512 (DR-009): one situational recap on ANY resume — checkpoint or
+    // mid-floor — delivered before input is accepted, exactly once.
+    this.say('resume_recap');
     this.persist();
     this.playFloorMusic();
     this.renderAll();

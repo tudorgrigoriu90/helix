@@ -25,7 +25,8 @@ export type LaceLoaderResult =
 const VALID_MOODS = new Set<LaceMood>(['neutral', 'curious', 'clinical', 'amused', 'contemptuous', 'reverent']);
 const VALID_CONTEXTS = new Set<LaceContext>([
   'run_start', 'floor_enter', 'combat_start', 'enemy_killed', 'player_hurt',
-  'room_cleared', 'boss_start', 'boss_killed', 'floor_complete', 'player_death', 'generic',
+  'room_cleared', 'boss_start', 'boss_killed', 'floor_complete', 'player_death',
+  'resume_recap', 'generic',
 ]);
 
 function readLine(raw: unknown, index: number): LaceLine | ContentError {
