@@ -6,6 +6,7 @@ import { chebyshev, inBounds, tileAt } from './grid';
 import { bfsDistanceField, fieldAt, UNREACHABLE } from './pathfind';
 import { canDetect } from './visibility';
 import { damageTo, isImmobilized } from './effective-stats';
+import { bossAttackProfile } from './boss-phases';
 import { HAZARD_DAMAGE } from './combat';
 
 const ENEMY_MELEE_RANGE = 1;
@@ -84,13 +85,74 @@ function resolveEnemyAction(state: RunState, enemyId: string, claimed: Set<strin
 /**
  * Baseline chase behaviour for an already-aware enemy, decided against the
  * current board: strike if the player is in melee reach, otherwise advance
- * toward an open flanking position.
+ * toward an open flanking position. Boss-tier enemies act through their phase
+ * profile (T-503, DR-008): self-heal, escalated strikes, status infliction,
+ * and a telegraph tell — all derived from current HP, never stored.
  */
 function act(state: RunState, enemy: EnemyState, claimed: Set<string>): EnemyPhaseResult {
-  if (chebyshev(enemy.pos, state.player.pos) <= ENEMY_MELEE_RANGE) {
-    return enemyAttack(state, enemy, enemy.stats.str);
+  const profile = bossAttackProfile(enemy);
+  let working = state;
+  let self = enemy;
+  const effects: Effect[] = [];
+
+  // Phase tell: surface the escalation on the telegraph channel (T-159 icon).
+  if (self.telegraph !== profile.telegraph) {
+    self = { ...self, telegraph: profile.telegraph };
+    working = replaceEnemy(working, self);
+    effects.push({ type: 'telegraphUpdated', enemyId: self.id, telegraph: profile.telegraph ?? null });
   }
-  return enemyAdvance(state, enemy, claimed);
+
+  // The Great Mycelium's phase-3 regrowth: heal before acting.
+  if (profile.selfHealFraction !== undefined && self.hp < self.maxHp) {
+    const healed = Math.min(self.maxHp, self.hp + Math.floor(self.maxHp * profile.selfHealFraction));
+    if (healed > self.hp) {
+      effects.push({ type: 'healingApplied', targetId: self.id, amount: healed - self.hp });
+      self = { ...self, hp: healed };
+      working = replaceEnemy(working, self);
+    }
+  }
+
+  if (chebyshev(self.pos, working.player.pos) > ENEMY_MELEE_RANGE) {
+    const adv = enemyAdvance(working, self, claimed);
+    return { state: adv.state, effects: [...effects, ...adv.effects] };
+  }
+
+  const raw = Math.floor(self.stats.str * profile.strMult);
+  for (let i = 0; i < profile.strikes && working.player.hp > 0; i++) {
+    const hit = enemyAttack(working, self, raw);
+    working = hit.state;
+    effects.push(...hit.effects);
+    // A connecting strike inflicts the phase status (deduped — re-applying
+    // refreshes nothing; the tick system owns expiry).
+    if (
+      profile.inflicts !== undefined &&
+      working.player.hp > 0 &&
+      !working.player.statuses.some((st) => st.effect === profile.inflicts!.status)
+    ) {
+      working = {
+        ...working,
+        player: {
+          ...working.player,
+          statuses: [
+            ...working.player.statuses,
+            { effect: profile.inflicts.status, turnsRemaining: profile.inflicts.turns },
+          ],
+        },
+      };
+      effects.push({
+        type: 'statusApplied',
+        targetId: 'player',
+        status: profile.inflicts.status,
+        turns: profile.inflicts.turns,
+      });
+    }
+  }
+  return { state: working, effects };
+}
+
+/** The state with `enemy` swapped in by id. */
+function replaceEnemy(state: RunState, enemy: EnemyState): RunState {
+  return { ...state, enemies: state.enemies.map((e) => (e.id === enemy.id ? enemy : e)) };
 }
 
 function enemyAttack(state: RunState, enemy: EnemyState, rawDamage: number): EnemyPhaseResult {

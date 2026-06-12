@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseLaceLines } from './lace-loader';
 import { lintLaceText, lintLaceCorpus, hasContraction, MAX_CONTRACTION_RATE } from './voice-lint';
+import { WARDEN_LINES } from './warden-lines';
 
 /**
  * T-530 — the LACE voice gate (`pnpm validate`).
@@ -53,6 +54,19 @@ describe('LACE voice linter rules — T-530 (GDD App D)', () => {
     expect(hasContraction("You're awake.")).toBe(true);
     expect(hasContraction("It doesn't bend.")).toBe(true);
     expect(hasContraction("The VEIN's patience is structural.")).toBe(false);
+  });
+});
+
+describe('hand-written Warden lines pass the voice gate — T-503', () => {
+  it('every Warden pre/post line and family reaction is voice-bible clean', () => {
+    const lines = Object.entries(WARDEN_LINES).flatMap(([id, w]) => [
+      { id: `${id}.pre`, text: w.pre },
+      { id: `${id}.post`, text: w.post },
+      ...Object.entries(w.preByFamily).map(([family, text]) => ({ id: `${id}.pre.${family}`, text })),
+    ]);
+    expect(lines.length).toBeGreaterThanOrEqual(8); // 4 wardens × pre+post minimum
+    const { issues } = lintLaceCorpus(lines);
+    expect(issues, issues.map((i) => `${i.id}: ${i.detail}`).join('\n')).toEqual([]);
   });
 });
 

@@ -15,6 +15,7 @@ import type { TurnError } from './turn-error';
 import { chebyshev, inBounds, tileAt } from './grid';
 import { applyCrit, rollCrit, HAZARD_DAMAGE } from './combat';
 import { damageTo, effectiveMaxAp, hasDominantTrait, isImmobilized } from './effective-stats';
+import { withBossPhaseRes } from './boss-phases';
 import { resolveEnemyPhase } from './enemy-phase';
 import { tickStatuses } from './status-tick';
 import { detectOutcome } from './outcome';
@@ -152,7 +153,7 @@ function applyAttack(
   const baseDamage = Math.floor(state.player.stats.str * MELEE_DAMAGE_MULT);
   const isCrit = rollCrit(rng, state.player.stats.agi);
   const rawDamage = applyCrit(baseDamage, isCrit);
-  const dealt = damageTo(target, rawDamage, 'physical');
+  const dealt = damageTo(withBossPhaseRes(target), rawDamage, 'physical');
   const newHp = Math.max(0, target.hp - dealt);
 
   // Combustion Engine: a surviving target also catches Burn (GDD §5.5).
@@ -273,7 +274,7 @@ function applyUseAbility(
     if (!affectedSet.has(i)) return e;
     let next: EnemyState = e;
     if (damage > 0) {
-      const dealt = damageTo(e, damage, def.damageType);
+      const dealt = damageTo(withBossPhaseRes(e), damage, def.damageType);
       const newHp = Math.max(0, e.hp - dealt);
       next = { ...next, hp: newHp };
       effects.push({ type: 'damageDealt', targetId: e.id, amount: dealt, isCrit: false, damageType: def.damageType });
@@ -377,7 +378,7 @@ function applyUseItem(
       if (!hitSet.has(i)) return e;
       let next: EnemyState = e;
       if (effect.kind === 'damage') {
-        const dealt = damageTo(e, effect.amount, effect.damageType);
+        const dealt = damageTo(withBossPhaseRes(e), effect.amount, effect.damageType);
         const newHp = Math.max(0, e.hp - dealt);
         next = { ...next, hp: newHp };
         effects.push({ type: 'damageDealt', targetId: e.id, amount: dealt, isCrit: false, damageType: effect.damageType });

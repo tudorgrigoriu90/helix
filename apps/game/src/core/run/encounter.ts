@@ -55,6 +55,7 @@ export function buildEncounterState(params: EncounterParams): RunState {
       stats: scaledStats(def.stats, floorNumber),
       statuses: [],
       telegraph: null,
+      tier: def.tier, // DR-008 combat role — feeds the boss phase system (T-503)
       // Enemies spawn dormant (GDD §6.1a) and wake when they detect the player.
       aware: false,
     };

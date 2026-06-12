@@ -49,6 +49,7 @@ import { queueSpriteLoads, drawSprite } from './sprites/sprite-registry';
 import { roomSpriteKey, tileSpriteKey } from './sprites/sprite-manifest';
 import { queueAudioLoads, playSfx, playMusic, getCategoryVolume, setCategoryVolume } from './audio/audio-registry';
 import { logEvent } from '../core/platform/analytics-adapter';
+import { wardenPreLine, wardenPostLine } from '../core/lace/warden-lines';
 import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
 import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
@@ -456,6 +457,22 @@ export class GameScene extends Phaser.Scene {
     this.renderAll();
   }
 
+  /** T-503: hand-written Warden treatment — replaces the templated
+   *  boss_start / boss_killed fragments for the four Zone Wardens, reacting to
+   *  the player's dominant family when a variant exists. Returns false when
+   *  the current boss is not a Warden (caller falls back to the corpus). */
+  private sayWardenLine(kind: 'pre' | 'post'): boolean {
+    const wardenId = this.session.currentRoom().enemies
+      .map((spawn) => spawn.enemyDefId)
+      .find((id) => this.enemyRegistry.get(id)?.tier === 'zone_warden');
+    if (wardenId === undefined) return false;
+    const family = this.session.snapshot.player.dominantTraits?.[0];
+    const line = kind === 'pre' ? wardenPreLine(wardenId, family) : wardenPostLine(wardenId);
+    if (line === null) return false;
+    this.laceText.setText(`LACE: ${line}`);
+    return true;
+  }
+
   /** The DR-008 tier of the current room's boss, for boss_tier analytics
    *  params (T-513). Undefined when the room holds no boss-tier enemy. */
   private currentBossTier(): 'floor_boss' | 'zone_warden' | undefined {
@@ -576,7 +593,9 @@ export class GameScene extends Phaser.Scene {
       enemyCount: encounter.enemies.length,
       ...(room.type === 'boss' ? { bossTier: this.currentBossTier() } : {}),
     });
-    this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
+    if (room.type !== 'boss' || !this.sayWardenLine('pre')) {
+      this.say(room.type === 'boss' ? 'boss_start' : 'combat_start');
+    }
     if (room.type === 'boss') playMusic(this, 'music_boss');
     this.combat = encounter;
     this.combatRng = makeRng(encounter.seed, 'combat');
@@ -1301,7 +1320,7 @@ export class GameScene extends Phaser.Scene {
       // S052: play death sequence before revealing game-over
       this.playDeathSequence();
     } else if (status === 'victory') {
-      this.say('boss_killed');
+      if (!this.sayWardenLine('post')) this.say('boss_killed');
       playSfx(this, 'sfx_victory');
       playMusic(this, 'music_menu');
       this.recordRun(true);
@@ -1310,7 +1329,7 @@ export class GameScene extends Phaser.Scene {
       this.goToPostRun(true);
       return;
     } else if (status === 'strand_event') {
-      this.say('boss_killed');
+      if (!this.sayWardenLine('post')) this.say('boss_killed');
       this.openStrandEvent();
     } else if (status === 'floor_complete') {
       this.say('floor_complete');
@@ -1322,7 +1341,9 @@ export class GameScene extends Phaser.Scene {
       const ps = this.session.snapshot.player;
       if (ps.hp >= Math.round(ps.maxHp * 0.75)) this.narrator.signalMood('defensive_play');
     } else {
-      this.say(wasBoss ? 'boss_killed' : 'room_cleared');
+      if (!wasBoss || !this.sayWardenLine('post')) {
+        this.say(wasBoss ? 'boss_killed' : 'room_cleared');
+      }
       if (wasBoss) this.playFloorMusic();
       this.view = 'map';
       this.persist();

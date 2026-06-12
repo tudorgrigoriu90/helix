@@ -84,6 +84,10 @@ export interface EnemyState {
   readonly statuses: readonly ActiveStatus[];
   /** Scripted wind-up only; `null` for baseline decide-and-act enemies. */
   readonly telegraph: Telegraph | null;
+  /** DR-008 combat role, copied from the def at spawn (T-503) — drives the
+   *  boss phase system. Optional: absent (pre-T-503 combat saves) is treated
+   *  as non-boss by tier, with a warden-id fallback in boss-phases.ts. */
+  readonly tier?: import('./enemy.js').EnemyTier;
   /**
    * Aggro state (GDD §6.1a). An enemy stays *dormant* — holding position, not
    * acting — until it detects the player (within vision range + line of sight),
