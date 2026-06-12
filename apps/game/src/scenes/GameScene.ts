@@ -60,6 +60,8 @@ import { aggregateStrainFx, applyStrainFxToPlayer, ZERO_STRAIN_FX, type StrainFx
 import { applyMutation } from '../core/mutation';
 import type { SessionStrainFx } from '../core/run/run-session-types';
 import { parseCodexEntries } from '../core/content/codex-loader';
+import type { EndingDef } from '@shared-types/ending';
+import { parseEndingDef, pickEnding } from '../core/content/ending-loader';
 import { parsePrefixTable, parseTraitTable, parseSuffixTable } from '../core/name-gen/name-tables';
 import { generateOrganismName, type NameTables } from '../core/name-gen/name-gen';
 
@@ -87,6 +89,9 @@ const strainFiles = strainModules as Record<string, { readonly default: unknown 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
 const codexModules = import.meta.glob('../../../../packages/content/codex/*.json', { eager: true });
 const codexFiles = codexModules as Record<string, { readonly default: unknown }>;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const endingModules = import.meta.glob('../../../../packages/content/endings/*.json', { eager: true });
+const endingFiles = endingModules as Record<string, { readonly default: unknown }>;
 const itemFiles = itemModules as Record<string, { readonly default: unknown }>;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -150,6 +155,8 @@ export class GameScene extends Phaser.Scene {
   private lastPlayerHitType: DamageType | null = null;
   /** Xenobiologist Origin (T-307): out-of-vision enemies render with readouts. */
   private hpRevealActive = false;
+  /** The five Convergence endings (T-309, GDD §2.8). */
+  private endings: EndingDef[] = [];
 
   private strandSelected: number | null = null;
   private strandRerollUsed = false;
@@ -354,6 +361,13 @@ export class GameScene extends Phaser.Scene {
       const res = parseSigmaStrainDef(mod.default);
       if (!res.ok) throw new Error(`GameScene: bad sigma-strain content — ${res.error.message}`);
       return [res.strain];
+    });
+
+    // Endings (T-309): the five Convergence sequences, one per family.
+    this.endings = Object.values(endingFiles).flatMap((mod) => {
+      const res = parseEndingDef(mod.default);
+      if (!res.ok) throw new Error(`GameScene: bad ending content — ${res.error.message}`);
+      return [res.ending];
     });
   }
 
@@ -1466,8 +1480,8 @@ export class GameScene extends Phaser.Scene {
       playMusic(this, 'music_menu');
       this.recordRun(true);
       void this.saves.clear();
-      // S031/S032: route to the run summary + meta rewards.
-      this.goToPostRun(true);
+      // T-309: the Convergence ending plays first, then the run summary.
+      this.goToEnding();
       return;
     } else if (status === 'strand_event') {
       if (!this.sayWardenLine('post')) this.say('boss_killed');
@@ -1544,6 +1558,34 @@ export class GameScene extends Phaser.Scene {
 
   /** T-196/T-197: hand off to the "What You Became" + meta-rewards summary. */
   private goToPostRun(won: boolean): void {
+    this.scene.start('PostRunScene', this.buildRunSummary(won) as unknown as Record<string, unknown>);
+  }
+
+  /** T-309 (GDD §2.8): a won run plays its Convergence ending first — the
+   *  build's mutations pick which of the five — then hands the summary on. */
+  private goToEnding(): void {
+    const summary = this.buildRunSummary(true);
+    const snap = this.session.snapshot;
+    const dominants = (snap.player.dominantTraits ?? []) as MutationFamily[];
+    const ownedFamilies = snap.player.mutations.flatMap((id) => {
+      const def = this.mutationPool.find((m) => m.id === id);
+      return def === undefined ? [] : [def.family];
+    });
+    const ending = pickEnding(this.endings, dominants, ownedFamilies);
+    if (ending === null) {
+      // No ending content (bundle-gated; belt and braces) — straight to summary.
+      this.scene.start('PostRunScene', summary as unknown as Record<string, unknown>);
+      return;
+    }
+    logEvent('run_end_sequence', { endingId: ending.id });
+    this.scene.start('EndingScene', {
+      summary: summary as unknown as Record<string, unknown>,
+      title: ending.title,
+      lines: [...ending.lines],
+    });
+  }
+
+  private buildRunSummary(won: boolean): RunSummaryData {
     const snap = this.session.snapshot;
     const names = snap.player.mutations.map((id) => {
       const def = this.mutationPool.find((m) => m.id === id);
@@ -1592,7 +1634,7 @@ export class GameScene extends Phaser.Scene {
       reviveAvailable: !won && !this.reviveUsed && this.deathCause !== 'surrender',
       organismName,
     };
-    this.scene.start('PostRunScene', summary as unknown as Record<string, unknown>);
+    return summary;
   }
 
   /** Returns the mutation family the player has the most mutations in (fallback for no dominant trait). */

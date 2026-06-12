@@ -172,6 +172,8 @@ Floor 20 culminates in **the Convergence** — a chamber at the deepest point of
 
 Endings are not "good" or "bad." They are different answers to the question LACE has been asking the whole time.
 
+> **Amended 2026-06-12 (T-309):** the five endings are shipped, one per mutation family — *The Ocean Remembers* (Abyssal), *The Network Answers* (Mycelial), *The Mountain's Patience* (Lithic), *The Absence at the Bottom* (Voidborn), *The Furnace Speaks* (Thermal) — as content in `packages/content/endings/` (six LACE beats each, voice-gated). Selection: the first active Dominant Trait wins; otherwise the most-stacked family (FAMILY_RING order breaks ties); a mutationless victory reads as Abyssal — the unchanged diver who reached the bottom of an ocean. The Warden kill routes Victory → EndingScene (beats revealed tap by tap) → the "What You Became" summary; `run_end_sequence.endingId` is logged.
+
 ---
 
 ## Section 3 — Core Loop

@@ -9,6 +9,7 @@ import { OriginSelectScene } from '@scenes/OriginSelectScene';
 import { RunPreviewScene } from '@scenes/RunPreviewScene';
 import { FloorTransitionScene } from '@scenes/FloorTransitionScene';
 import { GameScene } from '@scenes/GameScene';
+import { EndingScene } from '@scenes/EndingScene';
 import { PostRunScene } from '@scenes/PostRunScene';
 import { ShareScene } from '@scenes/ShareScene';
 import { SettingsScene } from '@scenes/SettingsScene';
@@ -50,6 +51,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     RunPreviewScene,
     FloorTransitionScene,
     GameScene,
+    EndingScene,
     PostRunScene,
     ShareScene,
     SettingsScene,

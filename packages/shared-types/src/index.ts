@@ -95,6 +95,9 @@ export { CURRENT_ORIGIN_SCHEMA_VERSION } from './origin.js';
 export type { SigmaStrainDef, StrainUnlock, StrainEffect } from './sigma-strain.js';
 export { CURRENT_SIGMA_STRAIN_SCHEMA_VERSION } from './sigma-strain.js';
 
+export type { EndingDef } from './ending.js';
+export { CURRENT_ENDING_SCHEMA_VERSION } from './ending.js';
+
 export {
   MAX_FLOOR,
   ZONE_COUNT,

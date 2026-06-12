@@ -15,6 +15,7 @@ Game content as JSON. See **TDD §8 (Mutation System)**, **§9 (LACE Narrative E
 | `codex/`            | Codex lore entries, one bundle per zone/floor batch | GDD §2.7 |
 | `origins/`          | One JSON file per Origin (10 at Path A launch) | GDD §4.1 |
 | `sigma-strains/`    | One JSON file per Sigma Strain (30 at launch)  | GDD §11.2 |
+| `endings/`          | One JSON file per Convergence ending (5, one per family) | GDD §2.8 |
 
 ## Build order (per GDD Patch 12)
 

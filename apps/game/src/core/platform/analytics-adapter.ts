@@ -27,6 +27,10 @@ export interface EventSchema {
     readonly durationMs: number;
     readonly deathCause?: string;
   };
+  /** A won run's Convergence ending plays (T-309, GDD §2.8). */
+  readonly run_end_sequence: {
+    readonly endingId: string;
+  };
 
   // ── Combat ────────────────────────────────────────────────────────────────
   /** A combat encounter begins. `bossTier` present on boss rooms (DR-008, T-513). */

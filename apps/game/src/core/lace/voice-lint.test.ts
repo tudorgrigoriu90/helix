@@ -117,6 +117,21 @@ describe('Sigma Strain blurbs pass the voice gate — T-306 (strain cards speak 
   });
 });
 
+describe('Ending lines pass the voice gate — T-309 (the Convergence is LACE speaking, GDD §2.8)', () => {
+  it('every ending beat is voice-bible clean', () => {
+    const dir = fileURLToPath(new URL('../../../../../packages/content/endings/', import.meta.url));
+    const lines = readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .flatMap((file) => {
+        const raw = JSON.parse(readFileSync(`${dir}${file}`, 'utf-8')) as { id: string; lines: readonly string[] };
+        return raw.lines.map((text, i) => ({ id: `${raw.id}.${i}`, text }));
+      });
+    expect(lines.length).toBeGreaterThanOrEqual(25); // 5 endings × ≥5 beats
+    const { issues } = lintLaceCorpus(lines);
+    expect(issues, issues.map((i) => `${i.id}: ${i.detail}`).join('\n')).toEqual([]);
+  });
+});
+
 describe('Origin blurbs pass the voice gate — T-301', () => {
   it('every origin blurb is voice-bible clean', () => {
     const dir = fileURLToPath(new URL('../../../../../packages/content/origins/', import.meta.url));

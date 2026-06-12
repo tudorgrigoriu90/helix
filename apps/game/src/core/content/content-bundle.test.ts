@@ -14,6 +14,8 @@ import { parseMutationDef } from './mutation-loader';
 import { parseCodexEntries } from './codex-loader';
 import { parseOriginDef } from './origin-loader';
 import { parseSigmaStrainDef } from './sigma-strain-loader';
+import { parseEndingDef } from './ending-loader';
+import { FAMILY_RING } from '@shared-types/mutation';
 import { parseFloorTemplate } from '../floor-gen';
 import { parseLaceLines } from '../lace';
 import { crossReferenceContent } from './cross-reference';
@@ -216,6 +218,17 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
       .filter((e) => !('percent' in e) && !('amount' in e))
       .map((e) => JSON.stringify(e));
     expect(new Set(binaryKeys).size, 'duplicate binary strain effect').toBe(binaryKeys.length);
+  });
+
+  it('ships exactly 5 Endings — one Convergence per mutation family (T-309, GDD §2.8)', () => {
+    const results = readDir('endings').map((e) => ({ file: e.file, res: parseEndingDef(e.raw) }));
+    for (const { file, res } of results) {
+      expect(res.ok, `${file}: ${res.ok ? '' : res.error.message}`).toBe(true);
+    }
+    const endings = results.flatMap((e) => (e.res.ok ? [e.res.ending] : []));
+    expect(endings).toHaveLength(5);
+    expect(endings.map((e) => e.family).sort()).toEqual([...FAMILY_RING].sort());
+    expect(new Set(endings.map((e) => e.id)).size).toBe(5);
   });
 
   it('the bundle has no dangling cross-references', () => {
