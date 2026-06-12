@@ -256,9 +256,15 @@ forward into the lock.
 - **DR-010 follow-up (workbook v1.2):** delete the VEIN pack SKU row; re-price
   Pass tabs at $4.99/$39.99; replace minutes-saved SKU ratings with the
   cosmetic-attach model; re-run revenue scenarios.
-- **DR-010 follow-up (code):** remove the Shard-revive branch (UFD S033 → ad-only
+- **DR-010 follow-up (code):** ~~remove the Shard-revive branch (UFD S033 → ad-only
   with hidden-offer fallback); remove the VEIN pack from the IAP catalogue /
-  store config; verify `shards.ts` sinks are cosmetics-only.
+  store config; verify `shards.ts` sinks are cosmetics-only~~ **done 2026-06-11
+  (T-532): the live 75-SC revive path in PostRunScene is deleted (ad-only with
+  the E030/E031 fallbacks), `SHARD_REVIVE_COST` removed from `shards.ts` and
+  `economy-lock.json` (the reconciliation test now asserts no revive sink can
+  reappear), and the typed IAP catalog (`core/monetization/catalog.ts`) is
+  structurally currency-free — no VEIN SKU slot exists.** Store screens,
+  receipt validation (Blaze), and the native IAP sandbox check remain open.
 - **Conditional-format heat maps / comments** in the workbook are preserved by the
   edit. The Director should open the v1.1 workbook once in Excel to let it
   recompute (fullCalcOnLoad is set) and re-save to Drive, bumping the Drive copy.

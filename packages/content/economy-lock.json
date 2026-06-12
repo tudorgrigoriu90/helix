@@ -21,8 +21,7 @@
   "shards": {
     "perVein": 0.005,
     "dailyRun": 5,
-    "achievement": 10,
-    "reviveCost": 75
+    "achievement": 10
   },
   "dispenser": {
     "baseVein": 40,

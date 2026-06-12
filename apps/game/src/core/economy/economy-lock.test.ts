@@ -10,7 +10,6 @@ import {
   SHARD_PER_VEIN,
   SHARD_DAILY_RUN,
   SHARD_ACHIEVEMENT,
-  SHARD_REVIVE_COST,
 } from './shards';
 import {
   BASE_DISPENSER_VEIN,
@@ -52,7 +51,6 @@ interface EconomyLock {
     readonly perVein: number;
     readonly dailyRun: number;
     readonly achievement: number;
-    readonly reviveCost: number;
   };
   readonly dispenser: {
     readonly baseVein: number;
@@ -99,11 +97,12 @@ describe('economy ↔ lock reconciliation — T-522', () => {
     }
   });
 
-  it('Shard earn rates and revive cost match the lock', () => {
+  it('Shard earn rates match the lock — and no revive sink exists (DR-010)', () => {
     expect(SHARD_PER_VEIN).toBe(lock.shards.perVein);
     expect(SHARD_DAILY_RUN).toBe(lock.shards.dailyRun);
     expect(SHARD_ACHIEVEMENT).toBe(lock.shards.achievement);
-    expect(SHARD_REVIVE_COST).toBe(lock.shards.reviveCost);
+    // DR-010: Shards are cosmetics-only — a revive cost may never reappear.
+    expect((lock.shards as Record<string, unknown>)['reviveCost']).toBeUndefined();
   });
 
   it('Dispenser pricing drivers match the lock', () => {

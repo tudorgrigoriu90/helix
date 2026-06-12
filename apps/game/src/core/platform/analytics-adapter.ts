@@ -133,9 +133,9 @@ export interface EventSchema {
   };
   /** Tutorial completed. */
   readonly tutorial_complete: Record<string, never>;
-  /** Revive offer accepted. */
+  /** Revive offer accepted — rewarded ad only (DR-010; the Shard path is removed). */
   readonly revive_accepted: {
-    readonly method: 'ad' | 'shards';
+    readonly method: 'ad';
   };
 
   // ── Share loop (T-531, DR-011) ────────────────────────────────────────────

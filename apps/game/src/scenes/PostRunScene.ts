@@ -79,7 +79,6 @@ export interface RunSummaryData {
   readonly organismName: string;
 }
 
-const REVIVE_SC_COST = 75;
 
 const DEFAULT_SUMMARY: RunSummaryData = {
   meta: newMetaState(),
@@ -367,26 +366,18 @@ export class PostRunScene extends Phaser.Scene {
       this.add.text(CX, btnY + 14, reason, {
         fontFamily: 'monospace', fontSize: '12px', color: C.dim,
       }).setOrigin(0.5, 0).setDepth(13);
-      this.add.text(CX, btnY + 32, 'use Shard Crystals below', {
+      this.add.text(CX, btnY + 32, 'the VEIN offers no other way back', {
         fontFamily: 'monospace', fontSize: '9px', color: C.dim,
       }).setOrigin(0.5, 0).setDepth(13);
     }
 
-    // 75 SC button
-    const shards = this.summary.meta.shardCrystals;
-    const canAfford = shards >= REVIVE_SC_COST;
-    this.buildReviveBtn(
-      btnX, btnY + btnH + 10, btnW, btnH,
-      `${REVIVE_SC_COST} SC`,
-      canAfford ? `balance: ${shards.toFixed(0)} SC` : 'not enough Shard Crystals',
-      canAfford ? C.goldN : 0x555566,
-      canAfford ? 0x241e00 : 0x0e1626,
-      12,
-      canAfford ? () => { this.doScRevive(); } : null,
-    );
+    // DR-010 (T-532): the 75-Shard revive path is removed — the revive is
+    // rewarded-ad ONLY, with the E030/E031 fallbacks above. Money (and the
+    // currencies money could ever touch) never buys survival; Shard Crystals
+    // are a cosmetics-only currency (GDD §6.7/§15.5, UFD S033).
 
     // DECLINE
-    this.add.text(CX, btnY + btnH * 2 + 32, 'DECLINE — lose this run', {
+    this.add.text(CX, btnY + btnH + 32, 'DECLINE — lose this run', {
       fontFamily: 'monospace', fontSize: '11px', color: C.dim,
     }).setOrigin(0.5).setDepth(12).setInteractive({ useHandCursor: true })
       .on('pointerdown', () => this.scene.start('HubScene', { meta: this.summary.meta }))
@@ -433,8 +424,8 @@ export class PostRunScene extends Phaser.Scene {
       case 'capped':
       case 'cooldown':
       case 'silent':
-        // E031 / gate refusals: null reward, no popup — the player can still use
-        // the SC path or decline. Stay on the revive panel.
+        // E031 / gate refusals: null reward, no popup — the player can only
+        // decline (DR-010: ad-only revive). Stay on the revive panel.
         return;
     }
   }
@@ -481,15 +472,6 @@ export class PostRunScene extends Phaser.Scene {
     const zone = this.add.zone(bx, by, bw, 34).setOrigin(0, 0)
       .setInteractive({ useHandCursor: true }).setDepth(23);
     zone.on('pointerdown', dismiss);
-  }
-
-  private doScRevive(): void {
-    const updatedMeta: typeof this.summary.meta = {
-      ...this.summary.meta,
-      shardCrystals: this.summary.meta.shardCrystals - REVIVE_SC_COST,
-    };
-    this.summary = { ...this.summary, meta: updatedMeta };
-    this.doRevive();
   }
 
   private doRevive(): void {
