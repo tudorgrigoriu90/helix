@@ -253,6 +253,15 @@ describe('parseMutationDef — T-83 (GDD §5 / TDD §8.1)', () => {
     expectErr(parseMutationDef({ ...valid(), tags: ['ok', 5] }), 'WRONG_TYPE', 'tags');
   });
 
+  // ── Retired SIG-as-cost aliases (T-525, DR-007) ──────────────────────────
+
+  it('rejects the retired sigCost / sigGrant aliases outright', () => {
+    expectErr(parseMutationDef({ ...valid(), sigCost: 10 }), 'INVALID_VALUE', 'sigCost');
+    expectErr(parseMutationDef({ ...valid(), sigGrant: 5 }), 'INVALID_VALUE', 'sigGrant');
+    // …even alongside a perfectly valid sigBonus — the alias itself is the defect.
+    expectErr(parseMutationDef({ ...valid(), sigBonus: 10, sigCost: 25 }), 'INVALID_VALUE', 'sigCost');
+  });
+
   // ── Purity ───────────────────────────────────────────────────────────────
 
   it('does not mutate the input', () => {
