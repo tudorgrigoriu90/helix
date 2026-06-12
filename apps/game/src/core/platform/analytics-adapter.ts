@@ -137,6 +137,18 @@ export interface EventSchema {
   readonly revive_accepted: {
     readonly method: 'ad' | 'shards';
   };
+
+  // ── Share loop (T-531, DR-011) ────────────────────────────────────────────
+  /** The ShareScene opens (from the post-run share CTA). */
+  readonly share_opened: {
+    readonly format: 'story' | 'square';
+  };
+  /** A share attempt finished — however it left the device. */
+  readonly share_completed: {
+    readonly format: 'story' | 'square';
+    readonly outcome: 'shared' | 'downloaded' | 'copied' | 'cancelled' | 'unavailable';
+    readonly buildMs: number;
+  };
 }
 
 // ── T-248: AnalyticsAdapter interface ────────────────────────────────────────

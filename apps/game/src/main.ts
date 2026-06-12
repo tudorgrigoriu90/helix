@@ -10,6 +10,7 @@ import { RunPreviewScene } from '@scenes/RunPreviewScene';
 import { FloorTransitionScene } from '@scenes/FloorTransitionScene';
 import { GameScene } from '@scenes/GameScene';
 import { PostRunScene } from '@scenes/PostRunScene';
+import { ShareScene } from '@scenes/ShareScene';
 import { SettingsScene } from '@scenes/SettingsScene';
 import { AudioSettingsScene } from '@scenes/AudioSettingsScene';
 import { DisplaySettingsScene } from '@scenes/DisplaySettingsScene';
@@ -50,6 +51,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     FloorTransitionScene,
     GameScene,
     PostRunScene,
+    ShareScene,
     SettingsScene,
     AudioSettingsScene,
     DisplaySettingsScene,

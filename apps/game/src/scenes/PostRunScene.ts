@@ -262,19 +262,20 @@ export class PostRunScene extends Phaser.Scene {
   // ── Buttons ──────────────────────────────────────────────────────────────
 
   private buildButtons(): void {
-    // SHARE stub (Scope 8 — ships with share flow).
+    // SHARE — the S031 "What You Became" pipeline (T-531, DR-011).
     const btY = H - 124;
     const halfW = 150;
     const shareX = CX - halfW - 8;
     const sg = this.add.graphics();
     sg.fillStyle(C.surface).fillRoundedRect(shareX, btY, halfW, 50, 10);
-    sg.lineStyle(1, C.border).strokeRoundedRect(shareX, btY, halfW, 50, 10);
-    this.add.text(shareX + halfW / 2, btY + 18, 'SHARE', {
-      fontFamily: 'monospace', fontSize: '14px', color: C.dim,
-    }).setOrigin(0.5, 0);
-    this.add.text(shareX + halfW / 2, btY + 36, 'soon', {
-      fontFamily: 'monospace', fontSize: '8px', color: C.dim,
-    }).setOrigin(0.5, 0);
+    sg.lineStyle(1.5, 0xa0ffdc, 0.7).strokeRoundedRect(shareX, btY, halfW, 50, 10);
+    this.add.text(shareX + halfW / 2, btY + 25, 'SHARE', {
+      fontFamily: 'monospace', fontSize: '14px', color: C.accent,
+    }).setOrigin(0.5);
+    this.add.zone(shareX, btY, halfW, 50).setOrigin(0, 0).setInteractive({ useHandCursor: true })
+      .on('pointerdown', () => {
+        this.scene.start('ShareScene', { summary: this.summary });
+      });
 
     // Primary CTA — "CONTINUE" opens the S033 revive offer; "RETURN" goes straight to hub.
     const hubX = CX + 8;
