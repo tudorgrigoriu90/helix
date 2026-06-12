@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "lockedAt": "2026-06-11",
+  "source": "docs/Strand Descent — Economy v1.0 Lock.md (v1.1 amendments; DR-007/DR-008 applied; T-502 tier split)",
+  "campaign": {
+    "maxFloor": 20,
+    "zones": 4,
+    "floorsPerZone": 5,
+    "wardenFloors": [5, 10, 15, 20]
+  },
+  "vein": {
+    "perKill": { "grunt": 8, "elite": 25, "floor_boss": 45, "zone_warden": 120 },
+    "perFloorConstant": 50
+  },
+  "dropRates": {
+    "grunt": { "vein": 1, "mod": 0.05, "rareCore": 0, "epicCore": 0 },
+    "elite": { "vein": 1, "mod": 0.3, "rareCore": 0.1, "epicCore": 0 },
+    "floor_boss": { "vein": 1, "mod": 0, "rareCore": 0.6, "epicCore": 0.15 },
+    "zone_warden": { "vein": 1, "mod": 0, "rareCore": 0.6, "epicCore": 0.15 }
+  },
+  "shards": {
+    "perVein": 0.005,
+    "dailyRun": 5,
+    "achievement": 10,
+    "reviveCost": 75
+  },
+  "dispenser": {
+    "baseVein": 40,
+    "rarityMult": { "common": 1, "uncommon": 2.5, "rare": 6, "legendary": 15 },
+    "zonePriceGrowth": 0.5
+  },
+  "xp": {
+    "base": 100,
+    "growth": 0.15,
+    "levelCap": 20,
+    "perKill": { "grunt": 12, "elite": 40, "floor_boss": 200, "zone_warden": 200 }
+  },
+  "sig": {
+    "cap": 40,
+    "strandBonus": 10,
+    "laceEventBonus": 5
+  }
+}

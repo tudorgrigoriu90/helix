@@ -199,6 +199,13 @@ README explicitly forbids editing a formula to make the answer prettier). 8.10 v
 
 ## 6. Code ↔ sheet reconciliation (binding)
 
+> **Machine-checked since 2026-06-11 (T-522).** The driver cells in this table
+> are exported to `packages/content/economy-lock.json`, and
+> `core/economy/economy-lock.test.ts` (wired into `pnpm validate` + CI) asserts
+> the shipped code constants equal it. The table below stays as the human
+> rationale; the JSON is the binding artifact — re-export it whenever the
+> workbook re-locks.
+
 | Domain        | Sheet driver(s)                                   | Code (`core/economy/…`)                | Status |
 | ------------- | ------------------------------------------------- | -------------------------------------- | ------ |
 | Campaign      | max_floor 20, zones 4, floors_per_zone 5, boss/5  | `pricing.ts` FLOORS_PER_ZONE = 5; floor content; `xp.ts` cap 20 | ✔ aligned (was the defect) |
