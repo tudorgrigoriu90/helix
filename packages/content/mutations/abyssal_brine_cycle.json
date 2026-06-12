@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_brine_cycle",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Brine Cycle",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 5
+    }
+  ],
+  "grantsAbility": {
+    "id": "brine_cycle",
+    "apCost": 1,
+    "cooldown": 5,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "pressure",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 2
+  },
+  "lace": "Salt in, sealed flesh out. The ocean has been running this exchange longer than continents.",
+  "tags": [
+    "sustain",
+    "regen"
+  ]
+}

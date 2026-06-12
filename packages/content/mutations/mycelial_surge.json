@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_surge",
+  "family": "mycelial",
+  "tier": "major",
+  "name": "Mycelial Surge",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "mycelial_surge",
+    "apCost": 3,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 16,
+    "damageType": "spore",
+    "intScaling": 0.5,
+    "aoeRadius": 2,
+    "appliesStatus": "infected",
+    "statusDuration": 2
+  },
+  "lace": "The network blooms through every crack at once. The room becomes briefly, intensely fertile.",
+  "tags": [
+    "area",
+    "dot"
+  ]
+}

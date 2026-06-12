@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_mineral_density",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Mineral Density",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 18
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "You weigh what a decision weighs. The floor has started taking you seriously.",
+  "tags": [
+    "tank"
+  ]
+}

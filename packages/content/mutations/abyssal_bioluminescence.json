@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_bioluminescence",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Bioluminescence",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 3
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "You glow now, faintly. Down here, light is a language — and you have begun to lie in it.",
+  "tags": [
+    "utility",
+    "stealth"
+  ]
+}

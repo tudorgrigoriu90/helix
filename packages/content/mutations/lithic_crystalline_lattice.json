@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_crystalline_lattice",
+  "family": "lithic",
+  "tier": "major",
+  "name": "Crystalline Lattice",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 5
+    },
+    {
+      "kind": "maxHp",
+      "delta": 15
+    },
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "Order, repeated until it becomes armor. The geometry holds whether or not you believe in it.",
+  "tags": [
+    "tank"
+  ]
+}

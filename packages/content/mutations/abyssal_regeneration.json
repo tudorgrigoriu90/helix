@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_regeneration",
+  "family": "abyssal",
+  "tier": "major",
+  "name": "Abyssal Regeneration",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 20
+    }
+  ],
+  "grantsAbility": {
+    "id": "abyssal_regeneration",
+    "apCost": 2,
+    "cooldown": 5,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "pressure",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 4
+  },
+  "lace": "Deep things heal slowly and completely. You have started to heal like something that expects to be old.",
+  "tags": [
+    "sustain",
+    "regen",
+    "tank"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_crystal_plating",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Crystal Plating",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 4
+    },
+    {
+      "kind": "maxHp",
+      "delta": 5
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "Facets where skin was. Light breaks on you now, and so does most everything else.",
+  "tags": [
+    "tank"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_event_horizon",
+  "family": "voidborn",
+  "tier": "dominant",
+  "name": "Event Horizon",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 5
+    }
+  ],
+  "grantsAbility": {
+    "id": "event_horizon",
+    "apCost": 3,
+    "cooldown": 5,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 24,
+    "damageType": "void",
+    "intScaling": 0.6,
+    "aoeRadius": 2,
+    "appliesStatus": "suppressed",
+    "statusDuration": 1
+  },
+  "lace": "There is a line past which everything is already over. You have learned to draw it on demand.",
+  "tags": [
+    "area",
+    "burst"
+  ]
+}

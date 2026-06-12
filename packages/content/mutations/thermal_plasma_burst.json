@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_plasma_burst",
+  "family": "thermal",
+  "tier": "major",
+  "name": "Plasma Burst",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "plasma_burst",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 22,
+    "damageType": "thermal",
+    "intScaling": 0.6,
+    "aoeRadius": 1,
+    "appliesStatus": "burn",
+    "statusDuration": 2
+  },
+  "lace": "Matter's fourth opinion, delivered at range. The first three states decline to comment.",
+  "tags": [
+    "area",
+    "burst"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_fault_line",
+  "family": "lithic",
+  "tier": "minor",
+  "name": "Fault Line",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "fault_line",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 12,
+    "damageType": "seismic",
+    "intScaling": 0.4,
+    "aoeRadius": 1,
+    "appliesStatus": "stagger",
+    "statusDuration": 1
+  },
+  "lace": "Every structure carries the memory of where it will break. You have learned to remind them.",
+  "tags": [
+    "area",
+    "control"
+  ]
+}

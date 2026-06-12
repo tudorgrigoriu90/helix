@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_leviathan_grip",
+  "family": "abyssal",
+  "tier": "major",
+  "name": "Leviathan Grip",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 3
+    }
+  ],
+  "grantsAbility": {
+    "id": "leviathan_grip",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "enemy",
+    "baseDamage": 16,
+    "damageType": "pressure",
+    "intScaling": 0.4,
+    "aoeRadius": 0,
+    "appliesStatus": "rooted",
+    "statusDuration": 2
+  },
+  "lace": "Something vast once held the trench floor still with limbs like this. It approves, distantly.",
+  "tags": [
+    "control",
+    "burst"
+  ]
+}

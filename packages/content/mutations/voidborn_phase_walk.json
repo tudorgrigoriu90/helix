@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_phase_walk",
+  "family": "voidborn",
+  "tier": "major",
+  "name": "Phase Walk",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 3
+    }
+  ],
+  "grantsAbility": {
+    "id": "phase_walk",
+    "apCost": 1,
+    "cooldown": 5,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "void",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "phased",
+    "statusDuration": 2
+  },
+  "lace": "Two steps taken somewhere that has no floor. You return before the universe files a complaint.",
+  "tags": [
+    "stealth",
+    "utility"
+  ]
+}

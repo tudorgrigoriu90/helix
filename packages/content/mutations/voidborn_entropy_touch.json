@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_entropy_touch",
+  "family": "voidborn",
+  "tier": "major",
+  "name": "Entropy Touch",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "entropy_touch",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 2,
+    "targetType": "enemy",
+    "baseDamage": 18,
+    "damageType": "void",
+    "intScaling": 0.5,
+    "aoeRadius": 0,
+    "appliesStatus": "fractured",
+    "statusDuration": 2
+  },
+  "lace": "Everything ends. Your fingertips have simply stopped waiting for the schedule.",
+  "tags": [
+    "burst",
+    "debuff"
+  ]
+}

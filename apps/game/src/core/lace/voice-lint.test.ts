@@ -70,6 +70,21 @@ describe('hand-written Warden lines pass the voice gate — T-503', () => {
   });
 });
 
+describe('mutation LACE commentary passes the voice gate — T-302', () => {
+  it('all 66 mutation lace lines are voice-bible clean', () => {
+    const dir = fileURLToPath(new URL('../../../../../packages/content/mutations/', import.meta.url));
+    const lines = readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => {
+        const raw = JSON.parse(readFileSync(`${dir}${file}`, 'utf-8')) as { id: string; lace: string };
+        return { id: raw.id, text: raw.lace };
+      });
+    expect(lines.length).toBeGreaterThanOrEqual(66);
+    const { issues } = lintLaceCorpus(lines);
+    expect(issues, issues.map((i) => `${i.id}: ${i.detail}`).join('\n')).toEqual([]);
+  });
+});
+
 describe('shipped LACE corpus passes the voice gate — T-530', () => {
   it('every shipped line is voice-bible clean', () => {
     const { issues } = lintLaceCorpus(shippedLines());

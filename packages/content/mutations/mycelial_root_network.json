@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_root_network",
+  "family": "mycelial",
+  "tier": "minor",
+  "name": "Root Network",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "root_network",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 6,
+    "damageType": "spore",
+    "intScaling": 0.3,
+    "aoeRadius": 1,
+    "appliesStatus": "rooted",
+    "statusDuration": 2
+  },
+  "lace": "The floor was already threaded. You simply asked it to hold something for you.",
+  "tags": [
+    "control",
+    "area"
+  ]
+}

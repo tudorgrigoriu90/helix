@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_tectonic_shift",
+  "family": "lithic",
+  "tier": "dominant",
+  "name": "Tectonic Shift",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 4
+    },
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 3
+    }
+  ],
+  "grantsAbility": {
+    "id": "tectonic_shift",
+    "apCost": 3,
+    "cooldown": 5,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 26,
+    "damageType": "seismic",
+    "intScaling": 0.5,
+    "aoeRadius": 2,
+    "appliesStatus": "stagger",
+    "statusDuration": 2
+  },
+  "lace": "Continents settle arguments this way. The room is small, but the principle scales down.",
+  "tags": [
+    "area",
+    "burst"
+  ]
+}

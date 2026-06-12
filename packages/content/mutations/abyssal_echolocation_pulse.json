@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_echolocation_pulse",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Echolocation Pulse",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 4
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 1
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "You hear the room answer back. Most of what it says is true.",
+  "tags": [
+    "utility"
+  ]
+}

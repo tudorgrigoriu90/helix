@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_decomposer_touch",
+  "family": "mycelial",
+  "tier": "minor",
+  "name": "Decomposer Touch",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "decomposer_touch",
+    "apCost": 1,
+    "cooldown": 2,
+    "range": 1,
+    "targetType": "enemy",
+    "baseDamage": 10,
+    "damageType": "spore",
+    "intScaling": 0.4,
+    "aoeRadius": 0,
+    "appliesStatus": "infected",
+    "statusDuration": 2
+  },
+  "lace": "Everything returns to the cycle. Your hands have learned to start the paperwork early.",
+  "tags": [
+    "damage",
+    "dot"
+  ]
+}

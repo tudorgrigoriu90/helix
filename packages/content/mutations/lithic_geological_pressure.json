@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_geological_pressure",
+  "family": "lithic",
+  "tier": "major",
+  "name": "Geological Pressure",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": {
+    "id": "geological_pressure",
+    "apCost": 3,
+    "cooldown": 4,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 18,
+    "damageType": "seismic",
+    "intScaling": 0.5,
+    "aoeRadius": 2,
+    "appliesStatus": "crushed",
+    "statusDuration": 1
+  },
+  "lace": "Mountains are made by exactly this, applied for exactly long enough. You apply it faster.",
+  "tags": [
+    "area",
+    "control"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_bastion_core",
+  "family": "lithic",
+  "tier": "dominant",
+  "name": "Bastion Core",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 8
+    },
+    {
+      "kind": "maxHp",
+      "delta": 20
+    }
+  ],
+  "grantsAbility": {
+    "id": "bastion_core",
+    "apCost": 1,
+    "cooldown": 5,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "seismic",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 3
+  },
+  "lace": "Somewhere in your chest is a place that has decided it will not fall. The rest of you is negotiating.",
+  "tags": [
+    "tank",
+    "sustain"
+  ]
+}

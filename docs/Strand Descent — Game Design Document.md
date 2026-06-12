@@ -459,17 +459,28 @@ Full synergy list: **10 combinations** (Appendix A).
 
 Full stat blocks live in Appendix A. Overview:
 
-**ABYSSAL (14):** Minor — Pressure Membrane, Deep Lung, Bioluminescence, Tidal Pull, Echolocation Pulse · Major — Crushing Depth, Abyssal Regeneration, Leviathan Grip · Dominant — Leviathan's Heart, Trench Evolution.
+**ABYSSAL (14):** Minor — Bioluminescence, Brine Cycle, Crush Depth, Deep Lung, Echolocation Pulse, Gill Lattice, Pressure Membrane, Tidal Pull, Undertow · Major — Abyssal Regeneration, Crushing Depth, Leviathan Grip · Dominant — Leviathan's Heart, Trench Evolution.
 
-**MYCELIAL (14):** Minor — Spore Cloud, Root Network, Fungal Skin, Hive Sense, Decomposer Touch · Major — Mycelial Surge, Rewire, Bloom Burst · Dominant — Hive Mind, Symbiotic Core.
+**MYCELIAL (14):** Minor — Decomposer Touch, Fruiting Body, Fungal Skin, Hive Sense, Mycorrhizal Web, Regrowth, Root Network, Spore Cloud, Symbiont Bloom · Major — Bloom Burst, Mycelial Surge, Rewire · Dominant — Hive Mind, Symbiotic Core.
 
-**LITHIC (13):** Minor — Crystal Plating, Mineral Density, Fault Line, Shard Spray, Resonant Core · Major — Crystalline Lattice, Geological Pressure, Obsidian Edge · Dominant — Fortress Form, Tectonic Shift.
+**LITHIC (13):** Minor — Carapace, Counterpoise, Crystal Lattice, Crystal Plating, Fault Line, Fracture Strike, Mineral Density, Seismic Slam · Major — Crystalline Lattice, Geological Pressure, Obsidian Edge · Dominant — Bastion Core, Tectonic Shift.
 
-**VOIDBORN (13):** Minor — Shadow Step, Void Drain, Null Sense, Dark Adaptation, Gravity Slip · Major — Phase Walk, Entropy Touch, Void Anchor · Dominant — Phase Collapse, Null Convergence.
+**VOIDBORN (13):** Minor — Dark Adaptation, Entropy Siphon, Hollow Core, Light Step, Null Field, Null Sense, Phase Skin, Void Drain · Major — Entropy Touch, Phase Walk, Void Anchor · Dominant — Event Horizon, Null Convergence.
 
-**THERMAL (12):** Minor — Heat Skin, Combustion Touch, Accelerated Healing, Thermal Vision, Ignition · Major — Plasma Burst, Cauterize, Flash Point · Dominant — Combustion Engine, Inferno State.
+**THERMAL (12):** Minor — Accelerated Healing, Combustion Sac, Fevered Nerves, Heat Skin, Ignition Gland, Magma Burst, Overclock · Major — Cauterize, Flash Point, Plasma Burst · Dominant — Inferno State, Star Furnace.
 
 **Total: 66 mutations** (Path A scope).
+
+> **AMENDMENT — 2026-06-12 (T-302).** The roster above is the **shipped,
+> canonical 66** (`packages/content/mutations/`, machine-counted by the
+> content-bundle gate: family mix 14/14/13/13/12, tier mix 41 Minor /
+> 15 Major / 10 Dominant). Deviations from the earlier overview sketch: the
+> prototype's 25 Minors (T-289) kept their shipped names; three Dominant-tier
+> mutations were renamed to avoid colliding with the §5.5 Dominant *Trait*
+> names — Fortress Form → **Bastion Core**, Phase Collapse →
+> **Event Horizon**, Combustion Engine → **Star Furnace**. Every entry
+> carries a full stat block (modifiers / active ability / +10 SIG per DR-007 /
+> LACE commentary), and every LACE line passes the T-530 voice gate.
 
 ---
 

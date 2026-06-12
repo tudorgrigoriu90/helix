@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_star_furnace",
+  "family": "thermal",
+  "tier": "dominant",
+  "name": "Star Furnace",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxAp",
+      "delta": 1
+    },
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 5
+    }
+  ],
+  "grantsAbility": {
+    "id": "star_furnace",
+    "apCost": 3,
+    "cooldown": 4,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 24,
+    "damageType": "thermal",
+    "intScaling": 0.6,
+    "aoeRadius": 2,
+    "appliesStatus": "burn",
+    "statusDuration": 3
+  },
+  "lace": "Stars are pressure with ambition. Something in your sternum has acquired both.",
+  "tags": [
+    "area",
+    "scaling"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_null_convergence",
+  "family": "voidborn",
+  "tier": "dominant",
+  "name": "Null Convergence",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 6
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 5
+    },
+    {
+      "kind": "maxAp",
+      "delta": 1
+    }
+  ],
+  "grantsAbility": {
+    "id": "null_convergence",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 4,
+    "targetType": "enemy",
+    "baseDamage": 28,
+    "damageType": "void",
+    "intScaling": 0.5,
+    "aoeRadius": 0,
+    "appliesStatus": null,
+    "statusDuration": 0
+  },
+  "lace": "All the absences you carry, pointed at one place. What remains afterward is tidy.",
+  "tags": [
+    "burst",
+    "scaling"
+  ]
+}

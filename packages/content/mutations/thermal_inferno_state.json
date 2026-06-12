@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_inferno_state",
+  "family": "thermal",
+  "tier": "dominant",
+  "name": "Inferno State",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 8
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 4
+    }
+  ],
+  "grantsAbility": {
+    "id": "inferno_state",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 1,
+    "targetType": "tile",
+    "baseDamage": 20,
+    "damageType": "thermal",
+    "intScaling": 0.5,
+    "aoeRadius": 2,
+    "appliesStatus": "burn",
+    "statusDuration": 2
+  },
+  "lace": "Somewhere behind you, the idea of cooling down files for abandonment.",
+  "tags": [
+    "burst",
+    "speed",
+    "melee"
+  ]
+}

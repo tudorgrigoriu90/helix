@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_void_drain",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Void Drain",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "void_drain",
+    "apCost": 1,
+    "cooldown": 3,
+    "range": 2,
+    "targetType": "enemy",
+    "baseDamage": 12,
+    "damageType": "void",
+    "intScaling": 0.4,
+    "aoeRadius": 0,
+    "appliesStatus": null,
+    "statusDuration": 0
+  },
+  "lace": "A little of what they are crosses over to where things stop being. The ledger does not balance back.",
+  "tags": [
+    "damage"
+  ]
+}

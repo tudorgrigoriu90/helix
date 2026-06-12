@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_accelerated_healing",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Accelerated Healing",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 6
+    }
+  ],
+  "grantsAbility": {
+    "id": "accelerated_healing",
+    "apCost": 1,
+    "cooldown": 4,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "thermal",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 3
+  },
+  "lace": "Your cells burn through repairs the way fires burn through fuel. Both leave a mark.",
+  "tags": [
+    "sustain",
+    "regen"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_null_sense",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Null Sense",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 4
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "You perceive the gaps now — where things are not, and where they are about to not be.",
+  "tags": [
+    "utility"
+  ]
+}

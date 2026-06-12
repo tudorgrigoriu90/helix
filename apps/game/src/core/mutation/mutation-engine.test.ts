@@ -22,7 +22,7 @@ import {
 
 /**
  * T-95 — the cross-cutting QA sweep for the whole Mutation Engine (S-3.4),
- * exercised against the *real shipped content* (the 25 mutations under
+ * exercised against the *real shipped content* (the full 66-mutation roster under
  * packages/content/mutations), not just hand-built fixtures. The per-module
  * suites prove each piece; this proves they hold together end-to-end:
  * every modifier type applies, every family weighting is reachable, draws
@@ -41,10 +41,12 @@ const REAL: MutationDef[] = readdirSync(DIR)
 const ids = (cards: readonly DrawnCard[]): string[] => cards.map((c) => c.mutation.id);
 
 describe('mutation engine — T-95 integration sweep (real content)', () => {
-  it('ships 25 mutations, five per family', () => {
-    expect(REAL).toHaveLength(25);
+  it('ships the full 66-mutation roster with every family represented (T-302)', () => {
+    expect(REAL).toHaveLength(66); // exact family/tier mix pinned by the bundle gate
     for (const f of FAMILY_RING) {
-      expect(REAL.filter((m) => m.family === f)).toHaveLength(5);
+      expect(REAL.filter((m) => m.family === f).length).toBeGreaterThanOrEqual(12);
+      // Minors remain the bulk so early-floor draws (Minor-only) never starve.
+      expect(REAL.filter((m) => m.family === f && m.tier === 'minor').length).toBeGreaterThanOrEqual(5);
     }
   });
 

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_flash_point",
+  "family": "thermal",
+  "tier": "major",
+  "name": "Flash Point",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 6
+    },
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 3
+    }
+  ],
+  "grantsAbility": {
+    "id": "flash_point",
+    "apCost": 1,
+    "cooldown": 2,
+    "range": 1,
+    "targetType": "enemy",
+    "baseDamage": 20,
+    "damageType": "thermal",
+    "intScaling": 0.4,
+    "aoeRadius": 0,
+    "appliesStatus": "burn",
+    "statusDuration": 2
+  },
+  "lace": "The moment before ignition, stretched into a fighting style.",
+  "tags": [
+    "speed",
+    "burst"
+  ]
+}

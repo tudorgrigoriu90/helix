@@ -145,6 +145,28 @@ describe('content bundle — T-288 (pnpm validate gate)', () => {
     }
   });
 
+  it('ships the full 66-mutation roster — family and tier mix locked (T-302, GDD §5.7)', () => {
+    expect(mutations).toHaveLength(66);
+    const byFamily = new Map<string, number>();
+    const byTier = new Map<string, number>();
+    for (const m of mutations) {
+      byFamily.set(m.family, (byFamily.get(m.family) ?? 0) + 1);
+      byTier.set(m.tier, (byTier.get(m.tier) ?? 0) + 1);
+    }
+    expect(Object.fromEntries(byFamily)).toEqual({
+      abyssal: 14, mycelial: 14, lithic: 13, voidborn: 13, thermal: 12,
+    });
+    expect(Object.fromEntries(byTier)).toEqual({ minor: 41, major: 15, dominant: 10 });
+    // Dominant-tier cards only enter draws at floor 15 (GDD §5.4 Rule 3) —
+    // every family must field at least one so deep draws never starve.
+    for (const family of ['abyssal', 'mycelial', 'lithic', 'voidborn', 'thermal']) {
+      expect(
+        mutations.filter((m) => m.family === family && m.tier === 'dominant').length,
+        `${family} dominant-tier coverage`,
+      ).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('the bundle has no dangling cross-references', () => {
     const errors = crossReferenceContent({ enemies, items, floors, mutations });
     expect(errors, errors.map((e) => e.message).join('\n')).toEqual([]);

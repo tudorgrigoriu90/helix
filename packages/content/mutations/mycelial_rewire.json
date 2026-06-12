@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_rewire",
+  "family": "mycelial",
+  "tier": "major",
+  "name": "Rewire",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 5
+    }
+  ],
+  "grantsAbility": {
+    "id": "rewire",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "enemy",
+    "baseDamage": 0,
+    "damageType": "spore",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "stagger",
+    "statusDuration": 2
+  },
+  "lace": "A thought leaves its owner, takes a wrong turn through your threads, and arrives somewhere useless.",
+  "tags": [
+    "control"
+  ]
+}

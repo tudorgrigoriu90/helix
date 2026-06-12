@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_dark_adaptation",
+  "family": "voidborn",
+  "tier": "minor",
+  "name": "Dark Adaptation",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 3
+    },
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "The dark stopped being an absence for you. It is a medium now, and you move well in it.",
+  "tags": [
+    "stealth"
+  ]
+}

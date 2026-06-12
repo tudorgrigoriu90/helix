@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_cauterize",
+  "family": "thermal",
+  "tier": "major",
+  "name": "Cauterize",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 4
+    }
+  ],
+  "grantsAbility": {
+    "id": "cauterize",
+    "apCost": 1,
+    "cooldown": 3,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "thermal",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 2
+  },
+  "lace": "Fire closes what it cannot heal. It is a brutal arithmetic, and it keeps you walking.",
+  "tags": [
+    "sustain",
+    "melee"
+  ]
+}

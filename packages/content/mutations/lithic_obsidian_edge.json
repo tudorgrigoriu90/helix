@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "lithic_obsidian_edge",
+  "family": "lithic",
+  "tier": "major",
+  "name": "Obsidian Edge",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 6
+    }
+  ],
+  "grantsAbility": {
+    "id": "obsidian_edge",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 1,
+    "targetType": "enemy",
+    "baseDamage": 24,
+    "damageType": "physical",
+    "intScaling": 0.3,
+    "aoeRadius": 0,
+    "appliesStatus": null,
+    "statusDuration": 0
+  },
+  "lace": "Volcanic glass takes the sharpest edge matter allows. Yours grew in overnight.",
+  "tags": [
+    "burst",
+    "melee"
+  ]
+}

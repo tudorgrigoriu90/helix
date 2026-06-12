@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_hive_mind",
+  "family": "mycelial",
+  "tier": "dominant",
+  "name": "Hive Mind",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 8
+    },
+    {
+      "kind": "stat",
+      "stat": "agi",
+      "delta": 4
+    },
+    {
+      "kind": "maxHp",
+      "delta": 10
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "You stop being one of you. The committee runs quieter than the self ever did.",
+  "tags": [
+    "utility",
+    "scaling"
+  ]
+}

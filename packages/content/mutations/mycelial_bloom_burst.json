@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_bloom_burst",
+  "family": "mycelial",
+  "tier": "major",
+  "name": "Bloom Burst",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 10
+    }
+  ],
+  "grantsAbility": {
+    "id": "bloom_burst",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 18,
+    "damageType": "spore",
+    "intScaling": 0.4,
+    "aoeRadius": 2,
+    "appliesStatus": null,
+    "statusDuration": 0
+  },
+  "lace": "A season of growth, spent in one breath. The petals are incidental.",
+  "tags": [
+    "area",
+    "burst"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "mycelial_symbiotic_core",
+  "family": "mycelial",
+  "tier": "dominant",
+  "name": "Symbiotic Core",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 25
+    },
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 4
+    }
+  ],
+  "grantsAbility": {
+    "id": "symbiotic_core",
+    "apCost": 1,
+    "cooldown": 4,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "spore",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 4
+  },
+  "lace": "Something small and patient now lives where your fear used to. It pays rent in flesh.",
+  "tags": [
+    "sustain",
+    "regen",
+    "tank"
+  ]
+}

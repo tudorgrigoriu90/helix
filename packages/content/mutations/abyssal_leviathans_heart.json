@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_leviathans_heart",
+  "family": "abyssal",
+  "tier": "dominant",
+  "name": "Leviathan's Heart",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "maxHp",
+      "delta": 30
+    },
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 4
+    }
+  ],
+  "grantsAbility": {
+    "id": "leviathans_heart",
+    "apCost": 1,
+    "cooldown": 5,
+    "range": 0,
+    "targetType": "self",
+    "baseDamage": 0,
+    "damageType": "pressure",
+    "intScaling": 0,
+    "aoeRadius": 0,
+    "appliesStatus": "regenerating",
+    "statusDuration": 5
+  },
+  "lace": "A second pulse settles in under your first. It keeps deeper time.",
+  "tags": [
+    "tank",
+    "sustain",
+    "regen"
+  ]
+}

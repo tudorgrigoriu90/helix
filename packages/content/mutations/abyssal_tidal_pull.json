@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_tidal_pull",
+  "family": "abyssal",
+  "tier": "minor",
+  "name": "Tidal Pull",
+  "sigBonus": 10,
+  "modifiers": [],
+  "grantsAbility": {
+    "id": "tidal_pull",
+    "apCost": 2,
+    "cooldown": 3,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 8,
+    "damageType": "pressure",
+    "intScaling": 0.3,
+    "aoeRadius": 1,
+    "appliesStatus": "rooted",
+    "statusDuration": 1
+  },
+  "lace": "The water remembers being an ocean. For a moment, so does everything standing in it.",
+  "tags": [
+    "control",
+    "area"
+  ]
+}

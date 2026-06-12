@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "thermal_heat_skin",
+  "family": "thermal",
+  "tier": "minor",
+  "name": "Heat Skin",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 3
+    },
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": null,
+  "lace": "Touching you is now a decision with consequences. The VEIN appreciates clear boundaries.",
+  "tags": [
+    "tank",
+    "melee"
+  ]
+}

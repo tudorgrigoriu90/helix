@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "voidborn_void_anchor",
+  "family": "voidborn",
+  "tier": "major",
+  "name": "Void Anchor",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "int",
+      "delta": 4
+    }
+  ],
+  "grantsAbility": {
+    "id": "void_anchor",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 3,
+    "targetType": "tile",
+    "baseDamage": 10,
+    "damageType": "void",
+    "intScaling": 0.3,
+    "aoeRadius": 1,
+    "appliesStatus": "rooted",
+    "statusDuration": 2
+  },
+  "lace": "A point of absolute stillness, pinned where it inconveniences someone. Nothing argues with nothing.",
+  "tags": [
+    "control",
+    "area"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_trench_evolution",
+  "family": "abyssal",
+  "tier": "dominant",
+  "name": "Trench Evolution",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 6
+    },
+    {
+      "kind": "stat",
+      "stat": "str",
+      "delta": 4
+    },
+    {
+      "kind": "maxHp",
+      "delta": 15
+    }
+  ],
+  "grantsAbility": {
+    "id": "trench_evolution",
+    "apCost": 3,
+    "cooldown": 5,
+    "range": 2,
+    "targetType": "tile",
+    "baseDamage": 20,
+    "damageType": "pressure",
+    "intScaling": 0.5,
+    "aoeRadius": 2,
+    "appliesStatus": "suppressed",
+    "statusDuration": 1
+  },
+  "lace": "This is what the bottom of the world makes, given time and reason. You supplied the reason.",
+  "tags": [
+    "tank",
+    "area"
+  ]
+}

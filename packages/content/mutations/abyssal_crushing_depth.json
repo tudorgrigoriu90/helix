@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "abyssal_crushing_depth",
+  "family": "abyssal",
+  "tier": "major",
+  "name": "Crushing Depth",
+  "sigBonus": 10,
+  "modifiers": [
+    {
+      "kind": "stat",
+      "stat": "res",
+      "delta": 2
+    }
+  ],
+  "grantsAbility": {
+    "id": "crushing_depth",
+    "apCost": 2,
+    "cooldown": 4,
+    "range": 2,
+    "targetType": "enemy",
+    "baseDamage": 22,
+    "damageType": "pressure",
+    "intScaling": 0.5,
+    "aoeRadius": 0,
+    "appliesStatus": "crushed",
+    "statusDuration": 1
+  },
+  "lace": "Ten thousand meters of water, folded into a single touch. Few shells are honest enough to survive it.",
+  "tags": [
+    "burst",
+    "control"
+  ]
+}
