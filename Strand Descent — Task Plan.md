@@ -757,7 +757,7 @@ Per-key art status — source: **Kenney Roguelike/RPG pack** (CC0), sliced via
 | T-305 | ~~All 20 floor templates~~ — **DONE 2026-06-07.** `floor_01`–`floor_20` shipped across all four zones (5 floors each: shallows/mycosphere/lithic/convergence), each with a zone-consistent enemy pool, a unique boss, a zone-tuned room mix, and merchant minima ramping per GDD §7.2 (1 on floors 3+, 2 on floors 10+). Driven end-to-end by the per-floor template wiring in `RunSession`/`GameScene` (T-291). `floors.content.test.ts` pins every floor↔zone band and boss uniqueness. | Director | P2       | GDD §7.1   | DONE |
 | T-306 | All 30 Sigma Strains                                   | Director | P2       | GDD §11.2  | |
 | T-307 | All 10 Origins                                         | Director | P2       | GDD §4.1   | |
-| T-308 | All 10 Hybrid Synergies                                | Director | P2       | GDD §5.6   | |
+| T-308 | ~~All 10 Hybrid Synergies~~ — **DONE 2026-06-12** (close-out: shipped complete under T-92 — `HYBRID_SYNERGIES` catalogs all C(5,2)=10 pairs with detection, ring-order canonicalisation, and 8 tests; the 5 GDD-named are `canon: true`. This S-7.4 row duplicated that scope and was never reconciled. **Combat-effect wiring remains deferred** with the E-4 combat work, per the Reality Check note — the catalog descriptions are its authoritative spec.) | Director | P2       | GDD §5.6   | DONE |
 | T-309 | All 5 Endings (Floor 20 Convergence)                   | Director | P2       | GDD §2.8   | |
 | T-310 | All 80 base Codex entries (~6,400 words)               | Director | P2       | GDD §2.7   | |
 
